@@ -1,0 +1,2 @@
+=:                      cannot open `=' (No such file or directory)
+/var/log/samba4/log.%m: cannot open `/var/log/samba4/log.%m' (No such file or directory)

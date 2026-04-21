@@ -21,18 +21,27 @@
     .data-table { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
     .data-table table { margin: 0; }
     .data-table th { background: var(--bg-sidebar); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; border-color: var(--border); }
-    .data-table td { color: var(--text-primary); border-color: var(--border); font-size: 0.85rem; font-family: monospace; vertical-align: middle; }
-    .btn-primary-soft { background: rgba(79,142,247,0.15); border: 1px solid rgba(79,142,247,0.3); color: var(--accent); padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; }
-    .btn-danger-soft { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; }
-    .btn-accent { background: var(--accent); border: none; color: white; padding: 8px 20px; border-radius: 8px; font-weight: 600; }
+    .data-table td { color: var(--text-primary); border-color: var(--border); font-size: 0.85rem; vertical-align: middle; }
+    .data-table td.mono { font-family: monospace; }
+    .btn-accent { background: var(--accent); border: none; color: white; padding: 6px 16px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; }
     .btn-accent:hover { opacity: 0.85; color: white; }
+    .btn-danger-soft { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .btn-primary-soft { background: rgba(79,142,247,0.15); border: 1px solid rgba(79,142,247,0.3); color: var(--accent); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
     .modal-content { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); }
-    .modal-header { border-color: var(--border); }
-    .modal-footer { border-color: var(--border); }
+    .modal-header, .modal-footer { border-color: var(--border); }
     .form-control, .form-select { background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-primary); }
     .form-control:focus, .form-select:focus { background: var(--bg-dark); border-color: var(--accent); color: var(--text-primary); box-shadow: none; }
     .form-label { color: var(--text-muted); font-size: 0.85rem; }
+    .form-check-input { background-color: var(--bg-dark); border-color: var(--border); }
     .alert-success-custom { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; border-radius: 8px; padding: 12px 16px; display: none; margin-bottom: 16px; }
+    .alert-error-custom { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #f87171; border-radius: 8px; padding: 12px 16px; display: none; margin-bottom: 16px; }
+    .badge-yes { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; }
+    .badge-no { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; }
+    .nav-tabs { border-color: var(--border); }
+    .nav-tabs .nav-link { color: var(--text-muted); border: none; padding: 10px 20px; }
+    .nav-tabs .nav-link.active { color: var(--accent); border-bottom: 2px solid var(--accent); background: none; }
+    .nav-tabs .nav-link:hover { color: var(--text-primary); }
+    .samba-status { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; }
   </style>
 </head>
 <body>
@@ -40,47 +49,167 @@
   <div class="main-content">
     <div class="p-4">
 
-      <!-- Alert -->
-      <div id="alert-success" class="alert-success-custom">
-        <i class="bi bi-check-circle me-2"></i><span id="alert-text">Done.</span>
+      <div id="alert-success" class="alert-success-custom"><i class="bi bi-check-circle me-2"></i><span id="alert-text">Done.</span></div>
+      <div id="alert-error" class="alert-error-custom"><i class="bi bi-exclamation-triangle me-2"></i><span id="alert-error-text">Error.</span></div>
+
+      <!-- Tabs -->
+      <ul class="nav nav-tabs mb-4">
+        <li class="nav-item"><a class="nav-link active" href="#" onclick="showTab('pools')"><i class="bi bi-database me-2"></i>ZFS Pools</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('datasets')"><i class="bi bi-hdd me-2"></i>Datasets</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('shares')"><i class="bi bi-folder-fill me-2"></i>SMB Shares</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('users')"><i class="bi bi-people me-2"></i>Users</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('snapshots')"><i class="bi bi-camera me-2"></i>Snapshots</a></li>
+      </ul>
+
+      <!-- ZFS Pools Tab -->
+      <div id="tab-pools">
+        <div id="pools-container"><div class="text-muted">Loading...</div></div>
       </div>
 
-      <!-- Pools -->
-      <div class="section-title"><i class="bi bi-database me-2"></i>ZFS Pools</div>
-      <div id="pools-container"><div class="text-muted">Loading...</div></div>
-
-      <!-- Datasets -->
-      <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
-        <div class="section-title mb-0"><i class="bi bi-hdd me-2"></i>Datasets</div>
-        <button class="btn btn-accent btn-sm" data-bs-toggle="modal" data-bs-target="#createDatasetModal">
-          <i class="bi bi-plus-lg me-1"></i>New Dataset
-        </button>
-      </div>
-      <div class="data-table">
-        <table class="table table-dark table-hover mb-0">
-          <thead>
-            <tr><th>Name</th><th>Used</th><th>Available</th><th>Mountpoint</th><th>Type</th><th>Actions</th></tr>
-          </thead>
-          <tbody id="datasets-body"><tr><td colspan="6" class="text-muted">Loading...</td></tr></tbody>
-        </table>
+      <!-- Datasets Tab -->
+      <div id="tab-datasets" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0"><i class="bi bi-hdd me-2"></i>Datasets</div>
+          <button class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#createDatasetModal">
+            <i class="bi bi-plus-lg me-1"></i>New Dataset
+          </button>
+        </div>
+        <div class="data-table">
+          <table class="table table-dark table-hover mb-0">
+            <thead><tr><th>Name</th><th>Used</th><th>Available</th><th>Mountpoint</th><th>Type</th><th>Actions</th></tr></thead>
+            <tbody id="datasets-body"><tr><td colspan="6" class="text-muted">Loading...</td></tr></tbody>
+          </table>
+        </div>
       </div>
 
-      <!-- Snapshots -->
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="section-title mb-0"><i class="bi bi-camera me-2"></i>Snapshots</div>
-        <button class="btn btn-accent btn-sm" data-bs-toggle="modal" data-bs-target="#createSnapshotModal">
-          <i class="bi bi-plus-lg me-1"></i>New Snapshot
-        </button>
-      </div>
-      <div class="data-table">
-        <table class="table table-dark table-hover mb-0">
-          <thead>
-            <tr><th>Name</th><th>Used</th><th>Refer</th><th>Creation</th><th>Actions</th></tr>
-          </thead>
-          <tbody id="snapshots-body"><tr><td colspan="5" class="text-muted">No snapshots yet</td></tr></tbody>
-        </table>
+      <!-- SMB Shares Tab -->
+      <div id="tab-shares" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="section-title mb-0"><i class="bi bi-folder-fill me-2"></i>SMB Shares</div>
+            <div class="samba-status">
+              <span id="samba-dot" style="width:8px;height:8px;border-radius:50%;background:#64748b;display:inline-block"></span>
+              <span id="samba-status-text" style="color:var(--text-muted)">checking...</span>
+            </div>
+          </div>
+          <button class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#createShareModal">
+            <i class="bi bi-plus-lg me-1"></i>New Share
+          </button>
+        </div>
+        <div class="data-table">
+          <table class="table table-dark table-hover mb-0">
+            <thead><tr><th>Name</th><th>Path</th><th>Comment</th><th>Writable</th><th>Browseable</th><th>Users</th><th>Actions</th></tr></thead>
+            <tbody id="shares-body"><tr><td colspan="7" class="text-muted">Loading...</td></tr></tbody>
+          </table>
+        </div>
       </div>
 
+      <!-- Users Tab -->
+      <div id="tab-users" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0"><i class="bi bi-people me-2"></i>Samba Users</div>
+          <button class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#createUserModal">
+            <i class="bi bi-plus-lg me-1"></i>New User
+          </button>
+        </div>
+        <div class="data-table">
+          <table class="table table-dark table-hover mb-0">
+            <thead><tr><th>Username</th><th>UID</th><th>Info</th><th>Actions</th></tr></thead>
+            <tbody id="users-body"><tr><td colspan="4" class="text-muted">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Snapshots Tab -->
+      <div id="tab-snapshots" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0"><i class="bi bi-camera me-2"></i>Snapshots</div>
+          <button class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#createSnapshotModal">
+            <i class="bi bi-plus-lg me-1"></i>New Snapshot
+          </button>
+        </div>
+        <div class="data-table">
+          <table class="table table-dark table-hover mb-0">
+            <thead><tr><th>Name</th><th>Used</th><th>Refer</th><th>Creation</th><th>Actions</th></tr></thead>
+            <tbody id="snapshots-body"><tr><td colspan="5" class="text-muted">No snapshots yet</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Create Share Modal -->
+  <div class="modal fade" id="createShareModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-folder-fill me-2"></i>New SMB Share</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Share Name</label>
+            <input type="text" class="form-control" id="share-name" placeholder="documents">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Path</label>
+            <input type="text" class="form-control" id="share-path" placeholder="/shares/documents">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Comment (optional)</label>
+            <input type="text" class="form-control" id="share-comment" placeholder="Company documents">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Valid Users (optional, space separated)</label>
+            <input type="text" class="form-control" id="share-users" placeholder="juan maria @grupo">
+          </div>
+          <div class="row mb-3">
+            <div class="col">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="share-writable" checked>
+                <label class="form-check-label form-label" for="share-writable">Writable</label>
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="share-browseable" checked>
+                <label class="form-check-label form-label" for="share-browseable">Browseable</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-accent" onclick="createShare()">Create Share</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create User Modal -->
+  <div class="modal fade" id="createUserModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>New Samba User</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input type="text" class="form-control" id="user-name" placeholder="juan">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-control" id="user-pass" placeholder="••••••••">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-accent" onclick="createUser()">Create User</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -95,7 +224,7 @@
         <div class="modal-body">
           <div class="mb-3">
             <label class="form-label">Dataset Name</label>
-            <input type="text" class="form-control" id="ds-name" placeholder="zroot/data">
+            <input type="text" class="form-control" id="ds-name" placeholder="zroot/shares/documentos">
           </div>
           <div class="mb-3">
             <label class="form-label">Quota (optional)</label>
@@ -154,15 +283,44 @@
     loadTopbar('<i class="bi bi-hdd-stack me-2"></i>File Server')
     startClock()
 
-    function showAlert(msg) {
-      document.getElementById('alert-text').textContent = msg
-      const el = document.getElementById('alert-success')
-      el.style.display = 'block'
-      setTimeout(() => el.style.display = 'none', 3000)
+    // Tab management
+    function showTab(tab) {
+      ['pools','datasets','shares','users','snapshots'].forEach(t => {
+        document.getElementById(`tab-${t}`).style.display = t === tab ? 'block' : 'none'
+      })
+      document.querySelectorAll('.nav-tabs .nav-link').forEach(el => el.classList.remove('active'))
+      event.target.classList.add('active')
+      if (tab === 'shares') { loadShares(); loadSambaStatus() }
+      if (tab === 'users') loadUsers()
+      if (tab === 'snapshots') loadSnapshots()
+      if (tab === 'datasets') loadDatasets()
+      if (tab === 'pools') loadPools()
+    }
+
+    function showAlert(msg, isError = false) {
+      if (isError) {
+        document.getElementById('alert-error-text').textContent = msg
+        document.getElementById('alert-error').style.display = 'block'
+        setTimeout(() => document.getElementById('alert-error').style.display = 'none', 4000)
+      } else {
+        document.getElementById('alert-text').textContent = msg
+        document.getElementById('alert-success').style.display = 'block'
+        setTimeout(() => document.getElementById('alert-success').style.display = 'none', 3000)
+      }
+    }
+
+    const h = { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
+
+    async function loadSambaStatus() {
+      const res = await fetch('/api/samba/status', { headers: h.headers })
+      const data = await res.json()
+      document.getElementById('samba-dot').style.background = data.running ? '#22c55e' : '#ef4444'
+      document.getElementById('samba-status-text').textContent = data.running ? 'Samba running' : 'Samba stopped'
+      document.getElementById('samba-status-text').style.color = data.running ? '#22c55e' : '#ef4444'
     }
 
     async function loadPools() {
-      const res = await fetch('/api/zfs/pools', { headers: { 'Authorization': `Bearer ${token}` } })
+      const res = await fetch('/api/zfs/pools', { headers: h.headers })
       const data = await res.json()
       document.getElementById('pools-container').innerHTML = data.pools.map(p => {
         const capNum = parseInt(p.cap)
@@ -183,39 +341,62 @@
               <div class="progress-fill" style="width:${capNum}%;background:${barColor}"></div>
             </div>
             <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">${p.cap} used</div>
-          </div>
-        `
+          </div>`
       }).join('')
     }
 
     async function loadDatasets() {
-      const res = await fetch('/api/zfs/datasets', { headers: { 'Authorization': `Bearer ${token}` } })
+      const res = await fetch('/api/zfs/datasets', { headers: h.headers })
       const data = await res.json()
-
-      // Populate snapshot dataset select
       const snapSelect = document.getElementById('snap-dataset')
-      snapSelect.innerHTML = data.datasets
-        .filter(d => d.type === 'filesystem')
-        .map(d => `<option value="${d.name}">${d.name}</option>`).join('')
-
+      snapSelect.innerHTML = data.datasets.filter(d => d.type === 'filesystem').map(d => `<option value="${d.name}">${d.name}</option>`).join('')
       document.getElementById('datasets-body').innerHTML = data.datasets.map(d => `
         <tr>
-          <td>${d.name}</td>
-          <td>${d.used}</td>
-          <td>${d.avail}</td>
-          <td>${d.mountpoint}</td>
-          <td><span style="color:var(--text-muted)">${d.type}</span></td>
-          <td>
-            <button class="btn btn-primary-soft me-1" onclick="quickSnapshot('${d.name}')">
-              <i class="bi bi-camera"></i> Snapshot
-            </button>
-          </td>
-        </tr>
-      `).join('')
+          <td class="mono">${d.name}</td>
+          <td>${d.used}</td><td>${d.avail}</td>
+          <td class="mono">${d.mountpoint}</td>
+          <td style="color:var(--text-muted)">${d.type}</td>
+          <td><button class="btn btn-primary-soft" onclick="quickSnapshot('${d.name}')"><i class="bi bi-camera"></i></button></td>
+        </tr>`).join('')
+    }
+
+    async function loadShares() {
+      const res = await fetch('/api/samba/shares', { headers: h.headers })
+      const data = await res.json()
+      if (data.shares.length === 0) {
+        document.getElementById('shares-body').innerHTML = '<tr><td colspan="7" class="text-muted">No shares configured yet</td></tr>'
+        return
+      }
+      document.getElementById('shares-body').innerHTML = data.shares.map(s => `
+        <tr>
+          <td><strong>${s.name}</strong></td>
+          <td class="mono">${s.path || '-'}</td>
+          <td>${s.comment || '-'}</td>
+          <td><span class="${s.writable === 'yes' ? 'badge-yes' : 'badge-no'}">${s.writable || 'no'}</span></td>
+          <td><span class="${s.browseable === 'yes' ? 'badge-yes' : 'badge-no'}">${s.browseable || 'no'}</span></td>
+          <td class="mono">${s['valid users'] || 'all'}</td>
+          <td><button class="btn btn-danger-soft" onclick="deleteShare('${s.name}')"><i class="bi bi-trash"></i></button></td>
+        </tr>`).join('')
+    }
+
+    async function loadUsers() {
+      const res = await fetch('/api/samba/users', { headers: h.headers })
+      const data = await res.json()
+      if (data.users.length === 0) {
+        document.getElementById('users-body').innerHTML = '<tr><td colspan="4" class="text-muted">No Samba users yet</td></tr>'
+        return
+      }
+      document.getElementById('users-body').innerHTML = data.users.map(u => `
+        <tr>
+          <td><i class="bi bi-person me-2" style="color:var(--accent)"></i>${u.username}</td>
+          <td class="mono">${u.uid}</td>
+          <td style="color:var(--text-muted)">${u.info || '-'}</td>
+          <td><button class="btn btn-danger-soft" onclick="deleteUser('${u.username}')"><i class="bi bi-trash"></i></button></td>
+        </tr>`).join('')
     }
 
     async function loadSnapshots() {
-      const res = await fetch('/api/zfs/snapshots', { headers: { 'Authorization': `Bearer ${token}` } })
+      const res = await fetch('/api/zfs/snapshots', { headers: h.headers })
       const data = await res.json()
       if (data.snapshots.length === 0) {
         document.getElementById('snapshots-body').innerHTML = '<tr><td colspan="5" class="text-muted">No snapshots yet</td></tr>'
@@ -223,42 +404,65 @@
       }
       document.getElementById('snapshots-body').innerHTML = data.snapshots.map(s => `
         <tr>
-          <td>${s.name}</td>
-          <td>${s.used}</td>
-          <td>${s.refer}</td>
-          <td>${s.creation}</td>
-          <td>
-            <button class="btn btn-danger-soft" onclick="deleteSnapshot('${s.name}')">
-              <i class="bi bi-trash"></i> Delete
-            </button>
-          </td>
-        </tr>
-      `).join('')
+          <td class="mono">${s.name}</td><td>${s.used}</td><td>${s.refer}</td><td>${s.creation}</td>
+          <td><button class="btn btn-danger-soft" onclick="deleteSnapshot('${s.name}')"><i class="bi bi-trash"></i></button></td>
+        </tr>`).join('')
+    }
+
+    async function createShare() {
+      const name = document.getElementById('share-name').value.trim()
+      const path = document.getElementById('share-path').value.trim()
+      const comment = document.getElementById('share-comment').value.trim()
+      const validUsers = document.getElementById('share-users').value.trim()
+      const writable = document.getElementById('share-writable').checked
+      const browseable = document.getElementById('share-browseable').checked
+      if (!name || !path) return showAlert('Name and path are required', true)
+      const res = await fetch('/api/samba/shares', { method: 'POST', ...h, body: JSON.stringify({ name, path, comment, writable, browseable, validUsers }) })
+      const data = await res.json()
+      bootstrap.Modal.getInstance(document.getElementById('createShareModal')).hide()
+      if (data.success) { showAlert(`Share "${name}" created — accessible at \\\\192.168.1.210\\${name}`); loadShares() }
+      else showAlert(data.error, true)
+    }
+
+    async function deleteShare(name) {
+      if (!confirm(`Delete share "${name}"?`)) return
+      await fetch(`/api/samba/shares/${name}`, { method: 'DELETE', ...h })
+      showAlert(`Share "${name}" deleted`)
+      loadShares()
+    }
+
+    async function createUser() {
+      const username = document.getElementById('user-name').value.trim()
+      const password = document.getElementById('user-pass').value
+      if (!username || !password) return showAlert('Username and password required', true)
+      const res = await fetch('/api/samba/users', { method: 'POST', ...h, body: JSON.stringify({ username, password }) })
+      const data = await res.json()
+      bootstrap.Modal.getInstance(document.getElementById('createUserModal')).hide()
+      if (data.success) { showAlert(`User "${username}" created`); loadUsers() }
+      else showAlert(data.error, true)
+    }
+
+    async function deleteUser(username) {
+      if (!confirm(`Delete user "${username}"?`)) return
+      await fetch(`/api/samba/users/${username}`, { method: 'DELETE', ...h })
+      showAlert(`User "${username}" deleted`)
+      loadUsers()
     }
 
     async function quickSnapshot(dataset) {
       const now = new Date()
       const name = `snap-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`
-      await fetch('/api/zfs/snapshot', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dataset, name })
-      })
+      await fetch('/api/zfs/snapshot', { method: 'POST', ...h, body: JSON.stringify({ dataset, name }) })
       showAlert(`Snapshot ${dataset}@${name} created`)
-      loadSnapshots()
     }
 
     async function createSnapshot() {
       const dataset = document.getElementById('snap-dataset').value
       const name = document.getElementById('snap-name').value.trim()
       if (!name) return
-      await fetch('/api/zfs/snapshot', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dataset, name })
-      })
+      await fetch('/api/zfs/snapshot', { method: 'POST', ...h, body: JSON.stringify({ dataset, name }) })
       bootstrap.Modal.getInstance(document.getElementById('createSnapshotModal')).hide()
-      showAlert(`Snapshot created successfully`)
+      showAlert('Snapshot created')
       loadSnapshots()
     }
 
@@ -267,34 +471,20 @@
       const quota = document.getElementById('ds-quota').value.trim()
       const compression = document.getElementById('ds-compression').value
       if (!name) return
-      const res = await fetch('/api/zfs/dataset', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, quota, compression })
-      })
+      const res = await fetch('/api/zfs/dataset', { method: 'POST', ...h, body: JSON.stringify({ name, quota, compression }) })
       bootstrap.Modal.getInstance(document.getElementById('createDatasetModal')).hide()
-      if (res.ok) {
-        showAlert(`Dataset ${name} created`)
-        loadDatasets()
-        loadPools()
-      }
+      if (res.ok) { showAlert(`Dataset "${name}" created`); loadDatasets(); loadPools() }
     }
 
     async function deleteSnapshot(snapshot) {
       if (!confirm(`Delete snapshot ${snapshot}?`)) return
-      await fetch('/api/zfs/snapshot', {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ snapshot })
-      })
-      showAlert(`Snapshot deleted`)
+      await fetch('/api/zfs/snapshot', { method: 'DELETE', ...h, body: JSON.stringify({ snapshot }) })
+      showAlert('Snapshot deleted')
       loadSnapshots()
     }
 
     loadPools()
     loadDatasets()
-    loadSnapshots()
-    setInterval(() => { loadPools(); loadDatasets(); loadSnapshots() }, 30000)
   </script>
 </body>
 </html>

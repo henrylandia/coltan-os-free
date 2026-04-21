@@ -35,6 +35,7 @@ fastify.register(require('./routes/metrics.routes'))
 fastify.register(require('./routes/network.routes'))
 fastify.register(require('./routes/firewall.routes'))
 fastify.register(require('./routes/zfs.routes'))
+fastify.register(require('./routes/samba.routes'))
 
 // WebSockets
 fastify.register(require('@fastify/websocket'))
