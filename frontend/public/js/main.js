@@ -1,30 +1,28 @@
-// Auth check
 const token = localStorage.getItem('coltan_token')
-const user = JSON.parse(localStorage.getItem('coltan_user') || '{}')
+if (!token) window.location.href = '/login.html'
 
-if (!token) {
-  window.location.href = '/login.html'
+// Firewall status
+async function loadFirewallStatus() {
+  try {
+    const res = await fetch('/api/firewall/status', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    const data = await res.json()
+    const el = document.getElementById('fw-status')
+    if (el) {
+      el.textContent = data.enabled ? 'Enabled' : 'Disabled'
+      el.style.color = data.enabled ? '#22c55e' : '#ef4444'
+    }
+  } catch(e) {}
 }
 
-// Show logged in user
-const usernameEl = document.getElementById('username')
-if (usernameEl) usernameEl.textContent = user.username || 'admin'
-
-// Clock
-function updateClock() {
-  const now = new Date()
-  document.getElementById('clock').textContent = now.toLocaleTimeString()
-}
-setInterval(updateClock, 1000)
-updateClock()
-
-// WebSocket connection
+// WebSocket for metrics
 function connectWS() {
   const ws = new WebSocket(`ws://192.168.1.210:3000/ws/metrics`)
 
   ws.onopen = () => {
-    console.log('WebSocket connected')
-    document.querySelector('.status-dot').style.background = '#22c55e'
+    const dot = document.querySelector('.status-dot')
+    if (dot) dot.style.background = '#22c55e'
   }
 
   ws.onmessage = (event) => {
@@ -32,33 +30,30 @@ function connectWS() {
       const msg = JSON.parse(event.data)
       if (msg.type === 'metrics') {
         const d = msg.data
-        document.getElementById('cpu').textContent = d.cpu
-        document.getElementById('memory').textContent = d.memory
-        document.getElementById('disk').textContent = d.disk
-        document.getElementById('uptime').textContent = d.uptime
+        const cpu = document.getElementById('cpu')
+        const memory = document.getElementById('memory')
+        const disk = document.getElementById('disk')
+        const uptime = document.getElementById('uptime')
+        if (cpu) cpu.textContent = d.cpu
+        if (memory) memory.textContent = d.memory
+        if (disk) disk.textContent = d.disk
+        if (uptime) uptime.textContent = d.uptime
       }
-    } catch(e) {
-      console.error('Error parsing WS message:', e)
-    }
+    } catch(e) {}
   }
 
   ws.onclose = () => {
-    console.log('WebSocket disconnected, reconnecting in 3s...')
-    document.querySelector('.status-dot').style.background = '#ef4444'
+    const dot = document.querySelector('.status-dot')
+    if (dot) dot.style.background = '#ef4444'
     setTimeout(connectWS, 3000)
   }
 
-  ws.onerror = (err) => {
-    console.error('WebSocket error:', err)
-    ws.close()
-  }
+  ws.onerror = () => ws.close()
 }
 
-connectWS()
-
-// Logout
-function logout() {
-  localStorage.removeItem('coltan_token')
-  localStorage.removeItem('coltan_user')
-  window.location.href = '/login.html'
-}
+// Start everything after DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  connectWS()
+  loadFirewallStatus()
+  setInterval(loadFirewallStatus, 10000)
+})

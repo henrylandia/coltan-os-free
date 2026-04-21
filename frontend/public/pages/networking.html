@@ -8,18 +8,9 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
   <link href="../css/main.css" rel="stylesheet">
   <style>
-    .iface-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 16px;
-      transition: border-color 0.2s;
-    }
+    .iface-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; transition: border-color 0.2s; }
     .iface-card:hover { border-color: var(--accent); }
     .iface-name { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
-    .iface-status-active { color: #22c55e; }
-    .iface-status-inactive { color: #ef4444; }
     .iface-detail { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; }
     .iface-detail span { color: var(--text-primary); }
     .badge-active { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); }
@@ -33,54 +24,17 @@
 </head>
 <body>
 
-  <!-- SIDEBAR -->
-  <div class="sidebar">
-    <div class="sidebar-brand">
-      <i class="bi bi-cpu"></i>
-      <span>Coltan OS</span>
-    </div>
-    <nav class="sidebar-nav">
-      <a href="/" class="nav-item"><i class="bi bi-speedometer2"></i> Dashboard</a>
-      <a href="/pages/networking.html" class="nav-item active"><i class="bi bi-shield-check"></i> Networking</a>
-      <a href="#" class="nav-item"><i class="bi bi-hdd-stack"></i> File Server</a>
-      <a href="#" class="nav-item"><i class="bi bi-cloud-arrow-up"></i> Backup</a>
-      <a href="#" class="nav-item"><i class="bi bi-terminal"></i> Console</a>
-      <a href="#" class="nav-item"><i class="bi bi-gear"></i> Settings</a>
-    </nav>
-  </div>
-
-  <!-- MAIN CONTENT -->
   <div class="main-content">
-    <div class="topbar">
-      <div class="topbar-title"><i class="bi bi-shield-check me-2"></i>Networking</div>
-      <div class="topbar-info">
-        <span class="status-dot online"></span>
-        <span id="username">admin</span>
-        <span class="ms-3" id="clock"></span>
-        <button onclick="logout()" class="ms-3 btn btn-sm" style="background:#2d3148;color:#e2e8f0;border:none;border-radius:6px;padding:4px 12px;font-size:0.8rem;">
-          <i class="bi bi-box-arrow-right"></i> Logout
-        </button>
-      </div>
-    </div>
-
     <div class="p-4">
-
-      <!-- Interfaces -->
       <div class="section-title"><i class="bi bi-ethernet me-2"></i>Network Interfaces</div>
-      <div id="interfaces-container">
-        <div class="text-muted">Loading...</div>
-      </div>
+      <div id="interfaces-container"><div class="text-muted">Loading...</div></div>
 
-      <!-- Routes -->
       <div class="section-title mt-4"><i class="bi bi-diagram-3 me-2"></i>Routing Table</div>
       <div class="route-table">
         <table class="table table-dark table-hover mb-0">
           <thead>
             <tr>
-              <th>Destination</th>
-              <th>Gateway</th>
-              <th>Flags</th>
-              <th>Interface</th>
+              <th>Destination</th><th>Gateway</th><th>Flags</th><th>Interface</th>
             </tr>
           </thead>
           <tbody id="routes-body">
@@ -88,91 +42,49 @@
           </tbody>
         </table>
       </div>
-
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../js/sidebar.js"></script>
   <script>
     const token = localStorage.getItem('coltan_token')
-    const user = JSON.parse(localStorage.getItem('coltan_user') || '{}')
     if (!token) window.location.href = '/login.html'
+    loadSidebar('networking')
+    loadTopbar('<i class="bi bi-ethernet me-2"></i>Networking')
+    startClock()
 
-    document.getElementById('username').textContent = user.username || 'admin'
-
-    // Clock
-    function updateClock() {
-      document.getElementById('clock').textContent = new Date().toLocaleTimeString()
-    }
-    setInterval(updateClock, 1000)
-    updateClock()
-
-    // Logout
-    function logout() {
-      localStorage.removeItem('coltan_token')
-      localStorage.removeItem('coltan_user')
-      window.location.href = '/login.html'
-    }
-
-    // Load network info
     async function loadNetwork() {
       try {
-        const res = await fetch('/api/network', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
+        const res = await fetch('/api/network', { headers: { 'Authorization': `Bearer ${token}` } })
         const data = await res.json()
 
-        // Render interfaces
-        const ifaceContainer = document.getElementById('interfaces-container')
-        if (data.interfaces.length === 0) {
-          ifaceContainer.innerHTML = '<div class="text-muted">No interfaces found</div>'
-        } else {
-          ifaceContainer.innerHTML = data.interfaces.map(iface => `
-            <div class="iface-card">
-              <div class="d-flex justify-content-between align-items-center">
-                <div class="iface-name"><i class="bi bi-ethernet me-2"></i>${iface.name}</div>
-                <span class="badge rounded-pill ${iface.status === 'active' ? 'badge-active' : 'badge-inactive'} px-3 py-2">
-                  <i class="bi bi-circle-fill me-1" style="font-size:0.5rem"></i>${iface.status}
-                </span>
-              </div>
-              <div class="row mt-3">
-                <div class="col-md-3">
-                  <div class="iface-detail">IP Address<br><span>${iface.ip || 'Not assigned'}</span></div>
-                </div>
-                <div class="col-md-3">
-                  <div class="iface-detail">MAC Address<br><span>${iface.mac || 'N/A'}</span></div>
-                </div>
-                <div class="col-md-6">
-                  <div class="iface-detail">Media<br><span>${iface.media || 'N/A'}</span></div>
-                </div>
-              </div>
+        document.getElementById('interfaces-container').innerHTML = data.interfaces.map(iface => `
+          <div class="iface-card">
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="iface-name"><i class="bi bi-ethernet me-2"></i>${iface.name}</div>
+              <span class="badge rounded-pill ${iface.status === 'active' ? 'badge-active' : 'badge-inactive'} px-3 py-2">
+                <i class="bi bi-circle-fill me-1" style="font-size:0.5rem"></i>${iface.status}
+              </span>
             </div>
-          `).join('')
-        }
+            <div class="row mt-3">
+              <div class="col-md-3"><div class="iface-detail">IP Address<br><span>${iface.ip || 'Not assigned'}</span></div></div>
+              <div class="col-md-3"><div class="iface-detail">MAC Address<br><span>${iface.mac || 'N/A'}</span></div></div>
+              <div class="col-md-6"><div class="iface-detail">Media<br><span>${iface.media || 'N/A'}</span></div></div>
+            </div>
+          </div>
+        `).join('')
 
-        // Render routes
-        const routesBody = document.getElementById('routes-body')
-        if (data.routes.length === 0) {
-          routesBody.innerHTML = '<tr><td colspan="4" class="text-muted">No routes found</td></tr>'
-        } else {
-          routesBody.innerHTML = data.routes.map(r => `
-            <tr>
-              <td>${r.destination}</td>
-              <td>${r.gateway}</td>
-              <td>${r.flags}</td>
-              <td>${r.interface}</td>
-            </tr>
-          `).join('')
-        }
-
-      } catch(e) {
-        console.error('Error loading network info:', e)
-      }
+        document.getElementById('routes-body').innerHTML = data.routes.map(r => `
+          <tr>
+            <td>${r.destination}</td><td>${r.gateway}</td><td>${r.flags}</td><td>${r.interface}</td>
+          </tr>
+        `).join('')
+      } catch(e) { console.error(e) }
     }
 
     loadNetwork()
     setInterval(loadNetwork, 10000)
   </script>
-
 </body>
 </html>
