@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coltan OS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="css/main.css" rel="stylesheet">
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-brand">
+      <i class="bi bi-cpu"></i>
+      <span>Coltan OS</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active">
+        <i class="bi bi-speedometer2"></i> Dashboard
+      </a>
+      <a href="#" class="nav-item">
+        <i class="bi bi-shield-check"></i> Firewall
+      </a>
+      <a href="#" class="nav-item">
+        <i class="bi bi-hdd-stack"></i> File Server
+      </a>
+      <a href="#" class="nav-item">
+        <i class="bi bi-cloud-arrow-up"></i> Backup
+      </a>
+      <a href="#" class="nav-item">
+        <i class="bi bi-terminal"></i> Console
+      </a>
+      <a href="#" class="nav-item">
+        <i class="bi bi-gear"></i> Settings
+      </a>
+    </nav>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-title">Dashboard</div>
+      <div class="topbar-info">
+        <span class="status-dot online"></span>
+        <span id="hostname">coltanos</span>
+        <span class="ms-3" id="clock"></span>
+      </div>
+    </div>
+
+    <!-- DASHBOARD WIDGETS -->
+    <div class="dashboard p-4">
+      <div class="row g-4">
+
+        <div class="col-md-3">
+          <div class="widget">
+            <div class="widget-icon text-success"><i class="bi bi-cpu"></i></div>
+            <div class="widget-label">CPU</div>
+            <div class="widget-value" id="cpu">--</div>
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <div class="widget">
+            <div class="widget-icon text-info"><i class="bi bi-memory"></i></div>
+            <div class="widget-label">Memory</div>
+            <div class="widget-value" id="memory">--</div>
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <div class="widget">
+            <div class="widget-icon text-warning"><i class="bi bi-hdd"></i></div>
+            <div class="widget-label">Disk</div>
+            <div class="widget-value" id="disk">--</div>
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <div class="widget">
+            <div class="widget-icon text-primary"><i class="bi bi-activity"></i></div>
+            <div class="widget-label">Uptime</div>
+            <div class="widget-value" id="uptime">--</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

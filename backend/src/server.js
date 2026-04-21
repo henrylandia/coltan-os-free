@@ -1,17 +1,16 @@
 'use strict'
 
 const fastify = require('fastify')({ logger: true })
+const path = require('path')
 
-// Register routes
-fastify.get('/', async (request, reply) => {
-  return { 
-    name: 'Coltan OS',
-    version: '0.1.0',
-    status: 'online'
-  }
+// Serve frontend
+fastify.register(require('@fastify/static'), {
+  root: path.join(__dirname, '../../frontend/public'),
+  prefix: '/'
 })
 
-fastify.get('/health', async (request, reply) => {
+// API routes
+fastify.get('/api/health', async (request, reply) => {
   return {
     status: 'ok',
     uptime: process.uptime(),
@@ -19,11 +18,19 @@ fastify.get('/health', async (request, reply) => {
   }
 })
 
-// Start server
+fastify.get('/api/status', async (request, reply) => {
+  return {
+    name: 'Coltan OS',
+    version: '0.1.0',
+    status: 'online'
+  }
+})
+
+// Start
 const start = async () => {
   try {
     await fastify.listen({ port: 3000, host: '0.0.0.0' })
-    console.log('Coltan OS backend running on port 3000')
+    console.log('Coltan OS running on port 3000')
   } catch (err) {
     fastify.log.error(err)
     process.exit(1)
