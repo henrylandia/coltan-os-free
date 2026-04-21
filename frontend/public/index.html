@@ -7,12 +7,34 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
   <link href="css/main.css" rel="stylesheet">
+  <style>
+    .module-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.1s;
+    }
+    .module-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .module-icon { font-size: 1.8rem; margin-bottom: 8px; }
+    .module-title { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .module-status { font-size: 1rem; font-weight: 700; margin-top: 4px; }
+    .module-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+    .status-online { color: #22c55e; }
+    .status-offline { color: #ef4444; }
+    .status-warning { color: #f59e0b; }
+    .status-disabled { color: #64748b; }
+    .status-none { color: #64748b; }
+  </style>
 </head>
 <body>
 
   <div class="main-content">
     <div class="dashboard p-4">
-      <div class="row g-4">
+
+      <!-- Metrics Row -->
+      <div class="row g-4 mb-4">
         <div class="col-md-3">
           <div class="widget">
             <div class="widget-icon text-success"><i class="bi bi-cpu"></i></div>
@@ -43,29 +65,58 @@
         </div>
       </div>
 
-      <div class="row g-4 mt-2">
-        <div class="col-md-4">
-          <div class="widget" style="cursor:pointer" onclick="window.location.href='/pages/networking.html'">
-            <div class="widget-icon text-info"><i class="bi bi-ethernet"></i></div>
-            <div class="widget-label">Networking</div>
-            <div class="widget-value" style="font-size:1rem">View →</div>
+      <!-- Modules Row -->
+      <div class="row g-4">
+        <div class="col-md-3">
+          <div class="module-card" onclick="window.location.href='/pages/networking.html'">
+            <div class="module-icon">🌐</div>
+            <div class="module-title">Networking</div>
+            <div class="module-status status-online">Active</div>
+            <div class="module-sub" id="net-sub">em0, em1</div>
           </div>
         </div>
-        <div class="col-md-4">
-          <div class="widget" style="cursor:pointer" onclick="window.location.href='/pages/firewall.html'">
-            <div class="widget-icon text-danger"><i class="bi bi-shield-check"></i></div>
-            <div class="widget-label">Firewall</div>
-            <div class="widget-value" style="font-size:1rem" id="fw-status">--</div>
+        <div class="col-md-3">
+          <div class="module-card" onclick="window.location.href='/pages/firewall.html'">
+            <div class="module-icon">🛡️</div>
+            <div class="module-title">Firewall</div>
+            <div class="module-status" id="fw-status">--</div>
+            <div class="module-sub" id="fw-sub">--</div>
           </div>
         </div>
-        <div class="col-md-4">
-          <div class="widget">
-            <div class="widget-icon text-warning"><i class="bi bi-hdd-stack"></i></div>
-            <div class="widget-label">File Server</div>
-            <div class="widget-value" style="font-size:1rem">Coming soon</div>
+        <div class="col-md-3">
+          <div class="module-card" onclick="window.location.href='/pages/fileserver.html'">
+            <div class="module-icon">🗄️</div>
+            <div class="module-title">File Server</div>
+            <div class="module-status" id="fs-status">--</div>
+            <div class="module-sub" id="fs-sub">--</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="module-card" onclick="window.location.href='/pages/backup.html'">
+            <div class="module-icon">💾</div>
+            <div class="module-title">Backup</div>
+            <div class="module-status" id="bk-status">--</div>
+            <div class="module-sub" id="bk-sub">--</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="module-card" onclick="window.location.href='/pages/console.html'">
+            <div class="module-icon">🖥️</div>
+            <div class="module-title">Console</div>
+            <div class="module-status status-online">Ready</div>
+            <div class="module-sub">Web terminal</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="module-card" onclick="window.location.href='/pages/settings.html'">
+            <div class="module-icon">⚙️</div>
+            <div class="module-title">Settings</div>
+            <div class="module-status status-online">Configured</div>
+            <div class="module-sub" id="settings-sub">--</div>
           </div>
         </div>
       </div>
+
     </div>
   </div>
 
