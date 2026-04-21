@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coltan OS — Backup</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="../css/main.css" rel="stylesheet">
+  <style>
+    .section-title { font-size: 1rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
+    .nav-tabs { border-color: var(--border); }
+    .nav-tabs .nav-link { color: var(--text-muted); border: none; padding: 10px 20px; }
+    .nav-tabs .nav-link.active { color: var(--accent); border-bottom: 2px solid var(--accent); background: none; }
+    .nav-tabs .nav-link:hover { color: var(--text-primary); }
+    .data-table { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+    .data-table table { margin: 0; }
+    .data-table th { background: var(--bg-sidebar); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; border-color: var(--border); }
+    .data-table td { color: var(--text-primary); border-color: var(--border); font-size: 0.85rem; vertical-align: middle; }
+    .data-table td.mono { font-family: monospace; }
+    .btn-accent { background: var(--accent); border: none; color: white; padding: 6px 16px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; }
+    .btn-accent:hover { opacity: 0.85; color: white; }
+    .btn-danger-soft { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .btn-success-soft { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .btn-warning-soft { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); color: #f59e0b; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .btn-primary-soft { background: rgba(79,142,247,0.15); border: 1px solid rgba(79,142,247,0.3); color: var(--accent); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .modal-content { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); }
+    .modal-header, .modal-footer { border-color: var(--border); }
+    .form-control, .form-select { background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-primary); }
+    .form-control:focus, .form-select:focus { background: var(--bg-dark); border-color: var(--accent); color: var(--text-primary); box-shadow: none; }
+    .form-label { color: var(--text-muted); font-size: 0.85rem; }
+    .alert-success-custom { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; border-radius: 8px; padding: 12px 16px; display: none; margin-bottom: 16px; }
+    .alert-error-custom { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #f87171; border-radius: 8px; padding: 12px 16px; display: none; margin-bottom: 16px; }
+    .badge-success { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; }
+    .badge-error { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; }
+    .badge-pending { background: rgba(100,116,139,0.15); color: #64748b; border: 1px solid rgba(100,116,139,0.3); padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; }
+    .badge-enabled { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; }
+    .badge-disabled { background: rgba(100,116,139,0.15); color: #64748b; border: 1px solid rgba(100,116,139,0.3); padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; }
+    .log-container { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 12px; padding: 16px; font-family: monospace; font-size: 0.8rem; max-height: 500px; overflow-y: auto; }
+    .log-line { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+    .log-success { color: #22c55e; }
+    .log-error { color: #f87171; }
+    .log-info { color: var(--text-muted); }
+    .config-editor { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 12px; color: var(--text-primary); font-family: monospace; font-size: 0.85rem; padding: 16px; width: 100%; min-height: 250px; resize: vertical; }
+    .config-editor:focus { outline: none; border-color: var(--accent); }
+    .dest-type-fields { display: none; }
+    .running-indicator { display: none; align-items: center; gap: 8px; color: var(--accent); font-size: 0.85rem; }
+    .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <div class="main-content">
+    <div class="p-4">
+
+      <div id="alert-success" class="alert-success-custom"><i class="bi bi-check-circle me-2"></i><span id="alert-text">Done.</span></div>
+      <div id="alert-error" class="alert-error-custom"><i class="bi bi-exclamation-triangle me-2"></i><span id="alert-error-text">Error.</span></div>
+
+      <ul class="nav nav-tabs mb-4">
+        <li class="nav-item"><a class="nav-link active" href="#" onclick="showTab('policies', this)"><i class="bi bi-shield-check me-2"></i>Policies</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('snapshots', this)"><i class="bi bi-camera me-2"></i>ZFS Snapshots</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('sanoid', this)"><i class="bi bi-gear me-2"></i>Sanoid Config</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('log', this)"><i class="bi bi-journal-text me-2"></i>Log</a></li>
+      </ul>
+
+      <!-- Policies Tab -->
+      <div id="tab-policies">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0"><i class="bi bi-shield-check me-2"></i>Backup Policies</div>
+          <button class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#createPolicyModal">
+            <i class="bi bi-plus-lg me-1"></i>New Policy
+          </button>
+        </div>
+        <div class="data-table">
+          <table class="table table-dark table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Source</th>
+                <th>Destination</th>
+                <th>Frequency</th>
+                <th>Retention</th>
+                <th>Last Run</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="policies-body">
+              <tr><td colspan="8" class="text-muted">No backup policies yet</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Snapshots Tab -->
+      <div id="tab-snapshots" style="display:none">
+        <div class="section-title"><i class="bi bi-camera me-2"></i>ZFS Snapshots</div>
+        <div class="data-table">
+          <table class="table table-dark table-hover mb-0">
+            <thead><tr><th>Name</th><th>Used</th><th>Refer</th><th>Creation</th></tr></thead>
+            <tbody id="snapshots-body"><tr><td colspan="4" class="text-muted">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Sanoid Config Tab -->
+      <div id="tab-sanoid" style="display:none">
+        <div class="section-title"><i class="bi bi-gear me-2"></i>Sanoid Configuration</div>
+        <textarea class="config-editor" id="sanoid-config" spellcheck="false"></textarea>
+        <div class="mt-3 d-flex gap-2 align-items-center">
+          <button class="btn btn-accent" onclick="saveSanoidConfig()">
+            <i class="bi bi-floppy me-2"></i>Save Config
+          </button>
+          <button class="btn btn-primary-soft" onclick="runSanoid()">
+            <i class="bi bi-play-fill me-1"></i>Run Now
+          </button>
+          <div class="running-indicator" id="sanoid-running">
+            <div class="spinner"></div> Running Sanoid...
+          </div>
+        </div>
+      </div>
+
+      <!-- Log Tab -->
+      <div id="tab-log" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0"><i class="bi bi-journal-text me-2"></i>Backup Log</div>
+          <button class="btn btn-primary-soft" onclick="loadLog()">
+            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+          </button>
+        </div>
+        <div class="log-container" id="log-container">
+          <div class="text-muted">Loading...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Create Policy Modal -->
+  <div class="modal fade" id="createPolicyModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-shield-plus me-2"></i>New Backup Policy</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Policy Name</label>
+              <input type="text" class="form-control" id="pol-name" placeholder="Daily shares backup">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Source Path</label>
+              <input type="text" class="form-control" id="pol-source" placeholder="/shares/documentos">
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Frequency</label>
+              <select class="form-select" id="pol-frequency">
+                <option value="hourly">Hourly</option>
+                <option value="daily" selected>Daily (2:00 AM)</option>
+                <option value="weekly">Weekly (Sunday 2:00 AM)</option>
+                <option value="monthly">Monthly (1st 2:00 AM)</option>
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Keep last N backups</label>
+              <input type="number" class="form-control" id="pol-retention" value="7" min="1" max="365">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Destination Type</label>
+            <select class="form-select" id="pol-dest-type" onchange="updateDestFields()">
+              <option value="local">Local directory</option>
+              <option value="sftp">Remote SFTP/SSH</option>
+            </select>
+          </div>
+
+          <!-- Local fields -->
+          <div id="dest-local">
+            <div class="mb-3">
+              <label class="form-label">Destination Path</label>
+              <input type="text" class="form-control" id="pol-dest-local" placeholder="/backup/documentos">
+            </div>
+          </div>
+
+          <!-- SFTP fields -->
+          <div id="dest-sftp" style="display:none">
+            <div class="mb-3">
+              <label class="form-label">Remote Path (user@host:/path)</label>
+              <input type="text" class="form-control" id="pol-dest-sftp" placeholder="backup@192.168.1.100:/backups/documentos">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Encryption Password</label>
+            <input type="password" class="form-control" id="pol-password" placeholder="Strong password for encrypted backup">
+            <small class="text-muted">This password is required to restore the backup. Keep it safe.</small>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-accent" onclick="createPolicy()">
+            <i class="bi bi-shield-check me-1"></i>Create Policy
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Run output modal -->
+  <div class="modal fade" id="runOutputModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-play-fill me-2"></i>Backup Output</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="log-container" id="run-output" style="min-height:200px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../js/sidebar.js"></script>
+  <script>
+    const token = localStorage.getItem('coltan_token')
+    if (!token) window.location.href = '/login.html'
+    loadSidebar('backup')
+    loadTopbar('<i class="bi bi-cloud-arrow-up me-2"></i>Backup')
+    startClock()
+
+    const h = { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
+
+    function showTab(tab, el) {
+      ['policies','snapshots','sanoid','log'].forEach(t => {
+        document.getElementById(`tab-${t}`).style.display = t === tab ? 'block' : 'none'
+      })
+      document.querySelectorAll('.nav-tabs .nav-link').forEach(e => e.classList.remove('active'))
+      if (el) el.classList.add('active')
+      if (tab === 'snapshots') loadSnapshots()
+      if (tab === 'sanoid') loadSanoidConfig()
+      if (tab === 'log') loadLog()
+      if (tab === 'policies') loadPolicies()
+    }
+
+    function showAlert(msg, isError = false) {
+      if (isError) {
+        document.getElementById('alert-error-text').textContent = msg
+        document.getElementById('alert-error').style.display = 'block'
+        setTimeout(() => document.getElementById('alert-error').style.display = 'none', 4000)
+      } else {
+        document.getElementById('alert-text').textContent = msg
+        document.getElementById('alert-success').style.display = 'block'
+        setTimeout(() => document.getElementById('alert-success').style.display = 'none', 3000)
+      }
+    }
+
+    function updateDestFields() {
+      const type = document.getElementById('pol-dest-type').value
+      document.getElementById('dest-local').style.display = type === 'local' ? 'block' : 'none'
+      document.getElementById('dest-sftp').style.display = type === 'sftp' ? 'block' : 'none'
+    }
+
+    async function loadPolicies() {
+      const res = await fetch('/api/backup/policies', { headers: h.headers })
+      const data = await res.json()
+      const tbody = document.getElementById('policies-body')
+      if (data.policies.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-muted">No backup policies yet — create one to get started</td></tr>'
+        return
+      }
+      tbody.innerHTML = data.policies.map(p => {
+        const statusBadge = p.lastStatus === 'success'
+          ? `<span class="badge-success"><i class="bi bi-check-circle me-1"></i>Success</span>`
+          : p.lastStatus === 'error'
+          ? `<span class="badge-error"><i class="bi bi-x-circle me-1"></i>Failed</span>`
+          : `<span class="badge-pending">Never run</span>`
+
+        const enabledBadge = p.enabled
+          ? `<span class="badge-enabled">Active</span>`
+          : `<span class="badge-disabled">Disabled</span>`
+
+        const lastRun = p.lastRun
+          ? new Date(p.lastRun).toLocaleString()
+          : '—'
+
+        const destDisplay = p.destType === 'sftp'
+          ? `<i class="bi bi-cloud me-1"></i>${p.destPath}`
+          : `<i class="bi bi-hdd me-1"></i>${p.destPath}`
+
+        return `
+          <tr>
+            <td><strong>${p.name}</strong></td>
+            <td class="mono">${p.source}</td>
+            <td class="mono" style="font-size:0.78rem">${destDisplay}</td>
+            <td>${p.frequency}</td>
+            <td>${p.retention} copies</td>
+            <td style="font-size:0.78rem;color:var(--text-muted)">${lastRun}</td>
+            <td>${statusBadge}</td>
+            <td>
+              <div class="d-flex gap-1">
+                <button class="btn btn-success-soft" onclick="runPolicy('${p.id}', '${p.name}')" title="Run now">
+                  <i class="bi bi-play-fill"></i>
+                </button>
+                <button class="btn btn-warning-soft" onclick="togglePolicy('${p.id}')" title="${p.enabled ? 'Disable' : 'Enable'}">
+                  <i class="bi bi-${p.enabled ? 'pause' : 'play'}-fill"></i>
+                </button>
+                <button class="btn btn-danger-soft" onclick="deletePolicy('${p.id}', '${p.name}')" title="Delete">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>`
+      }).join('')
+    }
+
+    async function createPolicy() {
+      const destType = document.getElementById('pol-dest-type').value
+      const destPath = destType === 'local'
+        ? document.getElementById('pol-dest-local').value.trim()
+        : document.getElementById('pol-dest-sftp').value.trim()
+
+      const policy = {
+        name: document.getElementById('pol-name').value.trim(),
+        source: document.getElementById('pol-source').value.trim(),
+        destType,
+        destPath,
+        destPassword: document.getElementById('pol-password').value,
+        frequency: document.getElementById('pol-frequency').value,
+        retention: document.getElementById('pol-retention').value
+      }
+
+      if (!policy.name || !policy.source || !policy.destPath || !policy.destPassword) {
+        return showAlert('All fields are required', true)
+      }
+
+      const res = await fetch('/api/backup/policies', {
+        method: 'POST', ...h, body: JSON.stringify(policy)
+      })
+      const data = await res.json()
+      bootstrap.Modal.getInstance(document.getElementById('createPolicyModal')).hide()
+      if (data.success) { showAlert(`Policy "${policy.name}" created`); loadPolicies() }
+      else showAlert(data.error, true)
+    }
+
+    async function deletePolicy(id, name) {
+      if (!confirm(`Delete policy "${name}"?`)) return
+      await fetch(`/api/backup/policies/${id}`, { method: 'DELETE', ...h })
+      showAlert(`Policy "${name}" deleted`)
+      loadPolicies()
+    }
+
+    async function togglePolicy(id) {
+      const res = await fetch(`/api/backup/policies/${id}/toggle`, { method: 'POST', ...h })
+      const data = await res.json()
+      showAlert(`Policy ${data.enabled ? 'enabled' : 'disabled'}`)
+      loadPolicies()
+    }
+
+    async function runPolicy(id, name) {
+      const modal = new bootstrap.Modal(document.getElementById('runOutputModal'))
+      document.getElementById('run-output').innerHTML = '<div class="text-muted"><div class="spinner d-inline-block me-2"></div>Running backup...</div>'
+      modal.show()
+      const res = await fetch(`/api/backup/policies/${id}/run`, { method: 'POST', ...h })
+      const data = await res.json()
+      const lines = (data.output || data.error || '').split('\n').filter(l => l.trim())
+      document.getElementById('run-output').innerHTML = lines.map(line => {
+        const cls = line.includes('SUCCESS') ? 'log-success' : line.includes('ERROR') ? 'log-error' : 'log-info'
+        return `<div class="log-line ${cls}">${line}</div>`
+      }).join('')
+      loadPolicies()
+    }
+
+    async function loadSnapshots() {
+      const res = await fetch('/api/backup/snapshots', { headers: h.headers })
+      const data = await res.json()
+      document.getElementById('snapshots-body').innerHTML = data.snapshots.length === 0
+        ? '<tr><td colspan="4" class="text-muted">No snapshots</td></tr>'
+        : data.snapshots.map(s => `
+            <tr>
+              <td class="mono">${s.name}</td>
+              <td>${s.used}</td>
+              <td>${s.refer}</td>
+              <td>${s.creation}</td>
+            </tr>`).join('')
+    }
+
+    async function loadSanoidConfig() {
+      const res = await fetch('/api/backup/sanoid/config', { headers: h.headers })
+      const data = await res.json()
+      document.getElementById('sanoid-config').value = data.config
+    }
+
+    async function saveSanoidConfig() {
+      const config = document.getElementById('sanoid-config').value
+      const res = await fetch('/api/backup/sanoid/config', {
+        method: 'POST', ...h, body: JSON.stringify({ config })
+      })
+      if (res.ok) showAlert('Sanoid config saved')
+      else showAlert('Error saving config', true)
+    }
+
+    async function runSanoid() {
+      document.getElementById('sanoid-running').style.display = 'flex'
+      const res = await fetch('/api/backup/sanoid/run', { method: 'POST', ...h })
+      document.getElementById('sanoid-running').style.display = 'none'
+      const data = await res.json()
+      if (data.success) showAlert('Sanoid ran successfully')
+      else showAlert('Sanoid failed: ' + data.error, true)
+    }
+
+    async function loadLog() {
+      const res = await fetch('/api/backup/log', { headers: h.headers })
+      const data = await res.json()
+      const container = document.getElementById('log-container')
+      if (data.log.length === 0) {
+        container.innerHTML = '<div class="text-muted">No log entries yet</div>'
+        return
+      }
+      container.innerHTML = data.log.map(line => {
+        const cls = line.includes('SUCCESS') ? 'log-success' : line.includes('ERROR') ? 'log-error' : 'log-info'
+        return `<div class="log-line ${cls}">${line}</div>`
+      }).join('')
+    }
+
+    // Add sanoid run to backup service
+    async function runSanoidFromService() {
+      try {
+        const { execAsync } = require('child_process')
+        await execAsync('sanoid --cron --verbose 2>&1')
+      } catch(e) {}
+    }
+
+    loadPolicies()
+  </script>
+</body>
+</html>
