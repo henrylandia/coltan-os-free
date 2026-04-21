@@ -33,6 +33,7 @@ fastify.register(require('@fastify/static'), {
 fastify.register(require('./routes/auth.routes'))
 fastify.register(require('./routes/metrics.routes'))
 fastify.register(require('./routes/network.routes'))
+fastify.register(require('./routes/firewall.routes'))
 
 // WebSockets
 fastify.register(require('@fastify/websocket'))
