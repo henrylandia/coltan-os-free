@@ -18,33 +18,43 @@ function updateClock() {
 setInterval(updateClock, 1000)
 updateClock()
 
-// Fetch real metrics from backend
-async function fetchMetrics() {
-  try {
-    const res = await fetch('/api/metrics', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+// WebSocket connection
+function connectWS() {
+  const ws = new WebSocket(`ws://192.168.1.210:3000/ws/metrics`)
 
-    if (res.status === 401) {
-      localStorage.removeItem('coltan_token')
-      window.location.href = '/login.html'
-      return
+  ws.onopen = () => {
+    console.log('WebSocket connected')
+    document.querySelector('.status-dot').style.background = '#22c55e'
+  }
+
+  ws.onmessage = (event) => {
+    try {
+      const msg = JSON.parse(event.data)
+      if (msg.type === 'metrics') {
+        const d = msg.data
+        document.getElementById('cpu').textContent = d.cpu
+        document.getElementById('memory').textContent = d.memory
+        document.getElementById('disk').textContent = d.disk
+        document.getElementById('uptime').textContent = d.uptime
+      }
+    } catch(e) {
+      console.error('Error parsing WS message:', e)
     }
+  }
 
-    const data = await res.json()
+  ws.onclose = () => {
+    console.log('WebSocket disconnected, reconnecting in 3s...')
+    document.querySelector('.status-dot').style.background = '#ef4444'
+    setTimeout(connectWS, 3000)
+  }
 
-    document.getElementById('cpu').textContent = data.cpu
-    document.getElementById('memory').textContent = data.memory
-    document.getElementById('disk').textContent = data.disk
-    document.getElementById('uptime').textContent = data.uptime
-
-  } catch(e) {
-    console.error('Error fetching metrics:', e)
+  ws.onerror = (err) => {
+    console.error('WebSocket error:', err)
+    ws.close()
   }
 }
 
-setInterval(fetchMetrics, 5000)
-fetchMetrics()
+connectWS()
 
 // Logout
 function logout() {
