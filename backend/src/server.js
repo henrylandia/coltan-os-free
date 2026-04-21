@@ -31,6 +31,7 @@ fastify.register(require('@fastify/static'), {
 
 // Public routes
 fastify.register(require('./routes/auth.routes'))
+fastify.register(require('./routes/metrics.routes'))
 
 // Public health
 fastify.get('/api/health', async (request, reply) => {

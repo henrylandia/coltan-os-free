@@ -1,4 +1,4 @@
-// Auth check — redirect to login if no token
+// Auth check
 const token = localStorage.getItem('coltan_token')
 const user = JSON.parse(localStorage.getItem('coltan_user') || '{}')
 
@@ -18,22 +18,33 @@ function updateClock() {
 setInterval(updateClock, 1000)
 updateClock()
 
-// Fetch stats from backend
-async function fetchStats() {
+// Fetch real metrics from backend
+async function fetchMetrics() {
   try {
-    const res = await fetch('/api/health')
+    const res = await fetch('/api/metrics', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+
+    if (res.status === 401) {
+      localStorage.removeItem('coltan_token')
+      window.location.href = '/login.html'
+      return
+    }
+
     const data = await res.json()
-    const uptime = Math.floor(data.uptime)
-    const h = Math.floor(uptime / 3600)
-    const m = Math.floor((uptime % 3600) / 60)
-    const s = uptime % 60
-    document.getElementById('uptime').textContent = `${h}h ${m}m ${s}s`
+
+    document.getElementById('cpu').textContent = data.cpu
+    document.getElementById('memory').textContent = data.memory
+    document.getElementById('disk').textContent = data.disk
+    document.getElementById('uptime').textContent = data.uptime
+
   } catch(e) {
-    document.getElementById('uptime').textContent = 'error'
+    console.error('Error fetching metrics:', e)
   }
 }
-setInterval(fetchStats, 5000)
-fetchStats()
+
+setInterval(fetchMetrics, 5000)
+fetchMetrics()
 
 // Logout
 function logout() {
