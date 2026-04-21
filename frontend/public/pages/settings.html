@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coltan OS — Settings</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="../css/main.css" rel="stylesheet">
+  <style>
+    .nav-tabs { border-color: var(--border); }
+    .nav-tabs .nav-link { color: var(--text-muted); border: none; padding: 10px 20px; }
+    .nav-tabs .nav-link.active { color: var(--accent); border-bottom: 2px solid var(--accent); background: none; }
+    .nav-tabs .nav-link:hover { color: var(--text-primary); }
+    .settings-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+    .settings-card h6 { color: var(--accent); font-weight: 700; margin-bottom: 16px; font-size: 1rem; }
+    .form-control, .form-select { background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-primary); }
+    .form-control:focus, .form-select:focus { background: var(--bg-dark); border-color: var(--accent); color: var(--text-primary); box-shadow: none; }
+    .form-label { color: var(--text-muted); font-size: 0.85rem; }
+    .form-check-input { background-color: var(--bg-dark); border-color: var(--border); }
+    .btn-accent { background: var(--accent); border: none; color: white; padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; }
+    .btn-accent:hover { opacity: 0.85; color: white; }
+    .btn-warning-soft { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); color: #f59e0b; padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; }
+    .btn-primary-soft { background: rgba(79,142,247,0.15); border: 1px solid rgba(79,142,247,0.3); color: var(--accent); padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; }
+    .btn-danger-soft { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; }
+    .alert-success-custom { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; border-radius: 8px; padding: 12px 16px; display: none; margin-bottom: 16px; }
+    .alert-error-custom { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #f87171; border-radius: 8px; padding: 12px 16px; display: none; margin-bottom: 16px; }
+    .sysinfo-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .sysinfo-row:last-child { border-bottom: none; }
+    .sysinfo-label { color: var(--text-muted); font-size: 0.85rem; }
+    .sysinfo-value { color: var(--text-primary); font-size: 0.85rem; font-family: monospace; }
+    .log-container { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.8rem; max-height: 200px; overflow-y: auto; margin-top: 12px; color: var(--text-primary); display: none; }
+    .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .iface-details { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-top: 16px; display: none; }
+    .badge-active { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; }
+    .badge-inactive { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+
+  <div class="main-content">
+    <div class="p-4">
+
+      <div id="alert-success" class="alert-success-custom"><i class="bi bi-check-circle me-2"></i><span id="alert-text">Saved.</span></div>
+      <div id="alert-error" class="alert-error-custom"><i class="bi bi-exclamation-triangle me-2"></i><span id="alert-error-text">Error.</span></div>
+
+      <ul class="nav nav-tabs mb-4">
+        <li class="nav-item"><a class="nav-link active" href="#" onclick="showTab('system', this)"><i class="bi bi-pc-display me-2"></i>System</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('network', this)"><i class="bi bi-ethernet me-2"></i>Network</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('security', this)"><i class="bi bi-shield-lock me-2"></i>Security</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('notifications', this)"><i class="bi bi-bell me-2"></i>Notifications</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('about', this)"><i class="bi bi-info-circle me-2"></i>About</a></li>
+      </ul>
+
+      <!-- System Tab -->
+      <div id="tab-system">
+        <div class="settings-card">
+          <h6><i class="bi bi-pc-display me-2"></i>System Settings</h6>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Hostname</label>
+              <input type="text" class="form-control" id="sys-hostname">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Timezone</label>
+              <select class="form-select" id="sys-timezone">
+                <option value="America/Argentina/Buenos_Aires">America/Argentina/Buenos_Aires</option>
+                <option value="America/New_York">America/New_York</option>
+                <option value="America/Chicago">America/Chicago</option>
+                <option value="America/Los_Angeles">America/Los_Angeles</option>
+                <option value="Europe/London">Europe/London</option>
+                <option value="Europe/Madrid">Europe/Madrid</option>
+                <option value="UTC">UTC</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-accent" onclick="saveSystemSettings()">
+            <i class="bi bi-floppy me-2"></i>Save
+          </button>
+        </div>
+
+        <div class="settings-card">
+          <h6><i class="bi bi-arrow-up-circle me-2"></i>System Updates</h6>
+          <p style="color:var(--text-muted);font-size:0.85rem">Update all system packages. Runs in background.</p>
+          <div class="d-flex gap-2">
+            <button class="btn btn-warning-soft" onclick="runUpdate()" id="update-btn">
+              <i class="bi bi-arrow-up-circle me-2"></i>Update Packages
+            </button>
+            <button class="btn btn-primary-soft" onclick="checkUpdateLog()">
+              <i class="bi bi-journal-text me-2"></i>View Log
+            </button>
+          </div>
+          <div class="log-container" id="update-log"></div>
+        </div>
+      </div>
+
+      <!-- Network Tab -->
+      <div id="tab-network" style="display:none">
+        <div class="settings-card">
+          <h6><i class="bi bi-ethernet me-2"></i>Network Interface Configuration</h6>
+
+          <div class="mb-3">
+            <label class="form-label">Select Interface</label>
+            <select class="form-select" id="iface-select" onchange="loadIfaceDetails()">
+              <option value="">— Select an interface —</option>
+            </select>
+          </div>
+
+          <div class="iface-details" id="iface-details">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div style="font-weight:700;color:var(--accent)" id="iface-detail-name"></div>
+              <span id="iface-detail-status"></span>
+            </div>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label">IP Address</label>
+                <input type="text" class="form-control" id="iface-ip" placeholder="192.168.1.210">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Netmask</label>
+                <input type="text" class="form-control" id="iface-netmask" placeholder="255.255.255.0">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Gateway</label>
+                <input type="text" class="form-control" id="iface-gateway" placeholder="192.168.1.1">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">DNS Server 1</label>
+                <input type="text" class="form-control" id="iface-dns1" placeholder="8.8.8.8">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">DNS Server 2</label>
+                <input type="text" class="form-control" id="iface-dns2" placeholder="1.1.1.1">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">MAC Address</label>
+                <input type="text" class="form-control" id="iface-mac" readonly style="opacity:0.5">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Media</label>
+                <input type="text" class="form-control" id="iface-media" readonly style="opacity:0.5">
+              </div>
+            </div>
+            <div class="mt-4 d-flex gap-2">
+              <button class="btn btn-accent" onclick="saveIfaceConfig()">
+                <i class="bi bi-floppy me-2"></i>Save & Apply
+              </button>
+              <button class="btn btn-primary-soft" onclick="restartNetwork()">
+                <i class="bi bi-arrow-clockwise me-2"></i>Restart Network
+              </button>
+            </div>
+            <small class="text-muted d-block mt-2">⚠️ Changing IP may disconnect your current session</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Security Tab -->
+      <div id="tab-security" style="display:none">
+        <div class="settings-card">
+          <h6><i class="bi bi-shield-lock me-2"></i>Change Admin Password</h6>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Current Password</label>
+              <input type="password" class="form-control" id="sec-current" placeholder="••••••••">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">New Password</label>
+              <input type="password" class="form-control" id="sec-new" placeholder="••••••••">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Confirm Password</label>
+              <input type="password" class="form-control" id="sec-confirm" placeholder="••••••••">
+            </div>
+          </div>
+          <button class="btn btn-accent" onclick="changePassword()">
+            <i class="bi bi-key me-2"></i>Change Password
+          </button>
+        </div>
+      </div>
+
+      <!-- Notifications Tab -->
+      <div id="tab-notifications" style="display:none">
+        <div class="settings-card">
+          <h6><i class="bi bi-envelope me-2"></i>Email Notifications</h6>
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="notif-email-enabled">
+              <label class="form-check-label form-label" for="notif-email-enabled">Enable email notifications</label>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">SMTP Host</label>
+              <input type="text" class="form-control" id="notif-smtp-host" placeholder="smtp.gmail.com">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">SMTP Port</label>
+              <input type="number" class="form-control" id="notif-smtp-port" value="587">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">SMTP User</label>
+              <input type="text" class="form-control" id="notif-smtp-user" placeholder="user@gmail.com">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">SMTP Password</label>
+              <input type="password" class="form-control" id="notif-smtp-pass" placeholder="••••••••">
+            </div>
+            <div class="col-md-12 mb-3">
+              <label class="form-label">Send alerts to</label>
+              <input type="text" class="form-control" id="notif-email-to" placeholder="admin@empresa.com">
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-accent" onclick="saveNotifications()"><i class="bi bi-floppy me-2"></i>Save</button>
+            <button class="btn btn-primary-soft" onclick="testSMTP()"><i class="bi bi-send me-2"></i>Test Connection</button>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h6><i class="bi bi-link-45deg me-2"></i>Webhook Notifications</h6>
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="notif-webhook-enabled">
+              <label class="form-check-label form-label" for="notif-webhook-enabled">Enable webhook</label>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Webhook URL</label>
+            <input type="text" class="form-control" id="notif-webhook-url" placeholder="https://hooks.slack.com/...">
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-accent" onclick="saveNotifications()"><i class="bi bi-floppy me-2"></i>Save</button>
+            <button class="btn btn-primary-soft" onclick="testWebhook()"><i class="bi bi-send me-2"></i>Test Webhook</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- About Tab -->
+      <div id="tab-about" style="display:none">
+        <div class="settings-card">
+          <h6><i class="bi bi-info-circle me-2"></i>System Information</h6>
+          <div id="sysinfo-container"><div class="text-muted">Loading...</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../js/sidebar.js"></script>
+  <script>
+    const token = localStorage.getItem('coltan_token')
+    if (!token) window.location.href = '/login.html'
+    loadSidebar('settings')
+    loadTopbar('<i class="bi bi-gear me-2"></i>Settings')
+    startClock()
+
+    const h = { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
+    let allInterfaces = []
+    let currentGateway = ''
+    let currentDNS = []
+
+    function showTab(tab, el) {
+      ['system','network','security','notifications','about'].forEach(t => {
+        document.getElementById(`tab-${t}`).style.display = t === tab ? 'block' : 'none'
+      })
+      document.querySelectorAll('.nav-tabs .nav-link').forEach(e => e.classList.remove('active'))
+      if (el) el.classList.add('active')
+      if (tab === 'about') loadSysInfo()
+      if (tab === 'network') loadNetworkTab()
+      if (tab === 'notifications') loadNotifications()
+    }
+
+    function showAlert(msg, isError = false) {
+      if (isError) {
+        document.getElementById('alert-error-text').textContent = msg
+        document.getElementById('alert-error').style.display = 'block'
+        setTimeout(() => document.getElementById('alert-error').style.display = 'none', 4000)
+      } else {
+        document.getElementById('alert-text').textContent = msg
+        document.getElementById('alert-success').style.display = 'block'
+        setTimeout(() => document.getElementById('alert-success').style.display = 'none', 3000)
+      }
+    }
+
+    async function loadNetworkTab() {
+      const [netRes, dnsRes] = await Promise.all([
+        fetch('/api/settings/network', { headers: h.headers }),
+        fetch('/api/settings/dns', { headers: h.headers })
+      ])
+      const net = await netRes.json()
+      const dns = await dnsRes.json()
+      allInterfaces = net.interfaces || []
+      currentGateway = net.gateway || ''
+      currentDNS = dns.servers || []
+
+      const select = document.getElementById('iface-select')
+      select.innerHTML = '<option value="">— Select an interface —</option>'
+      allInterfaces.forEach(iface => {
+        const opt = document.createElement('option')
+        opt.value = iface.name
+        opt.textContent = `${iface.name} — ${iface.ip || 'No IP'} (${iface.status})`
+        select.appendChild(opt)
+      })
+    }
+
+    function loadIfaceDetails() {
+      const name = document.getElementById('iface-select').value
+      if (!name) {
+        document.getElementById('iface-details').style.display = 'none'
+        return
+      }
+      const iface = allInterfaces.find(i => i.name === name)
+      if (!iface) return
+
+      document.getElementById('iface-details').style.display = 'block'
+      document.getElementById('iface-detail-name').textContent = iface.name
+      document.getElementById('iface-detail-status').innerHTML =
+        `<span class="${iface.status === 'active' ? 'badge-active' : 'badge-inactive'}">${iface.status}</span>`
+      document.getElementById('iface-ip').value = iface.ip || ''
+      document.getElementById('iface-netmask').value = iface.netmask || '255.255.255.0'
+      document.getElementById('iface-gateway').value = currentGateway
+      document.getElementById('iface-dns1').value = currentDNS[0] || ''
+      document.getElementById('iface-dns2').value = currentDNS[1] || ''
+      document.getElementById('iface-mac').value = iface.mac || ''
+      document.getElementById('iface-media').value = iface.media || ''
+    }
+
+    async function saveIfaceConfig() {
+      const iface = document.getElementById('iface-select').value
+      const ip = document.getElementById('iface-ip').value.trim()
+      const netmask = document.getElementById('iface-netmask').value.trim()
+      const gateway = document.getElementById('iface-gateway').value.trim()
+      const dns1 = document.getElementById('iface-dns1').value.trim()
+      const dns2 = document.getElementById('iface-dns2').value.trim()
+
+      if (!ip || !netmask) return showAlert('IP and netmask are required', true)
+      if (!confirm(`Save config for ${iface}? This may disconnect your session.`)) return
+
+      const servers = [dns1, dns2].filter(s => s)
+      const [ifaceRes, dnsRes] = await Promise.all([
+        fetch('/api/settings/interface', {
+          method: 'POST', ...h,
+          body: JSON.stringify({ iface, ip, netmask, gateway })
+        }),
+        fetch('/api/settings/dns', {
+          method: 'POST', ...h,
+          body: JSON.stringify({ servers })
+        })
+      ])
+
+      if (ifaceRes.ok) showAlert(`Interface ${iface} saved successfully`)
+      else showAlert('Error saving interface config', true)
+    }
+
+    async function restartNetwork() {
+      if (!confirm('Restart network service? This will briefly disconnect the network.')) return
+      try {
+        await fetch('/api/settings/interface', {
+          method: 'POST', ...h,
+          body: JSON.stringify({
+            iface: document.getElementById('iface-select').value,
+            ip: document.getElementById('iface-ip').value,
+            netmask: document.getElementById('iface-netmask').value,
+            gateway: document.getElementById('iface-gateway').value,
+            restart: true
+          })
+        })
+        showAlert('Network restarted')
+      } catch(e) {
+        showAlert('Network restarted (reconnect if needed)')
+      }
+    }
+
+    async function loadSysInfo() {
+      const res = await fetch('/api/settings/sysinfo', { headers: h.headers })
+      const data = await res.json()
+      document.getElementById('sys-hostname').value = data.hostname || ''
+      document.getElementById('sysinfo-container').innerHTML = `
+        <div class="sysinfo-row"><span class="sysinfo-label">Coltan OS Version</span><span class="sysinfo-value">v${data.coltanVersion}</span></div>
+        <div class="sysinfo-row"><span class="sysinfo-label">FreeBSD Version</span><span class="sysinfo-value">${data.freebsdVersion}</span></div>
+        <div class="sysinfo-row"><span class="sysinfo-label">Node.js Version</span><span class="sysinfo-value">${data.nodeVersion}</span></div>
+        <div class="sysinfo-row"><span class="sysinfo-label">Samba Version</span><span class="sysinfo-value">${data.sambaVersion}</span></div>
+        <div class="sysinfo-row"><span class="sysinfo-label">Hostname</span><span class="sysinfo-value">${data.hostname}</span></div>
+        <div class="sysinfo-row"><span class="sysinfo-label">Timezone</span><span class="sysinfo-value">${data.timezone}</span></div>
+        <div class="sysinfo-row"><span class="sysinfo-label">System Uptime</span><span class="sysinfo-value">${data.uptime}</span></div>
+      `
+    }
+
+    async function saveSystemSettings() {
+      const hostname = document.getElementById('sys-hostname').value.trim()
+      const timezone = document.getElementById('sys-timezone').value
+      const [hRes, tRes] = await Promise.all([
+        fetch('/api/settings/hostname', { method: 'POST', ...h, body: JSON.stringify({ hostname }) }),
+        fetch('/api/settings/timezone', { method: 'POST', ...h, body: JSON.stringify({ timezone }) })
+      ])
+      if (hRes.ok && tRes.ok) showAlert('System settings saved')
+      else showAlert('Error saving settings', true)
+    }
+
+    async function changePassword() {
+      const current = document.getElementById('sec-current').value
+      const newPass = document.getElementById('sec-new').value
+      const confirm = document.getElementById('sec-confirm').value
+      if (!current || !newPass || !confirm) return showAlert('All fields required', true)
+      if (newPass !== confirm) return showAlert('Passwords do not match', true)
+      if (newPass.length < 6) return showAlert('Password must be at least 6 characters', true)
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST', ...h,
+        body: JSON.stringify({ currentPassword: current, newPassword: newPass })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        showAlert('Password changed successfully')
+        document.getElementById('sec-current').value = ''
+        document.getElementById('sec-new').value = ''
+        document.getElementById('sec-confirm').value = ''
+      } else {
+        showAlert(data.error || 'Error changing password', true)
+      }
+    }
+
+    async function loadNotifications() {
+      const res = await fetch('/api/settings', { headers: h.headers })
+      const data = await res.json()
+      const n = data.notifications || {}
+      const w = data.webhook || {}
+      document.getElementById('notif-email-enabled').checked = n.emailEnabled || false
+      document.getElementById('notif-smtp-host').value = n.smtpHost || ''
+      document.getElementById('notif-smtp-port').value = n.smtpPort || 587
+      document.getElementById('notif-smtp-user').value = n.smtpUser || ''
+      document.getElementById('notif-smtp-pass').value = n.smtpPass || ''
+      document.getElementById('notif-email-to').value = n.emailTo || ''
+      document.getElementById('notif-webhook-enabled').checked = w.enabled || false
+      document.getElementById('notif-webhook-url').value = w.url || ''
+    }
+
+    async function saveNotifications() {
+      const settings = {
+        notifications: {
+          emailEnabled: document.getElementById('notif-email-enabled').checked,
+          smtpHost: document.getElementById('notif-smtp-host').value,
+          smtpPort: parseInt(document.getElementById('notif-smtp-port').value),
+          smtpUser: document.getElementById('notif-smtp-user').value,
+          smtpPass: document.getElementById('notif-smtp-pass').value,
+          emailTo: document.getElementById('notif-email-to').value
+        },
+        webhook: {
+          enabled: document.getElementById('notif-webhook-enabled').checked,
+          url: document.getElementById('notif-webhook-url').value
+        }
+      }
+      const res = await fetch('/api/settings', { method: 'POST', ...h, body: JSON.stringify(settings) })
+      if (res.ok) showAlert('Notification settings saved')
+      else showAlert('Error saving settings', true)
+    }
+
+    async function testSMTP() {
+      const host = document.getElementById('notif-smtp-host').value
+      const port = document.getElementById('notif-smtp-port').value
+      const user = document.getElementById('notif-smtp-user').value
+      const pass = document.getElementById('notif-smtp-pass').value
+      const to = document.getElementById('notif-email-to').value
+      if (!host || !user || !pass || !to) return showAlert('Fill all SMTP fields first', true)
+      const res = await fetch('/api/settings/test-smtp', {
+        method: 'POST', ...h,
+        body: JSON.stringify({ host, port: parseInt(port), user, pass, to })
+      })
+      const data = await res.json()
+      if (data.success) showAlert('Test email sent successfully!')
+      else showAlert('SMTP test failed: ' + data.error, true)
+    }
+
+    async function testWebhook() {
+      const url = document.getElementById('notif-webhook-url').value
+      if (!url) return showAlert('Enter webhook URL first', true)
+      const res = await fetch('/api/settings/test-webhook', {
+        method: 'POST', ...h,
+        body: JSON.stringify({ url })
+      })
+      const data = await res.json()
+      if (data.success) showAlert('Webhook test sent successfully!')
+      else showAlert('Webhook test failed: ' + data.error, true)
+    }
+
+    async function runUpdate() {
+      const btn = document.getElementById('update-btn')
+      btn.disabled = true
+      btn.innerHTML = '<div class="spinner me-2"></div>Starting...'
+      const res = await fetch('/api/settings/update', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: '{}'
+      })
+      const data = await res.json()
+      btn.disabled = false
+      btn.innerHTML = '<i class="bi bi-arrow-up-circle me-2"></i>Update Packages'
+      if (data.success) {
+        showAlert(data.message)
+        setTimeout(checkUpdateLog, 2000)
+      } else {
+        showAlert(data.error || 'Update failed', true)
+      }
+    }
+
+    async function checkUpdateLog() {
+      const res = await fetch('/api/settings/update/log', { headers: h.headers })
+      const data = await res.json()
+      const el = document.getElementById('update-log')
+      el.style.display = 'block'
+      el.textContent = data.log || 'No log yet'
+      el.scrollTop = el.scrollHeight
+    }
+
+    loadSysInfo()
+  </script>
+</body>
+</html>
