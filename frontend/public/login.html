@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coltan OS — Login</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0f1117;
+      --bg-card: #1a1d27;
+      --accent: #4f8ef7;
+      --border: #2d3148;
+      --text-primary: #e2e8f0;
+      --text-muted: #64748b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .login-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .login-logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .login-logo i {
+      font-size: 3rem;
+      color: var(--accent);
+    }
+
+    .login-logo h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-top: 8px;
+      color: var(--text-primary);
+    }
+
+    .login-logo p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    .form-label {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+    }
+
+    .form-control {
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+
+    .form-control:focus {
+      background: var(--bg-dark);
+      border-color: var(--accent);
+      color: var(--text-primary);
+      box-shadow: 0 0 0 3px rgba(79,142,247,0.15);
+    }
+
+    .btn-login {
+      background: var(--accent);
+      border: none;
+      color: white;
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 1rem;
+      margin-top: 8px;
+      transition: opacity 0.2s;
+    }
+
+    .btn-login:hover { opacity: 0.85; color: white; }
+    .btn-login:disabled { opacity: 0.5; }
+
+    .alert-error {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #f87171;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 0.85rem;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .version {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-top: 24px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-box">
+    <div class="login-logo">
+      <i class="bi bi-cpu"></i>
+      <h1>Coltan OS</h1>
+      <p>Infrastructure Management Platform</p>
+    </div>
+
+    <div class="alert-error" id="errorMsg">
+      <i class="bi bi-exclamation-triangle me-2"></i>
+      <span id="errorText">Invalid credentials</span>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Username</label>
+      <input type="text" class="form-control" id="username" placeholder="admin" autocomplete="username">
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label">Password</label>
+      <input type="password" class="form-control" id="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+
+    <button class="btn btn-login" id="loginBtn" onclick="doLogin()">
+      <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+    </button>
+
+    <div class="version">Coltan OS v0.1.0</div>
+  </div>
+
+  <script>
+    // If already logged in, redirect to dashboard
+    if (localStorage.getItem('coltan_token')) {
+      window.location.href = '/'
+    }
+
+    // Allow Enter key to submit
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') doLogin()
+    })
+
+    async function doLogin() {
+      const username = document.getElementById('username').value.trim()
+      const password = document.getElementById('password').value.trim()
+      const btn = document.getElementById('loginBtn')
+      const errorMsg = document.getElementById('errorMsg')
+      const errorText = document.getElementById('errorText')
+
+      if (!username || !password) {
+        errorText.textContent = 'Please enter username and password'
+        errorMsg.style.display = 'block'
+        return
+      }
+
+      btn.disabled = true
+      btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Signing in...'
+      errorMsg.style.display = 'none'
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        })
+
+        const data = await res.json()
+
+        if (res.ok) {
+          localStorage.setItem('coltan_token', data.token)
+          localStorage.setItem('coltan_user', JSON.stringify(data.user))
+          window.location.href = '/'
+        } else {
+          errorText.textContent = data.error || 'Invalid credentials'
+          errorMsg.style.display = 'block'
+          btn.disabled = false
+          btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-2"></i>Sign In'
+        }
+      } catch (err) {
+        errorText.textContent = 'Connection error — is the server running?'
+        errorMsg.style.display = 'block'
+        btn.disabled = false
+        btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-2"></i>Sign In'
+      }
+    }
+  </script>
+
+</body>
+</html>
