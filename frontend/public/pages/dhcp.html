@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coltan OS — DHCP Server</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="../css/main.css" rel="stylesheet">
+  <style>
+    .nav-tabs { border-color: var(--border); }
+    .nav-tabs .nav-link { color: var(--text-muted); border: none; padding: 10px 20px; }
+    .nav-tabs .nav-link.active { color: var(--accent); border-bottom: 2px solid var(--accent); background: none; }
+    .nav-tabs .nav-link:hover { color: var(--text-primary); }
+    .section-title { font-size: 1rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
+    .data-table { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+    .data-table table { margin: 0; }
+    .data-table th { background: var(--bg-sidebar); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; border-color: var(--border); }
+    .data-table td { color: var(--text-primary); border-color: var(--border); font-size: 0.85rem; vertical-align: middle; }
+    .data-table td.mono { font-family: monospace; }
+    .status-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; }
+    .btn-accent { background: var(--accent); border: none; color: white; padding: 6px 16px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; }
+    .btn-accent:hover { opacity: 0.85; color: white; }
+    .btn-danger-soft { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .btn-success-soft { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; padding: 6px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; }
+    .btn-warning-soft { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); color: #f59e0b; padding: 6px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; }
+    .modal-content { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); }
+    .modal-header, .modal-footer { border-color: var(--border); }
+    .form-control, .form-select { background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-primary); }
+    .form-control:focus, .form-select:focus { background: var(--bg-dark); border-color: var(--accent); color: var(--text-primary); box-shadow: none; }
+    .form-label { color: var(--text-muted); font-size: 0.85rem; }
+    .alert-success-custom { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; border-radius: 8px; padding: 12px 16px; display: none; margin-bottom: 16px; }
+    .alert-error-custom { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #f87171; border-radius: 8px; padding: 12px 16px; display: none; margin-bottom: 16px; }
+    .subnet-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+    .subnet-title { font-size: 1rem; font-weight: 700; color: var(--accent); }
+    .subnet-detail { font-size: 0.82rem; color: var(--text-muted); margin-top: 2px; }
+    .subnet-detail span { color: var(--text-primary); }
+    .lease-active { color: #22c55e; font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+
+  <div class="main-content">
+    <div class="p-4">
+
+      <div id="alert-success" class="alert-success-custom"><i class="bi bi-check-circle me-2"></i><span id="alert-text">Done.</span></div>
+      <div id="alert-error" class="alert-error-custom"><i class="bi bi-exclamation-triangle me-2"></i><span id="alert-error-text">Error.</span></div>
+
+      <!-- Status Card -->
+      <div class="status-card">
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="font-size:2rem">📡</div>
+          <div>
+            <div style="font-size:0.8rem;color:var(--text-muted)">Kea DHCP Server</div>
+            <div style="font-size:1.1rem;font-weight:700" id="kea-status">Checking...</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-success-soft" onclick="startKea()"><i class="bi bi-play-fill me-1"></i>Start</button>
+          <button class="btn btn-warning-soft" onclick="stopKea()"><i class="bi bi-stop-fill me-1"></i>Stop</button>
+        </div>
+      </div>
+
+      <ul class="nav nav-tabs mb-4">
+        <li class="nav-item"><a class="nav-link active" href="#" onclick="showTab('subnets', this)"><i class="bi bi-diagram-3 me-2"></i>Subnets & Pools</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('leases', this)"><i class="bi bi-list-ul me-2"></i>Active Leases</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('reservations', this)"><i class="bi bi-pin-map me-2"></i>Static Reservations</a></li>
+      </ul>
+
+      <!-- Subnets Tab -->
+      <div id="tab-subnets">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0"><i class="bi bi-diagram-3 me-2"></i>DHCP Subnets</div>
+          <button class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#addSubnetModal">
+            <i class="bi bi-plus-lg me-1"></i>Add Subnet
+          </button>
+        </div>
+        <div id="subnets-container"><div class="text-muted">No subnets configured yet</div></div>
+      </div>
+
+      <!-- Leases Tab -->
+      <div id="tab-leases" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0"><i class="bi bi-list-ul me-2"></i>Active Leases</div>
+          <button class="btn btn-accent" onclick="loadLeases()"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+        </div>
+        <div class="data-table">
+          <table class="table table-dark table-hover mb-0">
+            <thead>
+              <tr><th>IP Address</th><th>MAC Address</th><th>Hostname</th><th>Expires</th><th>State</th></tr>
+            </thead>
+            <tbody id="leases-body"><tr><td colspan="5" class="text-muted">No active leases</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Reservations Tab -->
+      <div id="tab-reservations" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0"><i class="bi bi-pin-map me-2"></i>Static Reservations</div>
+          <button class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#addReservationModal">
+            <i class="bi bi-plus-lg me-1"></i>Add Reservation
+          </button>
+        </div>
+        <div class="data-table">
+          <table class="table table-dark table-hover mb-0">
+            <thead>
+              <tr><th>Hostname</th><th>MAC Address</th><th>IP Address</th><th>Subnet</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="reservations-body"><tr><td colspan="5" class="text-muted">No reservations yet</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Add Subnet Modal -->
+  <div class="modal fade" id="addSubnetModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-diagram-3 me-2"></i>Add DHCP Subnet</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Interface</label>
+              <select class="form-select" id="sub-iface">
+                <option value="em0">em0</option>
+                <option value="em1">em1</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Subnet (CIDR)</label>
+              <input type="text" class="form-control" id="sub-subnet" placeholder="192.168.1.0/24">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Pool Start</label>
+              <input type="text" class="form-control" id="sub-pool-start" placeholder="192.168.1.100">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Pool End</label>
+              <input type="text" class="form-control" id="sub-pool-end" placeholder="192.168.1.200">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Gateway (Router)</label>
+              <input type="text" class="form-control" id="sub-gateway" placeholder="192.168.1.1">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">DNS Servers</label>
+              <input type="text" class="form-control" id="sub-dns" placeholder="8.8.8.8, 1.1.1.1">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Domain Name (optional)</label>
+              <input type="text" class="form-control" id="sub-domain" placeholder="local">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Lease Time (seconds)</label>
+              <input type="number" class="form-control" id="sub-lease" value="86400" placeholder="86400">
+              <small class="text-muted">86400 = 24 hours</small>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-accent" onclick="addSubnet()">Add Subnet</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Reservation Modal -->
+  <div class="modal fade" id="addReservationModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-pin-map me-2"></i>Add Static Reservation</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Subnet</label>
+            <select class="form-select" id="res-subnet"></select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">MAC Address</label>
+            <input type="text" class="form-control" id="res-mac" placeholder="aa:bb:cc:dd:ee:ff">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">IP Address</label>
+            <input type="text" class="form-control" id="res-ip" placeholder="192.168.1.50">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Hostname (optional)</label>
+            <input type="text" class="form-control" id="res-hostname" placeholder="mi-pc">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-accent" onclick="addReservation()">Add Reservation</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../js/sidebar.js"></script>
+  <script>
+    const token = localStorage.getItem('coltan_token')
+    if (!token) window.location.href = '/login.html'
+    loadSidebar('dhcp')
+    loadTopbar('<i class="bi bi-router me-2"></i>DHCP Server')
+    startClock()
+
+    const h = { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
+
+    function showTab(tab, el) {
+      ['subnets','leases','reservations'].forEach(t => {
+        document.getElementById(`tab-${t}`).style.display = t === tab ? 'block' : 'none'
+      })
+      document.querySelectorAll('.nav-tabs .nav-link').forEach(e => e.classList.remove('active'))
+      if (el) el.classList.add('active')
+      if (tab === 'leases') loadLeases()
+      if (tab === 'reservations') loadReservations()
+    }
+
+    function showAlert(msg, isError = false) {
+      if (isError) {
+        document.getElementById('alert-error-text').textContent = msg
+        document.getElementById('alert-error').style.display = 'block'
+        setTimeout(() => document.getElementById('alert-error').style.display = 'none', 4000)
+      } else {
+        document.getElementById('alert-text').textContent = msg
+        document.getElementById('alert-success').style.display = 'block'
+        setTimeout(() => document.getElementById('alert-success').style.display = 'none', 3000)
+      }
+    }
+
+    async function loadStatus() {
+      const res = await fetch('/api/dhcp/status', { headers: h.headers })
+      const data = await res.json()
+      const el = document.getElementById('kea-status')
+      el.textContent = data.running ? 'Running' : 'Stopped'
+      el.style.color = data.running ? '#22c55e' : '#ef4444'
+    }
+
+    async function loadSubnets() {
+      const res = await fetch('/api/dhcp/subnets', { headers: h.headers })
+      const data = await res.json()
+      const container = document.getElementById('subnets-container')
+
+      // Populate reservation subnet select
+      const resSelect = document.getElementById('res-subnet')
+      resSelect.innerHTML = data.subnets.map(s => `<option value="${s.id}">${s.subnet}</option>`).join('')
+
+      if (data.subnets.length === 0) {
+        container.innerHTML = '<div class="text-muted">No subnets configured yet — add one to start the DHCP server</div>'
+        return
+      }
+
+      container.innerHTML = data.subnets.map(s => {
+        const pool = s.pools?.[0]?.pool || 'N/A'
+        const gateway = s['option-data']?.find(o => o.name === 'routers')?.data || 'N/A'
+        const dns = s['option-data']?.find(o => o.name === 'domain-name-servers')?.data || 'N/A'
+        const leaseH = Math.floor((s['valid-lifetime'] || 86400) / 3600)
+        const reservations = s.reservations || []
+
+        return `
+          <div class="subnet-card">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="subnet-title"><i class="bi bi-diagram-3 me-2"></i>${s.subnet}</div>
+                <div class="subnet-detail">Pool: <span>${pool}</span></div>
+                <div class="subnet-detail">Gateway: <span>${gateway}</span></div>
+                <div class="subnet-detail">DNS: <span>${dns}</span></div>
+                <div class="subnet-detail">Lease time: <span>${leaseH}h</span></div>
+                <div class="subnet-detail">Reservations: <span>${reservations.length}</span></div>
+              </div>
+              <button class="btn btn-danger-soft" onclick="deleteSubnet(${s.id})">
+                <i class="bi bi-trash"></i> Delete
+              </button>
+            </div>
+            ${reservations.length > 0 ? `
+              <div class="mt-3">
+                <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:8px">STATIC RESERVATIONS</div>
+                <table class="table table-dark table-sm mb-0" style="font-size:0.8rem">
+                  <thead><tr><th>MAC</th><th>IP</th><th>Hostname</th><th></th></tr></thead>
+                  <tbody>
+                    ${reservations.map(r => `
+                      <tr>
+                        <td class="mono">${r['hw-address']}</td>
+                        <td class="mono">${r['ip-address']}</td>
+                        <td>${r.hostname || '—'}</td>
+                        <td><button class="btn btn-danger-soft btn-sm" onclick="deleteReservation(${s.id}, '${r['hw-address']}')"><i class="bi bi-trash"></i></button></td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            ` : ''}
+          </div>
+        `
+      }).join('')
+    }
+
+    async function loadLeases() {
+      const res = await fetch('/api/dhcp/leases', { headers: h.headers })
+      const data = await res.json()
+      const tbody = document.getElementById('leases-body')
+      if (data.leases.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-muted">No active leases</td></tr>'
+        return
+      }
+      tbody.innerHTML = data.leases.map(l => {
+        const exp = l['expire'] ? new Date(parseInt(l['expire']) * 1000).toLocaleString() : '—'
+        return `
+          <tr>
+            <td class="mono">${l.address || '—'}</td>
+            <td class="mono">${l['hwaddr'] || '—'}</td>
+            <td>${l['hostname'] || '—'}</td>
+            <td style="font-size:0.78rem">${exp}</td>
+            <td><span class="lease-active"><i class="bi bi-circle-fill me-1" style="font-size:0.5rem"></i>Active</span></td>
+          </tr>`
+      }).join('')
+    }
+
+    async function loadReservations() {
+      // Reservations are shown per subnet, redirect to subnets tab
+      showTab('subnets', document.querySelector('.nav-tabs .nav-link'))
+    }
+
+    async function addSubnet() {
+      const body = {
+        interface: document.getElementById('sub-iface').value,
+        subnet: document.getElementById('sub-subnet').value.trim(),
+        poolStart: document.getElementById('sub-pool-start').value.trim(),
+        poolEnd: document.getElementById('sub-pool-end').value.trim(),
+        gateway: document.getElementById('sub-gateway').value.trim(),
+        dns: document.getElementById('sub-dns').value.trim(),
+        domain: document.getElementById('sub-domain').value.trim(),
+        leaseTime: document.getElementById('sub-lease').value
+      }
+      if (!body.subnet || !body.poolStart || !body.poolEnd || !body.gateway) {
+        return showAlert('Subnet, pool range and gateway are required', true)
+      }
+      const res = await fetch('/api/dhcp/subnets', { method: 'POST', ...h, body: JSON.stringify(body) })
+      const data = await res.json()
+      bootstrap.Modal.getInstance(document.getElementById('addSubnetModal')).hide()
+      if (data.success) { showAlert('Subnet added and Kea restarted'); loadSubnets(); loadStatus() }
+      else showAlert(data.error, true)
+    }
+
+    async function deleteSubnet(id) {
+      if (!confirm('Delete this subnet?')) return
+      await fetch(`/api/dhcp/subnets/${id}`, { method: 'DELETE', ...h })
+      showAlert('Subnet deleted')
+      loadSubnets()
+      loadStatus()
+    }
+
+    async function addReservation() {
+      const subnetId = document.getElementById('res-subnet').value
+      const mac = document.getElementById('res-mac').value.trim()
+      const ip = document.getElementById('res-ip').value.trim()
+      const hostname = document.getElementById('res-hostname').value.trim()
+      if (!mac || !ip) return showAlert('MAC and IP are required', true)
+      const res = await fetch(`/api/dhcp/subnets/${subnetId}/reservations`, {
+        method: 'POST', ...h, body: JSON.stringify({ mac, ip, hostname })
+      })
+      const data = await res.json()
+      bootstrap.Modal.getInstance(document.getElementById('addReservationModal')).hide()
+      if (data.success) { showAlert('Reservation added'); loadSubnets() }
+      else showAlert(data.error, true)
+    }
+
+    async function deleteReservation(subnetId, mac) {
+      if (!confirm(`Delete reservation for ${mac}?`)) return
+      await fetch(`/api/dhcp/subnets/${subnetId}/reservations/${encodeURIComponent(mac)}`, {
+        method: 'DELETE', ...h
+      })
+      showAlert('Reservation deleted')
+      loadSubnets()
+    }
+
+    async function startKea() {
+      await fetch('/api/dhcp/start', { method: 'POST', ...h })
+      setTimeout(loadStatus, 1000)
+      showAlert('Kea DHCP started')
+    }
+
+    async function stopKea() {
+      await fetch('/api/dhcp/stop', { method: 'POST', ...h })
+      setTimeout(loadStatus, 1000)
+      showAlert('Kea DHCP stopped')
+    }
+
+    loadStatus()
+    loadSubnets()
+    setInterval(loadStatus, 10000)
+  </script>
+</body>
+</html>

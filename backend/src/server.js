@@ -39,6 +39,8 @@ fastify.register(require('./routes/samba.routes'))
 fastify.register(require('./routes/backup.routes'))
 fastify.register(require('./routes/settings.routes'))
 fastify.register(require('./routes/dashboard.routes'))
+fastify.register(require('./routes/dhcp.routes'))
+fastify.register(require('./routes/interfaces.routes'))
 
 // WebSockets
 fastify.register(require('@fastify/websocket'))
