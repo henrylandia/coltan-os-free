@@ -96,7 +96,20 @@ async function deleteReservation(subnetId, mac) {
 
 async function getLeases() {
   try {
-    const content = await fs.readFile(LEASES_FILE, 'utf8')
+    let content = ''
+    const files = [
+      '/var/db/kea/dhcp4.leases.2',
+      '/var/db/kea/dhcp4.leases.1', 
+      '/var/db/kea/dhcp4.leases'
+    ]
+    for (const f of files) {
+      try {
+        const c = await fs.readFile(f, 'utf8')
+        const rows = c.trim().split('\n').filter(l => l && !l.startsWith('#') && !l.startsWith('address'))
+        if (rows.length > 0) { content = c; break }
+      } catch(e) {}
+    }
+    if (!content) return []
     const lines = content.trim().split('\n').filter(l => l && !l.startsWith('#'))
     if (lines.length < 2) return []
     const headers = lines[0].split(',')
@@ -105,7 +118,7 @@ async function getLeases() {
       const obj = {}
       headers.forEach((h, i) => obj[h.trim()] = values[i]?.trim())
       return obj
-    }).filter(l => l.address && parseInt(l['valid-lft']) > 0)
+    }).filter(l => l.address && parseInt(l['valid-lft'] || l.valid_lifetime) > 0)
   } catch(e) { return [] }
 }
 
