@@ -584,13 +584,13 @@
     }
 
     async function startKea() {
-      await fetch('/api/dhcp/start', { method: 'POST', ...h })
+      await fetch('/api/dhcp/start', { method: 'POST', ...h, body: '{}' })
       setTimeout(loadDHCP, 1000)
       showAlert('Kea DHCP started')
     }
 
     async function stopKea() {
-      await fetch('/api/dhcp/stop', { method: 'POST', ...h })
+      await fetch('/api/dhcp/stop', { method: 'POST', ...h, body: '{}' })
       setTimeout(loadDHCP, 1000)
       showAlert('Kea DHCP stopped')
     }

@@ -23,8 +23,8 @@ async function saveConfig(config) {
 
 async function getStatus() {
   try {
-    const { stdout } = await execAsync('service kea_dhcp4 status')
-    return { running: stdout.includes('is running') }
+    const { stdout } = await execAsync('service kea status')
+    return { running: stdout.includes('active') }
   } catch(e) { return { running: false } }
 }
 
@@ -35,7 +35,7 @@ async function getSubnets() {
 
 async function addSubnet(subnet) {
   const config = await getConfig()
-  const id = Date.now()
+  const id = Math.floor(Math.random() * 4000000) + 1
   const entry = {
     id,
     subnet: subnet.subnet,
@@ -111,21 +111,21 @@ async function getLeases() {
 
 async function restartKea() {
   try {
-    await execAsync('service kea_dhcp4 restart 2>/dev/null || service kea_dhcp4 start 2>/dev/null')
+    await execAsync('service kea restart 2>/dev/null || service kea start 2>/dev/null')
     return { success: true }
   } catch(e) { return { success: false, error: e.message } }
 }
 
 async function startKea() {
   try {
-    await execAsync('service kea_dhcp4 start')
+    await execAsync('service kea start')
     return { success: true }
   } catch(e) { return { success: false, error: e.message } }
 }
 
 async function stopKea() {
   try {
-    await execAsync('service kea_dhcp4 stop')
+    await execAsync('service kea stop')
     return { success: true }
   } catch(e) { return { success: false, error: e.message } }
 }
