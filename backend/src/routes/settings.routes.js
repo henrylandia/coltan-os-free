@@ -4,7 +4,7 @@ const nodemailer = require('nodemailer')
 const {
   getSettings, saveSettings, getSystemInfo,
   setHostname, setTimezone, getDNS, setDNS,
-  getNetworkConfig, getInterfaces, setInterfaceConfig,
+  getInterfaces, getNetworkConfig, setInterfaceConfig,
   updatePackages, getUpdateLog
 } = require('../services/settings.service')
 
@@ -78,8 +78,6 @@ async function settingsRoutes(fastify, options) {
     return await setInterfaceConfig(iface, ip, netmask, gateway)
   })
 
-  fastify.addContentTypeParser('application/json', { parseAs: 'string' }, function (req, body, done) { try { done(null, body ? JSON.parse(body) : {}) } catch(e) { done(e) } })
-
   fastify.post('/api/settings/update', {
     onRequest: [fastify.authenticate]
   }, async (request, reply) => {
@@ -107,7 +105,7 @@ async function settingsRoutes(fastify, options) {
       await transporter.sendMail({
         from: user, to,
         subject: 'Coltan OS — Test Email',
-        text: 'This is a test email from Coltan OS. Your SMTP configuration is working correctly.'
+        text: 'This is a test email from Coltan OS.'
       })
       return { success: true }
     } catch(e) {
@@ -124,9 +122,7 @@ async function settingsRoutes(fastify, options) {
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: '✅ Coltan OS — Test notification. Webhook is working correctly.'
-        })
+        body: JSON.stringify({ text: 'Coltan OS — Test notification' })
       })
       return { success: res.ok }
     } catch(e) {

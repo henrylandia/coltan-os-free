@@ -8,23 +8,40 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
   <link href="../css/main.css" rel="stylesheet">
   <style>
-    .status-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; }
-    .status-info { display: flex; align-items: center; gap: 16px; }
-    .status-label { font-size: 0.8rem; color: var(--text-muted); }
-    .status-value { font-size: 1.1rem; font-weight: 700; }
+    .nav-tabs { border-color: var(--border); }
+    .nav-tabs .nav-link { color: var(--text-muted); border: none; padding: 10px 20px; }
+    .nav-tabs .nav-link.active { color: var(--accent); border-bottom: 2px solid var(--accent); background: none; }
+    .nav-tabs .nav-link:hover { color: var(--text-primary); }
     .section-title { font-size: 1rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
-    .rules-table { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-    .rules-table table { margin: 0; }
-    .rules-table th { background: var(--bg-sidebar); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; border-color: var(--border); }
-    .rules-table td { color: var(--text-primary); border-color: var(--border); font-size: 0.85rem; font-family: monospace; }
-    .config-editor { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 12px; color: var(--text-primary); font-family: monospace; font-size: 0.85rem; padding: 16px; width: 100%; min-height: 300px; resize: vertical; }
-    .config-editor:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,142,247,0.15); }
-    .btn-save { background: var(--accent); border: none; color: white; padding: 8px 24px; border-radius: 8px; font-weight: 600; }
-    .btn-save:hover { opacity: 0.85; color: white; }
-    .btn-danger-soft { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; padding: 8px 24px; border-radius: 8px; font-weight: 600; }
-    .btn-success-soft { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; padding: 8px 24px; border-radius: 8px; font-weight: 600; }
-    .alert-success-custom { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; border-radius: 8px; padding: 12px 16px; display: none; }
-    .alert-error-custom { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #f87171; border-radius: 8px; padding: 12px 16px; display: none; }
+    .status-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; }
+    .data-table { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+    .data-table table { margin: 0; }
+    .data-table th { background: var(--bg-sidebar); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; border-color: var(--border); }
+    .data-table td { color: var(--text-primary); border-color: var(--border); font-size: 0.85rem; vertical-align: middle; }
+    .data-table td.mono { font-family: monospace; }
+    .btn-accent { background: var(--accent); border: none; color: white; padding: 6px 16px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; }
+    .btn-accent:hover { opacity: 0.85; color: white; }
+    .btn-danger-soft { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .btn-success-soft { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .btn-warning-soft { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); color: #f59e0b; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .btn-primary-soft { background: rgba(79,142,247,0.15); border: 1px solid rgba(79,142,247,0.3); color: var(--accent); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .modal-content { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); }
+    .modal-header, .modal-footer { border-color: var(--border); }
+    .form-control, .form-select { background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-primary); }
+    .form-control:focus, .form-select:focus { background: var(--bg-dark); border-color: var(--accent); color: var(--text-primary); box-shadow: none; }
+    .form-label { color: var(--text-muted); font-size: 0.85rem; }
+    .form-check-input { background-color: var(--bg-dark); border-color: var(--border); }
+    .alert-success-custom { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; border-radius: 8px; padding: 12px 16px; display: none; margin-bottom: 16px; }
+    .alert-error-custom { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #f87171; border-radius: 8px; padding: 12px 16px; display: none; margin-bottom: 16px; }
+    .badge-pass { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
+    .badge-block { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
+    .badge-enabled { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
+    .badge-disabled { background: rgba(100,116,139,0.15); color: #64748b; border: 1px solid rgba(100,116,139,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
+    .config-editor { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 12px; color: var(--text-primary); font-family: monospace; font-size: 0.82rem; padding: 16px; width: 100%; min-height: 400px; resize: vertical; }
+    .config-editor:focus { outline: none; border-color: var(--accent); }
+    .active-rule { font-family: monospace; font-size: 0.78rem; color: var(--text-muted); padding: 4px 8px; border-bottom: 1px solid var(--border); }
+    .active-rule:last-child { border-bottom: none; }
+    .active-rules-box { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 10px; max-height: 300px; overflow-y: auto; }
   </style>
 </head>
 <body>
@@ -32,41 +49,259 @@
   <div class="main-content">
     <div class="p-4">
 
+      <div id="alert-success" class="alert-success-custom"><i class="bi bi-check-circle me-2"></i><span id="alert-text">Done.</span></div>
+      <div id="alert-error" class="alert-error-custom"><i class="bi bi-exclamation-triangle me-2"></i><span id="alert-error-text">Error.</span></div>
+
+      <!-- Status -->
       <div class="status-card">
-        <div class="status-info">
-          <div style="font-size:2rem" id="pf-icon">🛡️</div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <span style="font-size:2rem">🛡️</span>
           <div>
-            <div class="status-label">PF Firewall</div>
-            <div class="status-value" id="pf-status">Loading...</div>
+            <div style="font-size:0.8rem;color:var(--text-muted)">PF Firewall</div>
+            <div style="font-weight:700;font-size:1.1rem" id="pf-status">Loading...</div>
           </div>
-          <div class="ms-4">
-            <div class="status-label">Active States</div>
-            <div class="status-value" id="pf-states">--</div>
+          <div style="margin-left:16px">
+            <div style="font-size:0.8rem;color:var(--text-muted)">Active States</div>
+            <div style="font-weight:700;font-size:1.1rem" id="pf-states">--</div>
+          </div>
+          <div style="margin-left:16px">
+            <div style="font-size:0.8rem;color:var(--text-muted)">WAN</div>
+            <div style="font-weight:700;font-size:1.1rem;color:var(--accent)" id="pf-wan">--</div>
           </div>
         </div>
-        <div class="d-flex gap-2">
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-success-soft" onclick="reloadFW()"><i class="bi bi-arrow-clockwise me-1"></i>Reload</button>
           <button class="btn btn-success-soft" onclick="enablePF()"><i class="bi bi-play-fill me-1"></i>Enable</button>
           <button class="btn btn-danger-soft" onclick="disablePF()"><i class="bi bi-stop-fill me-1"></i>Disable</button>
         </div>
       </div>
 
-      <div class="section-title"><i class="bi bi-list-check me-2"></i>Active Rules</div>
-      <div class="rules-table mb-4">
-        <table class="table table-dark table-hover mb-0">
-          <thead><tr><th>#</th><th>Rule</th></tr></thead>
-          <tbody id="rules-body"><tr><td colspan="2" class="text-muted">Loading...</td></tr></tbody>
-        </table>
+      <ul class="nav nav-tabs mb-4">
+        <li class="nav-item"><a class="nav-link active" href="#" onclick="showTab('rules', this)"><i class="bi bi-list-check me-2"></i>Rules</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('blocked', this)"><i class="bi bi-ban me-2"></i>Blocked IPs</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('portfw', this)"><i class="bi bi-arrow-left-right me-2"></i>Port Forwarding</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('active', this)"><i class="bi bi-terminal me-2"></i>Active Rules</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('editor', this)"><i class="bi bi-code-slash me-2"></i>Editor</a></li>
+      </ul>
+
+      <!-- Rules Tab -->
+      <div id="tab-rules">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0"><i class="bi bi-list-check me-2"></i>Custom Firewall Rules</div>
+          <button class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#addRuleModal">
+            <i class="bi bi-plus-lg me-1"></i>Add Rule
+          </button>
+        </div>
+        <div class="data-table">
+          <table class="table table-dark table-hover mb-0">
+            <thead>
+              <tr><th>Status</th><th>Action</th><th>Protocol</th><th>Interface</th><th>Source</th><th>Destination</th><th>Port</th><th>Description</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="rules-body"><tr><td colspan="9" class="text-muted">No custom rules yet</td></tr></tbody>
+          </table>
+        </div>
       </div>
 
-      <div class="section-title"><i class="bi bi-code-slash me-2"></i>Configuration Editor</div>
-      <div id="alert-success" class="alert-success-custom mb-3"><i class="bi bi-check-circle me-2"></i>Configuration saved and reloaded.</div>
-      <div id="alert-error" class="alert-error-custom mb-3"><i class="bi bi-exclamation-triangle me-2"></i><span id="error-text">Error saving.</span></div>
-      <textarea class="config-editor" id="pf-config" spellcheck="false"></textarea>
-      <div class="mt-3">
-        <button class="btn btn-save" onclick="saveConfig()"><i class="bi bi-floppy me-2"></i>Save & Reload</button>
-        <small class="ms-3 text-muted">Changes are applied immediately to PF</small>
+      <!-- Blocked IPs Tab -->
+      <div id="tab-blocked" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0"><i class="bi bi-ban me-2"></i>Blocked IPs</div>
+          <button class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#blockIPModal">
+            <i class="bi bi-plus-lg me-1"></i>Block IP
+          </button>
+        </div>
+        <div class="data-table">
+          <table class="table table-dark table-hover mb-0">
+            <thead><tr><th>IP Address</th><th>Description</th><th>Added</th><th>Actions</th></tr></thead>
+            <tbody id="blocked-body"><tr><td colspan="4" class="text-muted">No blocked IPs</td></tr></tbody>
+          </table>
+        </div>
       </div>
 
+      <!-- Port Forwarding Tab -->
+      <div id="tab-portfw" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0"><i class="bi bi-arrow-left-right me-2"></i>Port Forwarding / NAT</div>
+          <button class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#addPortFwModal">
+            <i class="bi bi-plus-lg me-1"></i>Add Forward
+          </button>
+        </div>
+        <div class="data-table">
+          <table class="table table-dark table-hover mb-0">
+            <thead><tr><th>Status</th><th>Protocol</th><th>External Port</th><th>Internal IP</th><th>Internal Port</th><th>Description</th><th>Actions</th></tr></thead>
+            <tbody id="portfw-body"><tr><td colspan="7" class="text-muted">No port forwards</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Active Rules Tab -->
+      <div id="tab-active" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0"><i class="bi bi-terminal me-2"></i>Active PF Rules</div>
+          <button class="btn btn-primary-soft" onclick="loadActiveRules()"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+        </div>
+        <div class="active-rules-box" id="active-rules-container">
+          <div class="text-muted p-3">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Editor Tab -->
+      <div id="tab-editor" style="display:none">
+        <div class="section-title"><i class="bi bi-code-slash me-2"></i>Raw Configuration Editor</div>
+        <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:0.82rem;color:#f59e0b">
+          <i class="bi bi-exclamation-triangle me-2"></i>Manual edits will be overwritten when rules are added via the UI. Use this for advanced configurations only.
+        </div>
+        <textarea class="config-editor" id="pf-config" spellcheck="false"></textarea>
+        <div class="mt-3 d-flex gap-2">
+          <button class="btn btn-accent" onclick="saveConfig()"><i class="bi bi-floppy me-2"></i>Save & Reload</button>
+          <button class="btn btn-primary-soft" onclick="loadConfig()"><i class="bi bi-arrow-clockwise me-1"></i>Reset to Current</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Add Rule Modal -->
+  <div class="modal fade" id="addRuleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add Firewall Rule</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Action</label>
+              <select class="form-select" id="rule-action">
+                <option value="pass">Pass (Allow)</option>
+                <option value="block">Block (Deny)</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Direction</label>
+              <select class="form-select" id="rule-direction">
+                <option value="in">In (Incoming)</option>
+                <option value="out">Out (Outgoing)</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Protocol</label>
+              <select class="form-select" id="rule-protocol">
+                <option value="tcp">TCP</option>
+                <option value="udp">UDP</option>
+                <option value="tcp/udp">TCP+UDP</option>
+                <option value="icmp">ICMP</option>
+                <option value="any">Any</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Interface</label>
+              <select class="form-select" id="rule-interface">
+                <option value="any">Any</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Source IP</label>
+              <input type="text" class="form-control" id="rule-src" placeholder="any / 192.168.1.0/24">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Source Port</label>
+              <input type="text" class="form-control" id="rule-src-port" placeholder="any / 80 / 8080:8090">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Destination IP</label>
+              <input type="text" class="form-control" id="rule-dst" placeholder="any / 10.0.0.1">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Destination Port</label>
+              <input type="text" class="form-control" id="rule-dst-port" placeholder="any / 443 / 8080:8090">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Description</label>
+              <input type="text" class="form-control" id="rule-desc" placeholder="Block torrents, Allow VPN...">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-accent" onclick="addRule()">Add Rule</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Block IP Modal -->
+  <div class="modal fade" id="blockIPModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-ban me-2"></i>Block IP Address</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">IP Address or Range</label>
+            <input type="text" class="form-control" id="block-ip" placeholder="192.168.1.100 or 10.0.0.0/8">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description (optional)</label>
+            <input type="text" class="form-control" id="block-desc" placeholder="Suspicious host, attacker...">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger-soft" onclick="blockIP()"><i class="bi bi-ban me-1"></i>Block</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Port Forward Modal -->
+  <div class="modal fade" id="addPortFwModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-arrow-left-right me-2"></i>Add Port Forward</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Protocol</label>
+              <select class="form-select" id="pf-protocol">
+                <option value="tcp">TCP</option>
+                <option value="udp">UDP</option>
+                <option value="tcp/udp">TCP+UDP</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">External Port (WAN)</label>
+              <input type="text" class="form-control" id="pf-ext-port" placeholder="8080">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Internal IP (LAN)</label>
+              <input type="text" class="form-control" id="pf-int-ip" placeholder="192.168.0.10">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Internal Port</label>
+              <input type="text" class="form-control" id="pf-int-port" placeholder="80">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Description</label>
+              <input type="text" class="form-control" id="pf-desc" placeholder="Web server, Camera, NAS...">
+            </div>
+          </div>
+          <div class="mt-3" style="background:var(--bg-dark);border-radius:8px;padding:12px;font-size:0.82rem;color:var(--text-muted)">
+            <i class="bi bi-info-circle me-1"></i>
+            Traffic arriving on WAN port <strong id="preview-ext">?</strong> will be forwarded to <strong id="preview-int">?:?</strong>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-accent" onclick="addPortForward()">Add Forward</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -79,25 +314,115 @@
     loadTopbar('<i class="bi bi-shield-check me-2"></i>Firewall')
     startClock()
 
+    const h = { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
+
+    function showTab(tab, el) {
+      ['rules','blocked','portfw','active','editor'].forEach(t => {
+        document.getElementById(`tab-${t}`).style.display = t === tab ? 'block' : 'none'
+      })
+      document.querySelectorAll('.nav-tabs .nav-link').forEach(e => e.classList.remove('active'))
+      if (el) el.classList.add('active')
+      if (tab === 'blocked') loadBlockedIPs()
+      if (tab === 'portfw') loadPortForwards()
+      if (tab === 'active') loadActiveRules()
+      if (tab === 'editor') loadConfig()
+    }
+
+    function showAlert(msg, isError = false) {
+      if (isError) {
+        document.getElementById('alert-error-text').textContent = msg
+        document.getElementById('alert-error').style.display = 'block'
+        setTimeout(() => document.getElementById('alert-error').style.display = 'none', 4000)
+      } else {
+        document.getElementById('alert-text').textContent = msg
+        document.getElementById('alert-success').style.display = 'block'
+        setTimeout(() => document.getElementById('alert-success').style.display = 'none', 3000)
+      }
+    }
+
     async function loadStatus() {
-      const res = await fetch('/api/firewall/status', { headers: { 'Authorization': `Bearer ${token}` } })
+      const res = await fetch('/api/firewall/status', { headers: h.headers })
       const data = await res.json()
       document.getElementById('pf-status').textContent = data.enabled ? 'Enabled' : 'Disabled'
       document.getElementById('pf-status').style.color = data.enabled ? '#22c55e' : '#ef4444'
-      document.getElementById('pf-icon').textContent = data.enabled ? '🛡️' : '⚠️'
       document.getElementById('pf-states').textContent = data.states
     }
 
-    async function loadRules() {
-      const res = await fetch('/api/firewall/rules', { headers: { 'Authorization': `Bearer ${token}` } })
+    async function loadInterfaces() {
+      const res = await fetch('/api/interfaces', { headers: h.headers })
       const data = await res.json()
-      document.getElementById('rules-body').innerHTML = data.rules.length === 0
-        ? '<tr><td colspan="2" class="text-muted">No rules loaded</td></tr>'
-        : data.rules.map(r => `<tr><td style="width:50px;color:var(--text-muted)">${r.id}</td><td>${r.rule}</td></tr>`).join('')
+      const wan = data.interfaces.find(i => i.role === 'WAN')
+      if (wan) document.getElementById('pf-wan').textContent = `${wan.name} (${wan.ip || 'No IP'})`
+      const select = document.getElementById('rule-interface')
+      select.innerHTML = '<option value="any">Any</option>'
+      data.interfaces.forEach(i => {
+        const opt = document.createElement('option')
+        opt.value = i.name
+        opt.textContent = `${i.name} (${i.role})`
+        select.appendChild(opt)
+      })
+    }
+
+    // loadRules moved to edit section
+
+    async function loadBlockedIPs() {
+      const res = await fetch('/api/firewall/blocked-ips', { headers: h.headers })
+      const data = await res.json()
+      const tbody = document.getElementById('blocked-body')
+      if (data.ips.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-muted">No blocked IPs</td></tr>'
+        return
+      }
+      tbody.innerHTML = data.ips.map(ip => `
+        <tr>
+          <td class="mono" style="color:#f87171">${ip.ip}</td>
+          <td style="color:var(--text-muted)">${ip.description || '—'}</td>
+          <td style="color:var(--text-muted);font-size:0.78rem">${new Date(ip.addedAt).toLocaleString()}</td>
+          <td><button class="btn btn-success-soft" onclick="unblockIP('${ip.ip}')"><i class="bi bi-unlock me-1"></i>Unblock</button></td>
+        </tr>`).join('')
+    }
+
+    async function loadPortForwards() {
+      const res = await fetch('/api/firewall/port-forwards', { headers: h.headers })
+      const data = await res.json()
+      window._portForwards = data.forwards
+      const tbody = document.getElementById('portfw-body')
+      if (data.forwards.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-muted">No port forwards configured</td></tr>'
+        return
+      }
+      tbody.innerHTML = data.forwards.map(p => `
+        <tr>
+          <td><span class="${p.enabled ? 'badge-enabled' : 'badge-disabled'}">${p.enabled ? 'ON' : 'OFF'}</span></td>
+          <td class="mono">${p.protocol.toUpperCase()}</td>
+          <td class="mono" style="color:var(--accent)">:${p.extPort}</td>
+          <td class="mono">${p.intIP}</td>
+          <td class="mono">:${p.intPort}</td>
+          <td style="color:var(--text-muted);font-size:0.78rem">${p.description || '—'}</td>
+          <td>
+            <div style="display:flex;gap:4px">
+              <button class="btn btn-primary-soft" onclick="openEditPortForward('${p.id}')">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-danger-soft" onclick="deletePortForward('${p.id}')">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>`).join('')
+    }
+
+    async function loadActiveRules() {
+      const res = await fetch('/api/firewall/rules/active', { headers: h.headers })
+      const data = await res.json()
+      const container = document.getElementById('active-rules-container')
+      container.innerHTML = data.rules.map(r => `
+        <div class="active-rule">${r.id}. ${r.rule}</div>
+      `).join('')
     }
 
     async function loadConfig() {
-      const res = await fetch('/api/firewall/config', { headers: { 'Authorization': `Bearer ${token}` } })
+      const res = await fetch('/api/firewall/config', { headers: h.headers })
       const data = await res.json()
       document.getElementById('pf-config').value = data.config
     }
@@ -105,35 +430,321 @@
     async function saveConfig() {
       const config = document.getElementById('pf-config').value
       const res = await fetch('/api/firewall/config', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config })
+        method: 'POST', ...h, body: JSON.stringify({ config })
       })
-      if (res.ok) {
-        document.getElementById('alert-success').style.display = 'block'
-        setTimeout(() => document.getElementById('alert-success').style.display = 'none', 3000)
-        loadRules()
-        loadStatus()
-      } else {
-        document.getElementById('alert-error').style.display = 'block'
-      }
+      if (res.ok) showAlert('Config saved and reloaded')
+      else showAlert('Error saving config', true)
+    }
+
+    async function reloadFW() {
+      await fetch('/api/firewall/reload', { method: 'POST', ...h, body: '{}' })
+      showAlert('Firewall reloaded')
+      loadStatus()
     }
 
     async function enablePF() {
-      await fetch('/api/firewall/enable', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } })
+      await fetch('/api/firewall/enable', { method: 'POST', ...h, body: '{}' })
+      showAlert('Firewall enabled')
       loadStatus()
     }
 
     async function disablePF() {
-      if (!confirm('Are you sure? This will disable the firewall.')) return
-      await fetch('/api/firewall/disable', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } })
+      if (!confirm('Disable firewall? All traffic will be allowed.')) return
+      await fetch('/api/firewall/disable', { method: 'POST', ...h, body: '{}' })
+      showAlert('Firewall disabled')
       loadStatus()
     }
 
+    async function addRule() {
+      const body = {
+        action: document.getElementById('rule-action').value,
+        direction: document.getElementById('rule-direction').value,
+        protocol: document.getElementById('rule-protocol').value,
+        interface: document.getElementById('rule-interface').value,
+        srcAddr: document.getElementById('rule-src').value.trim() || 'any',
+        srcPort: document.getElementById('rule-src-port').value.trim(),
+        dstAddr: document.getElementById('rule-dst').value.trim() || 'any',
+        dstPort: document.getElementById('rule-dst-port').value.trim(),
+        description: document.getElementById('rule-desc').value.trim()
+      }
+      const res = await fetch('/api/firewall/rules', { method: 'POST', ...h, body: JSON.stringify(body) })
+      const data = await res.json()
+      bootstrap.Modal.getInstance(document.getElementById('addRuleModal')).hide()
+      if (data.success) { showAlert('Rule added'); loadRules() }
+      else showAlert(data.error, true)
+    }
+
+    async function deleteRule(id) {
+      if (!confirm('Delete this rule?')) return
+      await fetch(`/api/firewall/rules/${id}`, { method: 'DELETE', ...h })
+      showAlert('Rule deleted')
+      loadRules()
+    }
+
+    async function toggleRule(id) {
+      const res = await fetch(`/api/firewall/rules/${id}/toggle`, { method: 'POST', ...h, body: '{}' })
+      const data = await res.json()
+      showAlert(`Rule ${data.enabled ? 'enabled' : 'disabled'}`)
+      loadRules()
+    }
+
+    async function blockIP() {
+      const ip = document.getElementById('block-ip').value.trim()
+      const description = document.getElementById('block-desc').value.trim()
+      if (!ip) return showAlert('IP address required', true)
+      const res = await fetch('/api/firewall/blocked-ips', {
+        method: 'POST', ...h, body: JSON.stringify({ ip, description })
+      })
+      const data = await res.json()
+      bootstrap.Modal.getInstance(document.getElementById('blockIPModal')).hide()
+      if (data.success) { showAlert(`${ip} blocked`); loadBlockedIPs() }
+      else showAlert(data.error, true)
+    }
+
+    async function unblockIP(ip) {
+      if (!confirm(`Unblock ${ip}?`)) return
+      await fetch(`/api/firewall/blocked-ips/${encodeURIComponent(ip)}`, { method: 'DELETE', ...h })
+      showAlert(`${ip} unblocked`)
+      loadBlockedIPs()
+    }
+
+    async function addPortForward() {
+      const body = {
+        protocol: document.getElementById('pf-protocol').value,
+        extPort: document.getElementById('pf-ext-port').value.trim(),
+        intIP: document.getElementById('pf-int-ip').value.trim(),
+        intPort: document.getElementById('pf-int-port').value.trim(),
+        description: document.getElementById('pf-desc').value.trim()
+      }
+      if (!body.extPort || !body.intIP || !body.intPort) return showAlert('All fields required', true)
+
+      const editId = window._editingPFId
+      let res
+
+      if (editId) {
+        res = await fetch('/api/firewall/port-forwards/' + editId, {
+          method: 'PUT',
+          headers: h.headers,
+          body: JSON.stringify(body)
+        })
+        window._editingPFId = null
+        document.querySelector('#addPortFwModal .modal-title').innerHTML = '<i class="bi bi-arrow-left-right me-2"></i>Add Port Forward'
+      } else {
+        res = await fetch('/api/firewall/port-forwards', {
+          method: 'POST',
+          headers: h.headers,
+          body: JSON.stringify(body)
+        })
+      }
+
+      const data = await res.json()
+      bootstrap.Modal.getInstance(document.getElementById('addPortFwModal')).hide()
+      if (data.success || data.entry) {
+        showAlert(editId ? 'Port forward updated' : 'Port forward added')
+        loadPortForwards()
+      } else showAlert(data.error || 'Error', true)
+    }
+
+    async function deletePortForward(id) {
+      if (!confirm('Delete this port forward?')) return
+      const res = await fetch('/api/firewall/port-forwards/' + id, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({})
+      })
+      const data = await res.json()
+      if (data.success) { showAlert('Port forward deleted'); loadPortForwards() }
+      else showAlert('Error: ' + (data.error || 'unknown'), true)
+    }
+
+    function openEditPortForward(id) {
+      const forwards = window._portForwards || []
+      const pf = forwards.find(p => p.id === id)
+      if (!pf) return
+      document.getElementById('pf-protocol').value = pf.protocol
+      document.getElementById('pf-ext-port').value = pf.extPort
+      document.getElementById('pf-int-ip').value = pf.intIP
+      document.getElementById('pf-int-port').value = pf.intPort
+      document.getElementById('pf-desc').value = pf.description || ''
+      window._editingPFId = id
+      document.querySelector('#addPortFwModal .modal-title').innerHTML = '<i class="bi bi-pencil me-2"></i>Edit Port Forward'
+      new bootstrap.Modal(document.getElementById('addPortFwModal')).show()
+    }
+
+    // Port forward preview
+    document.addEventListener('DOMContentLoaded', () => {
+      ['pf-ext-port','pf-int-ip','pf-int-port'].forEach(id => {
+        const el = document.getElementById(id)
+        if (el) el.addEventListener('input', () => {
+          document.getElementById('preview-ext').textContent = document.getElementById('pf-ext-port').value || '?'
+          document.getElementById('preview-int').textContent =
+            `${document.getElementById('pf-int-ip').value || '?'}:${document.getElementById('pf-int-port').value || '?'}`
+        })
+      })
+    })
+
     loadStatus()
+    loadInterfaces()
     loadRules()
-    loadConfig()
-    setInterval(loadStatus, 5000)
+    setInterval(loadStatus, 10000)
+  
+    // Edit rule
+    let currentRules = []
+
+    async function loadRules() {
+      const res = await fetch('/api/firewall/rules', { headers: h.headers })
+      const data = await res.json()
+      currentRules = data.rules
+      const tbody = document.getElementById('rules-body')
+      if (data.rules.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-muted">No rules yet</td></tr>'
+        return
+      }
+      tbody.innerHTML = data.rules.map(r => `
+        <tr style="opacity:${r.enabled ? '1' : '0.5'}">
+          <td><span class="${r.enabled ? 'badge-enabled' : 'badge-disabled'}">${r.enabled ? 'ON' : 'OFF'}</span></td>
+          <td><span class="${r.action === 'pass' ? 'badge-pass' : 'badge-block'}">${r.action.toUpperCase()}</span></td>
+          <td class="mono">${r.protocol}</td>
+          <td class="mono">${r.interface || 'any'}</td>
+          <td class="mono">${r.srcAddr || 'any'}${r.srcPort ? ':'+r.srcPort : ''}</td>
+          <td class="mono">${r.dstAddr || 'any'}</td>
+          <td class="mono">${r.dstPort || 'any'}</td>
+          <td style="color:var(--text-muted);font-size:0.78rem">${r.description || '—'}${r.system ? ' <span style="color:#f59e0b;font-size:0.7rem">[system]</span>' : ''}</td>
+          <td>
+            <div style="display:flex;gap:4px">
+              <button class="btn btn-primary-soft" onclick="openEditRule('${r.id}')" title="Edit">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-warning-soft" onclick="toggleRule('${r.id}')" title="${r.enabled ? 'Disable' : 'Enable'}">
+                <i class="bi bi-${r.enabled ? 'pause' : 'play'}-fill"></i>
+              </button>
+              <button class="btn btn-danger-soft" onclick="deleteRule('${r.id}')">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>`).join('')
+    }
+
+    function openEditRule(id) {
+      const rule = currentRules.find(r => r.id === id)
+      if (!rule) return
+
+      document.getElementById('edit-rule-id').value = id
+      document.getElementById('edit-rule-action').value = rule.action || 'pass'
+      document.getElementById('edit-rule-direction').value = rule.direction || 'in'
+      document.getElementById('edit-rule-protocol').value = rule.protocol || 'tcp'
+      document.getElementById('edit-rule-src').value = rule.srcAddr || 'any'
+      document.getElementById('edit-rule-src-port').value = rule.srcPort || ''
+      document.getElementById('edit-rule-dst').value = rule.dstAddr || 'any'
+      document.getElementById('edit-rule-dst-port').value = rule.dstPort || ''
+      document.getElementById('edit-rule-desc').value = rule.description || ''
+
+      // Populate interface select
+      const select = document.getElementById('edit-rule-interface')
+      const currentOptions = Array.from(document.getElementById('rule-interface').options)
+      select.innerHTML = currentOptions.map(o => `<option value="${o.value}">${o.text}</option>`).join('')
+      select.value = rule.interface || 'any'
+
+      new bootstrap.Modal(document.getElementById('editRuleModal')).show()
+    }
+
+    async function saveEditRule() {
+      const id = document.getElementById('edit-rule-id').value
+      const body = {
+        action: document.getElementById('edit-rule-action').value,
+        direction: document.getElementById('edit-rule-direction').value,
+        protocol: document.getElementById('edit-rule-protocol').value,
+        interface: document.getElementById('edit-rule-interface').value,
+        srcAddr: document.getElementById('edit-rule-src').value.trim() || 'any',
+        srcPort: document.getElementById('edit-rule-src-port').value.trim(),
+        dstAddr: document.getElementById('edit-rule-dst').value.trim() || 'any',
+        dstPort: document.getElementById('edit-rule-dst-port').value.trim(),
+        description: document.getElementById('edit-rule-desc').value.trim()
+      }
+      const res = await fetch(`/api/firewall/rules/${id}`, {
+        method: 'PUT', ...h, body: JSON.stringify(body)
+      })
+      const data = await res.json()
+      bootstrap.Modal.getInstance(document.getElementById('editRuleModal')).hide()
+      if (data.success) { showAlert('Rule updated'); loadRules() }
+      else showAlert(data.error || 'Error updating rule', true)
+    }
+
   </script>
+
+  <!-- Edit Rule Modal -->
+  <div class="modal fade" id="editRuleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Firewall Rule</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="edit-rule-id">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Action</label>
+              <select class="form-select" id="edit-rule-action">
+                <option value="pass">Pass (Allow)</option>
+                <option value="block">Block (Deny)</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Direction</label>
+              <select class="form-select" id="edit-rule-direction">
+                <option value="in">In (Incoming)</option>
+                <option value="out">Out (Outgoing)</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Protocol</label>
+              <select class="form-select" id="edit-rule-protocol">
+                <option value="tcp">TCP</option>
+                <option value="udp">UDP</option>
+                <option value="tcp/udp">TCP+UDP</option>
+                <option value="icmp">ICMP</option>
+                <option value="any">Any</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Interface</label>
+              <select class="form-select" id="edit-rule-interface">
+                <option value="any">Any</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Source IP</label>
+              <input type="text" class="form-control" id="edit-rule-src" placeholder="any / 192.168.1.0/24">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Source Port</label>
+              <input type="text" class="form-control" id="edit-rule-src-port" placeholder="any / 80">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Destination IP</label>
+              <input type="text" class="form-control" id="edit-rule-dst" placeholder="any / 10.0.0.1">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Destination Port</label>
+              <input type="text" class="form-control" id="edit-rule-dst-port" placeholder="any / 443">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Description</label>
+              <input type="text" class="form-control" id="edit-rule-desc" placeholder="Description...">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-accent" onclick="saveEditRule()">
+            <i class="bi bi-floppy me-1"></i>Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>

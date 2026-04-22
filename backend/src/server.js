@@ -8,6 +8,14 @@ const { initDefaultAdmin } = require('./services/auth.service')
 // Plugins
 fastify.register(require('@fastify/formbody'))
 
+// Handle empty JSON body gracefully
+fastify.addHook('preValidation', async (request, reply) => {
+  if (!request.body && (request.method === 'DELETE' || request.method === 'POST' || request.method === 'PUT')) {
+    request.body = {}
+  }
+})
+
+
 // JWT plugin
 fastify.register(require('@fastify/jwt'), {
   secret: config.JWT_SECRET,

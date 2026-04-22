@@ -35,6 +35,43 @@ async function getLanIfaces() {
     .map(([name]) => name)
 }
 
+// ─── DEFAULT RULES ────────────────────────────────────────────────────────────
+
+function makeRule(id, action, direction, protocol, iface, srcAddr, srcPort, dstAddr, dstPort, description, system = false) {
+  return {
+    id,
+    enabled: true,
+    system,
+    action,
+    direction,
+    protocol,
+    interface: iface,
+    srcAddr,
+    srcPort,
+    dstAddr,
+    dstPort,
+    description,
+    createdAt: new Date().toISOString()
+  }
+}
+
+async function getDefaultRules(wan, lans) {
+  const rules = [
+    makeRule('sys-icmp', 'pass', 'in', 'icmp', wan, 'any', '', 'any', '', 'Allow ICMP (ping)', true),
+    makeRule('sys-ssh', 'pass', 'in', 'tcp', wan, 'any', '', 'any', '22', 'Allow SSH', true),
+    makeRule('sys-webui', 'pass', 'in', 'tcp', wan, 'any', '', 'any', '3000', 'Allow Coltan OS WebUI', true),
+    makeRule('sys-http', 'pass', 'in', 'tcp', wan, 'any', '', 'any', '80', 'Allow HTTP', true),
+    makeRule('sys-https', 'pass', 'in', 'tcp', wan, 'any', '', 'any', '443', 'Allow HTTPS', true),
+    makeRule('sys-samba-tcp', 'pass', 'in', 'tcp', wan, 'any', '', 'any', '{ 139, 445 }', 'Allow Samba TCP', true),
+    makeRule('sys-samba-udp', 'pass', 'in', 'udp', wan, 'any', '', 'any', '{ 137, 138 }', 'Allow Samba UDP', true),
+    makeRule('sys-dhcp', 'pass', 'in', 'udp', wan, 'any', '', 'any', '67', 'Allow DHCP', true),
+  ]
+  lans.forEach(lan => {
+    rules.push(makeRule(`sys-lan-${lan}`, 'pass', 'in', 'any', lan, 'any', '', 'any', '', `Allow all LAN traffic (${lan})`, true))
+  })
+  return rules
+}
+
 // ─── RULES ────────────────────────────────────────────────────────────────────
 
 async function getRules() {
@@ -42,7 +79,14 @@ async function getRules() {
     await ensureDir()
     const content = await fs.readFile(RULES_FILE, 'utf8')
     return JSON.parse(content)
-  } catch(e) { return [] }
+  } catch(e) {
+    // Initialize with default rules
+    const wan = await getWanIface()
+    const lans = await getLanIfaces()
+    const defaults = await getDefaultRules(wan, lans)
+    await saveRules(defaults)
+    return defaults
+  }
 }
 
 async function saveRules(rules) {
@@ -55,6 +99,7 @@ async function addRule(rule) {
   const newRule = {
     id: Date.now().toString(),
     enabled: true,
+    system: false,
     action: rule.action || 'pass',
     direction: rule.direction || 'in',
     protocol: rule.protocol || 'tcp',
@@ -70,6 +115,16 @@ async function addRule(rule) {
   await saveRules(rules)
   await generateAndReload()
   return { success: true, rule: newRule }
+}
+
+async function updateRule(id, data) {
+  const rules = await getRules()
+  const idx = rules.findIndex(r => r.id === id)
+  if (idx === -1) return { success: false, error: 'Rule not found' }
+  rules[idx] = { ...rules[idx], ...data }
+  await saveRules(rules)
+  await generateAndReload()
+  return { success: true }
 }
 
 async function deleteRule(id) {
@@ -88,6 +143,14 @@ async function toggleRule(id) {
   await saveRules(rules)
   await generateAndReload()
   return { success: true, enabled: rule.enabled }
+}
+
+async function reorderRules(ids) {
+  const rules = await getRules()
+  const ordered = ids.map(id => rules.find(r => r.id === id)).filter(Boolean)
+  await saveRules(ordered)
+  await generateAndReload()
+  return { success: true }
 }
 
 // ─── BLOCKED IPs ──────────────────────────────────────────────────────────────
@@ -190,37 +253,7 @@ scrub in all
     conf += `nat on $ext_if from ${lanVar}:network to any -> ($ext_if)\n`
   })
 
-  conf += `
-# Default rules
-block in all
-pass out all keep state
-
-# Allow SSH
-pass in on $ext_if proto tcp to port 22 keep state
-
-# Allow WebUI
-pass in on $ext_if proto tcp to port 3000 keep state
-
-# Allow Samba
-pass in on $ext_if proto tcp to port { 139, 445 } keep state
-pass in on $ext_if proto udp to port { 137, 138 } keep state
-
-# Allow ICMP
-pass in on $ext_if proto icmp keep state
-
-# Allow HTTP/HTTPS
-pass in on $ext_if proto tcp to port { 80, 443 } keep state
-
-# Allow DHCP
-pass in on $ext_if proto udp to port 67 keep state
-
-`
-
-  // LAN pass rules
-  lans.forEach((lan, i) => {
-    const lanVar = `$lan_if${i === 0 ? '' : i}`
-    conf += `# Allow LAN ${lan} traffic\npass in on ${lanVar} from ${lanVar}:network to any keep state\npass out on $ext_if from ${lanVar}:network to any keep state\n\n`
-  })
+  conf += `\n# Default block\nblock in all\npass out all keep state\n\n`
 
   // Port forwards
   const enabledForwards = portForwards.filter(p => p.enabled)
@@ -233,13 +266,21 @@ pass in on $ext_if proto udp to port 67 keep state
     conf += '\n'
   }
 
-  // Custom rules
+  // All rules (system + custom) in order
   const enabledRules = rules.filter(r => r.enabled)
   if (enabledRules.length > 0) {
-    conf += `# Custom Rules\n`
+    conf += `# Firewall Rules\n`
     enabledRules.forEach(r => {
       let rule = `${r.action} ${r.direction}`
-      if (r.interface && r.interface !== 'any') rule += ` on ${r.interface}`
+      if (r.interface && r.interface !== 'any') {
+        // Replace interface name with variable if it matches
+        if (r.interface === wan) rule += ` on $ext_if`
+        else {
+          const lanIdx = lans.indexOf(r.interface)
+          if (lanIdx >= 0) rule += ` on $lan_if${lanIdx === 0 ? '' : lanIdx}`
+          else rule += ` on ${r.interface}`
+        }
+      }
       if (r.protocol && r.protocol !== 'any') rule += ` proto ${r.protocol}`
       rule += ` from ${r.srcAddr || 'any'}`
       if (r.srcPort) rule += ` port ${r.srcPort}`
@@ -305,7 +346,7 @@ async function getPFRules() {
 
 module.exports = {
   getStatus, getConfig, saveConfig, enablePF, disablePF, getPFRules,
-  getRules, addRule, deleteRule, toggleRule,
+  getRules, addRule, updateRule, deleteRule, toggleRule, reorderRules,
   getBlockedIPs, blockIP, unblockIP,
   getPortForwards, addPortForward, deletePortForward,
   generateAndReload, generatePFConf
