@@ -65,6 +65,7 @@ async function getDefaultRules(wan, lans) {
     makeRule('sys-samba-tcp', 'pass', 'in', 'tcp', wan, 'any', '', 'any', '{ 139, 445 }', 'Allow Samba TCP', true),
     makeRule('sys-samba-udp', 'pass', 'in', 'udp', wan, 'any', '', 'any', '{ 137, 138 }', 'Allow Samba UDP', true),
     makeRule('sys-dhcp', 'pass', 'in', 'udp', wan, 'any', '', 'any', '67', 'Allow DHCP', true),
+    makeRule('sys-wireguard', 'pass', 'in', 'udp', wan, 'any', '', 'any', '51820', 'Allow WireGuard VPN', true),
   ]
   lans.forEach(lan => {
     rules.push(makeRule(`sys-lan-${lan}`, 'pass', 'in', 'any', lan, 'any', '', 'any', '', `Allow all LAN traffic (${lan})`, true))

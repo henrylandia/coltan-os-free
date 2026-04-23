@@ -15,6 +15,15 @@ function loadSidebar(activePage) {
         <a href="/pages/firewall.html" class="nav-item ${activePage === 'firewall' ? 'active' : ''}">
           <i class="bi bi-shield-check"></i> Firewall
         </a>
+        <div class="nav-group">
+          <div class="nav-group-title"><i class="bi bi-lock"></i> VPN</div>
+          <a href="/pages/wireguard.html" class="nav-item nav-sub ${activePage === 'wireguard' ? 'active' : ''}">
+            <i class="bi bi-shield-lock"></i> WireGuard
+          </a>
+          <a href="/pages/openvpn.html" class="nav-item nav-sub ${activePage === 'openvpn' ? 'active' : ''}">
+            <i class="bi bi-lock-fill"></i> OpenVPN
+          </a>
+        </div>
         <a href="/pages/fileserver.html" class="nav-item ${activePage === 'fileserver' ? 'active' : ''}">
           <i class="bi bi-hdd-stack"></i> File Server
         </a>

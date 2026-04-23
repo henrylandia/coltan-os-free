@@ -124,3 +124,20 @@ body {
 .widget-icon { font-size: 2rem; margin-bottom: 8px; }
 .widget-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; }
 .widget-value { font-size: 1.5rem; font-weight: 700; }
+
+/* Nav Group */
+.nav-group { margin: 4px 0; }
+.nav-group-title {
+  padding: 10px 20px 4px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nav-sub {
+  padding-left: 32px !important;
+  font-size: 0.85rem !important;
+}
