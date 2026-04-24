@@ -127,8 +127,18 @@
               <label class="form-label">DNS for clients</label>
               <input type="text" class="form-control" id="srv-dns" placeholder="8.8.8.8">
             </div>
+            <div class="col-12">
+              <label class="form-label">Networks accessible to VPN clients (AllowedIPs)</label>
+              <input type="text" class="form-control" id="srv-allowed" placeholder="0.0.0.0/0">
+              <small class="text-muted">
+                Examples:<br>
+                <strong>0.0.0.0/0</strong> — All traffic through VPN (full tunnel)<br>
+                <strong>192.168.1.0/24, 192.168.0.0/24, 10.0.0.0/24</strong> — Only LAN networks (split tunnel)<br>
+                <strong>192.168.1.0/24</strong> — Only WAN network
+              </small>
+            </div>
           </div>
-          <div class="mt-4">
+          <div class="mt-4 d-flex gap-2">
             <button class="btn btn-accent" onclick="saveServerConfig()">
               <i class="bi bi-floppy me-2"></i>Save & Restart
             </button>
@@ -139,6 +149,16 @@
           <h6><i class="bi bi-key me-2"></i>Server Public Key</h6>
           <div class="pubkey-box" id="server-pubkey">Loading...</div>
           <small class="text-muted mt-2 d-block">Share this key with clients when configuring manually</small>
+        </div>
+
+        <div class="settings-card">
+          <h6><i class="bi bi-info-circle me-2"></i>Network Access Guide</h6>
+          <div style="font-size:0.85rem;color:var(--text-muted);line-height:1.8">
+            <div><strong style="color:var(--text-primary)">Full Tunnel</strong> — All client traffic goes through Coltan OS. Use <code>0.0.0.0/0</code></div>
+            <div><strong style="color:var(--text-primary)">Split Tunnel</strong> — Only LAN traffic goes through VPN. Use your LAN networks separated by commas.</div>
+            <div class="mt-2"><strong style="color:var(--accent)">Your current networks:</strong></div>
+            <div id="network-hint" style="margin-top:4px"></div>
+          </div>
         </div>
       </div>
 
@@ -304,22 +324,41 @@
       document.getElementById('srv-port').value = data.listenPort || 51820
       document.getElementById('srv-ip').value = data.serverIP || '10.0.0.1/24'
       document.getElementById('srv-dns').value = data.dns || '8.8.8.8'
+      document.getElementById('srv-allowed').value = data.allowedNetworks || '0.0.0.0/0'
       document.getElementById('server-pubkey').textContent = data.publicKey || 'N/A'
       document.getElementById('wg-port').textContent = data.listenPort || 51820
+
+      // Show network hint
+      const hintEl = document.getElementById('network-hint')
+      if (hintEl) {
+        const ifRes = await fetch('/api/interfaces', { headers: h.headers })
+        const ifData = await ifRes.json()
+        const wan = ifData.interfaces.find(i => i.role === 'WAN')
+        const lan = ifData.interfaces.find(i => i.role === 'LAN')
+        const vpnBase = (data.serverIP || '10.0.0.1/24').split('.').slice(0,3).join('.')
+        hintEl.innerHTML = `
+          <code style="color:#22c55e">WAN: ${wan?.ip || 'N/A'}</code><br>
+          <code style="color:#4f8ef7">LAN: ${lan?.ip ? lan.ip.split('.').slice(0,3).join('.')+'.0/24' : 'N/A'}</code><br>
+          <code style="color:#f59e0b">VPN: ${vpnBase}.0/24</code><br>
+          <div class="mt-1">Split tunnel example: <code>${wan?.ip ? wan.ip.split('.').slice(0,3).join('.')+'.0/24' : '192.168.1.0/24'}, ${lan?.ip ? lan.ip.split('.').slice(0,3).join('.')+'.0/24' : '192.168.0.0/24'}, ${vpnBase}.0/24</code></div>
+        `
+      }
     }
 
     async function saveServerConfig() {
       const body = {
         listenPort: parseInt(document.getElementById('srv-port').value),
         serverIP: document.getElementById('srv-ip').value.trim(),
-        dns: document.getElementById('srv-dns').value.trim()
+        dns: document.getElementById('srv-dns').value.trim(),
+        allowedNetworks: document.getElementById('srv-allowed').value.trim() || '0.0.0.0/0'
       }
       const res = await fetch('/api/wireguard/config', {
         method: 'POST', ...h, body: JSON.stringify(body)
       })
-      if (res.ok) {
-        showAlert('Server config saved')
-        await startWG()
+      const data = await res.json()
+      if (data.success) {
+        showAlert('Config saved and WireGuard restarted')
+        setTimeout(loadStatus, 1500)
       } else showAlert('Error saving config', true)
     }
 

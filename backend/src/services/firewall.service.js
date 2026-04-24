@@ -237,6 +237,7 @@ ext_if = "${wan}"
 # Options
 set block-policy drop
 set skip on lo0
+set skip on wg0
 
 # Scrub
 scrub in all
@@ -254,7 +255,32 @@ scrub in all
     conf += `nat on $ext_if from ${lanVar}:network to any -> ($ext_if)\n`
   })
 
+  // NAT for WireGuard — dynamic based on config
+  try {
+    const wgConfigRaw = require('fs').readFileSync('/usr/local/etc/coltan/wg-config.json', 'utf8')
+    const wgConfig = JSON.parse(wgConfigRaw)
+    const wgNet = wgConfig.serverIP ? wgConfig.serverIP.replace(/\.\d+\/\d+$/, '.0/24') : '10.0.0.0/24'
+    conf += `nat on $ext_if from ${wgNet} to any -> ($ext_if)\n`
+    conf += `pass in on wg0 from ${wgNet} to any keep state\n`
+    conf += `pass out on $ext_if from ${wgNet} to any keep state\n`
+    lans.forEach((lan, i) => {
+      const lanVar = `$lan_if${i === 0 ? '' : i}`
+      conf += `pass in on wg0 from ${wgNet} to ${lanVar}:network keep state\n`
+      conf += `pass out on ${lan} from ${wgNet} to ${lanVar}:network keep state\n`
+    })
+    // Also pass traffic to the WireGuard server IP itself
+    conf += `pass in on wg0 proto icmp all keep state\n`
+    conf += `pass out on wg0 proto icmp all keep state\n`
+  } catch(e) {
+    // Default fallback
+    conf += `nat on $ext_if from 10.0.0.0/8 to any -> ($ext_if)\n`
+    conf += `pass in on wg0 all keep state\n`
+    conf += `pass out on wg0 all keep state\n`
+  }
+
+
   conf += `\n# Default block\nblock in all\npass out all keep state\n\n`
+  conf += `# WireGuard interface - allow all traffic\npass quick on wg0 all keep state\n\n`
 
   // Port forwards
   const enabledForwards = portForwards.filter(p => p.enabled)

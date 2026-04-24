@@ -2,7 +2,7 @@
 
 const {
   getStatus, getConfig, saveConfig, enablePF, disablePF, getPFRules,
-  getRules, addRule, deleteRule, toggleRule,
+  getRules, addRule, updateRule, deleteRule, toggleRule,
   getBlockedIPs, blockIP, unblockIP,
   getPortForwards, addPortForward, deletePortForward,
   generateAndReload

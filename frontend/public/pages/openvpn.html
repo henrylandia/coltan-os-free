@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coltan OS — OpenVPN</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="../css/main.css" rel="stylesheet">
+  <style>
+    .nav-tabs { border-color: var(--border); }
+    .nav-tabs .nav-link { color: var(--text-muted); border: none; padding: 10px 20px; }
+    .nav-tabs .nav-link.active { color: var(--accent); border-bottom: 2px solid var(--accent); background: none; }
+    .nav-tabs .nav-link:hover { color: var(--text-primary); }
+    .section-title { font-size: 1rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
+    .server-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; transition: border-color 0.2s; }
+    .server-card:hover { border-color: var(--accent); }
+    .server-name { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+    .server-detail { font-size: 0.82rem; color: var(--text-muted); margin-top: 2px; }
+    .server-detail span { color: var(--text-primary); }
+    .data-table { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+    .data-table table { margin: 0; }
+    .data-table th { background: var(--bg-sidebar); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; border-color: var(--border); }
+    .data-table td { color: var(--text-primary); border-color: var(--border); font-size: 0.85rem; vertical-align: middle; }
+    .data-table td.mono { font-family: monospace; font-size: 0.78rem; }
+    .btn-accent { background: var(--accent); border: none; color: white; padding: 6px 16px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; }
+    .btn-accent:hover { opacity: 0.85; color: white; }
+    .btn-danger-soft { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .btn-success-soft { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .btn-warning-soft { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); color: #f59e0b; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .btn-primary-soft { background: rgba(79,142,247,0.15); border: 1px solid rgba(79,142,247,0.3); color: var(--accent); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .modal-content { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); }
+    .modal-header, .modal-footer { border-color: var(--border); }
+    .form-control, .form-select { background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-primary); }
+    .form-control:focus, .form-select:focus { background: var(--bg-dark); border-color: var(--accent); color: var(--text-primary); box-shadow: none; }
+    .form-label { color: var(--text-muted); font-size: 0.85rem; }
+    .alert-success-custom { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; border-radius: 8px; padding: 12px 16px; display: none; margin-bottom: 16px; }
+    .alert-error-custom { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #f87171; border-radius: 8px; padding: 12px 16px; display: none; margin-bottom: 16px; }
+    .badge-running { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
+    .badge-stopped { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
+    .badge-valid { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
+    .badge-revoked { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
+    .badge-server { background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
+    .badge-ca { background: rgba(79,142,247,0.15); color: var(--accent); border: 1px solid rgba(79,142,247,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
+    .badge-client { background: rgba(100,116,139,0.15); color: #94a3b8; border: 1px solid rgba(100,116,139,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
+    .badge-ra { background: rgba(79,142,247,0.15); color: var(--accent); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
+    .badge-s2s { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
+    .config-box { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 10px; padding: 16px; font-family: monospace; font-size: 0.82rem; color: var(--text-primary); white-space: pre; overflow-x: auto; max-height: 400px; overflow-y: auto; }
+    .site2site-fields { display: none; }
+  </style>
+</head>
+<body>
+
+  <div class="main-content">
+    <div class="p-4">
+
+      <div id="alert-success" class="alert-success-custom"><i class="bi bi-check-circle me-2"></i><span id="alert-text">Done.</span></div>
+      <div id="alert-error" class="alert-error-custom"><i class="bi bi-exclamation-triangle me-2"></i><span id="alert-error-text">Error.</span></div>
+
+      <ul class="nav nav-tabs mb-4">
+        <li class="nav-item"><a class="nav-link active" href="#" onclick="showTab('servers',this)"><i class="bi bi-server me-2"></i>Servers</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('clients',this)"><i class="bi bi-people me-2"></i>Clients</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('certificates',this)"><i class="bi bi-patch-check me-2"></i>Certificates</a></li>
+      </ul>
+
+      <!-- Servers Tab -->
+      <div id="tab-servers">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0"><i class="bi bi-server me-2"></i>OpenVPN Servers</div>
+          <button class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#addServerModal">
+            <i class="bi bi-plus-lg me-1"></i>New Server
+          </button>
+        </div>
+        <div id="servers-container"><div class="text-muted">Loading...</div></div>
+      </div>
+
+      <!-- Clients Tab -->
+      <div id="tab-clients" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0"><i class="bi bi-people me-2"></i>VPN Clients</div>
+          <button class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#addClientModal">
+            <i class="bi bi-plus-lg me-1"></i>Add Client
+          </button>
+        </div>
+        <div class="data-table">
+          <table class="table table-dark table-hover mb-0">
+            <thead>
+              <tr><th>Name</th><th>Server</th><th>Certificate</th><th>Created</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="clients-body"><tr><td colspan="5" class="text-muted">No clients yet</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Certificates Tab -->
+      <div id="tab-certificates" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0"><i class="bi bi-patch-check me-2"></i>PKI Certificates</div>
+          <button class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#createCertModal">
+            <i class="bi bi-plus-lg me-1"></i>New Certificate
+          </button>
+        </div>
+        <div class="data-table">
+          <table class="table table-dark table-hover mb-0">
+            <thead>
+              <tr><th>Common Name</th><th>Type</th><th>Status</th><th>Expires</th><th>Client</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="certs-body"><tr><td colspan="5" class="text-muted">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Add Server Modal -->
+  <div class="modal fade" id="addServerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>New OpenVPN Server</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Server Name</label>
+              <input type="text" class="form-control" id="srv-name" placeholder="Remote Access, Office VPN...">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Port</label>
+              <input type="number" class="form-control" id="srv-port" value="1194">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Protocol</label>
+              <select class="form-select" id="srv-proto">
+                <option value="udp">UDP (recommended)</option>
+                <option value="tcp">TCP</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Type</label>
+              <select class="form-select" id="srv-type" onchange="toggleS2S()">
+                <option value="remote-access">Remote Access (clients)</option>
+                <option value="site-to-site">Site-to-Site</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">VPN Network</label>
+              <input type="text" class="form-control" id="srv-network" value="10.8.0.0">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">VPN Netmask</label>
+              <input type="text" class="form-control" id="srv-netmask" value="255.255.255.0">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">DNS Server 1</label>
+              <input type="text" class="form-control" id="srv-dns1" value="8.8.8.8">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">DNS Server 2</label>
+              <input type="text" class="form-control" id="srv-dns2" value="1.1.1.1">
+            </div>
+
+            <!-- Site-to-Site fields -->
+            <div class="col-12 site2site-fields" id="s2s-fields">
+              <hr style="border-color:var(--border)">
+              <div style="font-size:0.85rem;font-weight:600;color:var(--text-muted);margin-bottom:12px">Site-to-Site Configuration</div>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Remote Network</label>
+                  <input type="text" class="form-control" id="srv-site-network" placeholder="192.168.2.0">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Remote Netmask</label>
+                  <input type="text" class="form-control" id="srv-site-mask" placeholder="255.255.255.0">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-accent" onclick="addServer()">
+            <i class="bi bi-plus-lg me-1"></i>Create Server
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Client Modal -->
+  <div class="modal fade" id="addClientModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Add VPN Client</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Client Name</label>
+            <input type="text" class="form-control" id="client-name" placeholder="juan-laptop, iphone-maria...">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Assign to Server</label>
+            <select class="form-select" id="client-server"></select>
+          </div>
+          <div style="background:var(--bg-dark);border-radius:8px;padding:12px;font-size:0.82rem;color:var(--text-muted)">
+            <i class="bi bi-info-circle me-1"></i>
+            Certificate generated automatically. Download .ovpn after adding.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-accent" id="add-client-btn" onclick="addClient()">
+            <i class="bi bi-plus-lg me-1"></i>Add Client
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Download OVPN Modal -->
+  <div class="modal fade" id="downloadModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="download-title"><i class="bi bi-download me-2"></i>Download .ovpn</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Server Public IP or Domain</label>
+            <input type="text" class="form-control" id="pub-ip" placeholder="1.2.3.4 or mivpn.dominio.com">
+            <small class="text-muted">The public IP clients will use to connect</small>
+          </div>
+          <button class="btn btn-primary-soft mb-3" onclick="generateOVPN()">
+            <i class="bi bi-arrow-clockwise me-1"></i>Generate Config
+          </button>
+          <div class="config-box" id="ovpn-content">Enter IP and click Generate</div>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-accent" onclick="downloadOVPN()"><i class="bi bi-download me-2"></i>Download .ovpn</button>
+            <button class="btn btn-primary-soft" onclick="copyOVPN()"><i class="bi bi-clipboard me-2"></i>Copy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Download Cert Modal -->
+  <div class="modal fade" id="certDownloadModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="cert-download-title"><i class="bi bi-file-earmark-lock me-2"></i>Download Certificate</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p style="color:var(--text-muted);font-size:0.85rem">Select what to download:</p>
+          <div class="d-grid gap-2" id="cert-download-buttons"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Cert Modal -->
+  <div class="modal fade" id="createCertModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-patch-plus me-2"></i>New Certificate</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Common Name (CN)</label>
+            <input type="text" class="form-control" id="new-cert-name" placeholder="client-juan, tablet-maria...">
+            <small class="text-muted">Letters, numbers and hyphens only</small>
+          </div>
+          <div style="background:var(--bg-dark);border-radius:8px;padding:12px;font-size:0.82rem;color:var(--text-muted)">
+            <i class="bi bi-info-circle me-1"></i>
+            This creates a standalone certificate. To create a client with .ovpn config, use the Clients tab instead.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-accent" id="create-cert-btn" onclick="createCert()">
+            <i class="bi bi-plus-lg me-1"></i>Create Certificate
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../js/sidebar.js"></script>
+  <script>
+    const token = localStorage.getItem('coltan_token')
+    if (!token) window.location.href = '/login.html'
+    loadSidebar('openvpn')
+    loadTopbar('<i class="bi bi-lock-fill me-2"></i>OpenVPN')
+    startClock()
+
+    const h = { headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } }
+    let currentClientId = null
+    let currentClientName = null
+    let currentCertName = null
+    let allServers = []
+
+    function showTab(tab, el) {
+      ['servers','clients','certificates'].forEach(t => {
+        document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none'
+      })
+      document.querySelectorAll('.nav-tabs .nav-link').forEach(e => e.classList.remove('active'))
+      if (el) el.classList.add('active')
+      if (tab === 'certificates') loadCertificates()
+      if (tab === 'clients') loadClients()
+    }
+
+    function showAlert(msg, isError) {
+      if (isError) {
+        document.getElementById('alert-error-text').textContent = msg
+        document.getElementById('alert-error').style.display = 'block'
+        setTimeout(() => document.getElementById('alert-error').style.display = 'none', 4000)
+      } else {
+        document.getElementById('alert-text').textContent = msg
+        document.getElementById('alert-success').style.display = 'block'
+        setTimeout(() => document.getElementById('alert-success').style.display = 'none', 3000)
+      }
+    }
+
+    function toggleS2S() {
+      const type = document.getElementById('srv-type').value
+      document.getElementById('s2s-fields').style.display = type === 'site-to-site' ? 'block' : 'none'
+    }
+
+    async function loadServers() {
+      const res = await fetch('/api/openvpn/servers', { headers: h.headers })
+      const data = await res.json()
+      allServers = data.servers || []
+
+      // Populate client server select
+      const sel = document.getElementById('client-server')
+      sel.innerHTML = allServers.map(s => `<option value="${s.id}">${s.name} (:${s.port})</option>`).join('')
+
+      const container = document.getElementById('servers-container')
+      if (allServers.length === 0) {
+        container.innerHTML = '<div class="text-muted">No servers configured — create one to get started</div>'
+        return
+      }
+
+      container.innerHTML = allServers.map(s => `
+        <div class="server-card">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div class="server-name"><i class="bi bi-server me-2"></i>${s.name}</div>
+                <span class="${s.running ? 'badge-running' : 'badge-stopped'}">${s.running ? 'Running' : 'Stopped'}</span>
+                <span class="${s.type === 'site-to-site' ? 'badge-s2s' : 'badge-ra'}">${s.type === 'site-to-site' ? 'Site-to-Site' : 'Remote Access'}</span>
+              </div>
+              <div class="row mt-3">
+                <div class="col-md-2"><div class="server-detail">Port<br><span>${s.port}/${s.proto.toUpperCase()}</span></div></div>
+                <div class="col-md-2"><div class="server-detail">Interface<br><span>${s.interface}</span></div></div>
+                <div class="col-md-3"><div class="server-detail">VPN Network<br><span>${s.network}/${s.netmask}</span></div></div>
+                <div class="col-md-2"><div class="server-detail">Connected<br><span>${s.connectedClients || 0} clients</span></div></div>
+                ${s.type === 'site-to-site' && s.siteNetwork ? `<div class="col-md-3"><div class="server-detail">Remote Network<br><span>${s.siteNetwork}</span></div></div>` : ''}
+              </div>
+              ${s.clients && s.clients.length > 0 ? `
+                <div class="mt-3" style="background:var(--bg-dark);border-radius:8px;padding:10px;font-size:0.8rem">
+                  <div style="color:var(--text-muted);margin-bottom:6px">CONNECTED NOW</div>
+                  ${s.clients.map(c => `<div style="color:var(--text-primary)">${c.name} — ${c.endpoint}</div>`).join('')}
+                </div>` : ''}
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              ${s.running
+                ? `<button class="btn btn-warning-soft" onclick="stopServer('${s.id}')"><i class="bi bi-stop-fill me-1"></i>Stop</button>`
+                : `<button class="btn btn-success-soft" onclick="startServer('${s.id}')"><i class="bi bi-play-fill me-1"></i>Start</button>`
+              }
+              <button class="btn btn-danger-soft" onclick="deleteServer('${s.id}','${s.name}')">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('')
+    }
+
+    async function addServer() {
+      const body = {
+        name: document.getElementById('srv-name').value.trim(),
+        port: document.getElementById('srv-port').value,
+        proto: document.getElementById('srv-proto').value,
+        type: document.getElementById('srv-type').value,
+        network: document.getElementById('srv-network').value.trim(),
+        netmask: document.getElementById('srv-netmask').value.trim(),
+        dns1: document.getElementById('srv-dns1').value.trim(),
+        dns2: document.getElementById('srv-dns2').value.trim(),
+        siteNetwork: document.getElementById('srv-site-network').value.trim(),
+        siteMask: document.getElementById('srv-site-mask').value.trim()
+      }
+      if (!body.name || !body.port) return showAlert('Name and port are required', true)
+      const res = await fetch('/api/openvpn/servers', { method: 'POST', ...h, body: JSON.stringify(body) })
+      const data = await res.json()
+      bootstrap.Modal.getInstance(document.getElementById('addServerModal')).hide()
+      if (data.success) { showAlert('Server "' + body.name + '" created'); loadServers() }
+      else showAlert(data.error, true)
+    }
+
+    async function deleteServer(id, name) {
+      if (!confirm('Delete server "' + name + '"? All connections will be terminated.')) return
+      const res = await fetch('/api/openvpn/servers/' + id, {
+        method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token }
+      })
+      const data = await res.json()
+      if (data.success) { showAlert('Server deleted'); loadServers() }
+      else showAlert(data.error, true)
+    }
+
+    async function startServer(id) {
+      const res = await fetch('/api/openvpn/servers/' + id + '/start', { method: 'POST', ...h, body: '{}' })
+      const data = await res.json()
+      if (data.success) { showAlert('Server started'); setTimeout(loadServers, 1000) }
+      else showAlert('Error: ' + data.error, true)
+    }
+
+    async function stopServer(id) {
+      const res = await fetch('/api/openvpn/servers/' + id + '/stop', { method: 'POST', ...h, body: '{}' })
+      const data = await res.json()
+      if (data.success) { showAlert('Server stopped'); setTimeout(loadServers, 1000) }
+      else showAlert('Error: ' + data.error, true)
+    }
+
+    async function loadClients() {
+      const res = await fetch('/api/openvpn/clients', { headers: h.headers })
+      const data = await res.json()
+      const tbody = document.getElementById('clients-body')
+      if (!data.clients || data.clients.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-muted">No VPN clients yet</td></tr>'
+        return
+      }
+      tbody.innerHTML = data.clients.map(c => {
+        const server = allServers.find(s => s.id === c.serverId)
+        return `
+          <tr>
+            <td><strong>${c.name}</strong></td>
+            <td style="color:var(--accent)">${server ? server.name : c.serverId}</td>
+            <td class="mono" style="font-size:0.75rem">${c.safeName}</td>
+            <td style="font-size:0.78rem;color:var(--text-muted)">${new Date(c.createdAt).toLocaleDateString()}</td>
+            <td>
+              <div style="display:flex;gap:4px">
+                <button class="btn btn-primary-soft" onclick="openDownload('${c.id}','${c.name}')">
+                  <i class="bi bi-download"></i> .ovpn
+                </button>
+                <button class="btn btn-danger-soft" onclick="deleteClient('${c.id}','${c.name}')">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>`
+      }).join('')
+    }
+
+    async function addClient() {
+      const name = document.getElementById('client-name').value.trim()
+      const serverId = document.getElementById('client-server').value
+      if (!name) return showAlert('Client name required', true)
+      const btn = document.getElementById('add-client-btn')
+      btn.disabled = true
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating cert...'
+      const res = await fetch('/api/openvpn/clients', {
+        method: 'POST', ...h, body: JSON.stringify({ name, serverId })
+      })
+      const data = await res.json()
+      btn.disabled = false
+      btn.innerHTML = '<i class="bi bi-plus-lg me-1"></i>Add Client'
+      bootstrap.Modal.getInstance(document.getElementById('addClientModal')).hide()
+      document.getElementById('client-name').value = ''
+      if (data.success) {
+        showAlert('Client "' + name + '" created')
+        loadClients()
+        setTimeout(() => openDownload(data.client.id, data.client.name), 500)
+      } else showAlert(data.error, true)
+    }
+
+    async function deleteClient(id, name) {
+      if (!confirm('Delete "' + name + '"? Certificate will be revoked.')) return
+      const res = await fetch('/api/openvpn/clients/' + id, {
+        method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token }
+      })
+      const data = await res.json()
+      if (data.success) { showAlert('Client deleted'); loadClients() }
+      else showAlert(data.error, true)
+    }
+
+    function openDownload(id, name) {
+      currentClientId = id
+      currentClientName = name
+      document.getElementById('download-title').innerHTML = '<i class="bi bi-download me-2"></i>' + name + ' — .ovpn'
+      document.getElementById('ovpn-content').textContent = 'Enter IP and click Generate'
+      new bootstrap.Modal(document.getElementById('downloadModal')).show()
+    }
+
+    async function generateOVPN() {
+      const ip = document.getElementById('pub-ip').value.trim()
+      if (!ip) return showAlert('Enter public IP first', true)
+      const res = await fetch('/api/openvpn/clients/' + currentClientId + '/ovpn?serverIP=' + ip, {
+        headers: h.headers
+      })
+      const data = await res.json()
+      document.getElementById('ovpn-content').textContent = data.config
+    }
+
+    function downloadOVPN() {
+      const config = document.getElementById('ovpn-content').textContent
+      if (config.includes('Enter IP')) return showAlert('Generate config first', true)
+      const blob = new Blob([config], { type: 'text/plain' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = currentClientName.replace(/\s+/g, '_') + '.ovpn'
+      a.click()
+      URL.revokeObjectURL(url)
+    }
+
+    function copyOVPN() {
+      navigator.clipboard.writeText(document.getElementById('ovpn-content').textContent)
+        .then(() => showAlert('Config copied'))
+    }
+
+    async function loadCertificates() {
+      const res = await fetch('/api/openvpn/certificates', { headers: h.headers })
+      const data = await res.json()
+      const tbody = document.getElementById('certs-body')
+      if (!data.certificates || data.certificates.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-muted">No certificates</td></tr>'
+        return
+      }
+      // Get clients to match certs
+      const cliRes = await fetch('/api/openvpn/clients', { headers: h.headers })
+      const cliData = await cliRes.json()
+      const clientsByCert = {}
+      ;(cliData.clients || []).forEach(c => { clientsByCert[c.safeName] = c.name })
+
+      tbody.innerHTML = data.certificates.map(c => `
+        <tr>
+          <td><strong>${c.cn}</strong></td>
+          <td>
+            <span class="${c.type === 'ca' ? 'badge-ca' : c.type === 'server' ? 'badge-server' : 'badge-client'}">
+              ${c.type}
+            </span>
+          </td>
+          <td><span class="${c.status === 'valid' ? 'badge-valid' : 'badge-revoked'}">${c.status}</span></td>
+          <td style="font-size:0.78rem;color:var(--text-muted)">${c.expiry || '—'}</td>
+          <td style="color:var(--text-muted);font-size:0.82rem">${clientsByCert[c.cn] || '—'}</td>
+          <td>
+            <div style="display:flex;gap:4px">
+              <button class="btn btn-primary-soft" onclick="openCertDownload('${c.cn}','${c.type}')">
+                <i class="bi bi-download"></i>
+              </button>
+              ${c.type === 'client' && c.status === 'valid' ? `
+                <button class="btn btn-danger-soft" onclick="revokeCert('${c.cn}')">
+                  <i class="bi bi-x-circle"></i> Revoke
+                </button>` : ''}
+              ${c.type === 'client' ? `
+                <button class="btn btn-danger-soft" onclick="deleteCertAndClient('${c.cn}')">
+                  <i class="bi bi-trash"></i>
+                </button>` : ''}
+            </div>
+          </td>
+        </tr>`).join('')
+    }
+
+    function openCertDownload(name, type) {
+      currentCertName = name
+      document.getElementById('cert-download-title').innerHTML = '<i class="bi bi-file-earmark-lock me-2"></i>' + name
+      const btns = document.getElementById('cert-download-buttons')
+      const options = type === 'ca'
+        ? [{ label: 'CA Certificate (.crt)', type: 'ca' }]
+        : type === 'server'
+        ? [
+            { label: 'CA Certificate (.crt)', type: 'ca' },
+            { label: 'Server Certificate (.crt)', type: 'cert' },
+            { label: 'Server Private Key (.key)', type: 'key' },
+            { label: 'DH Parameters (dh.pem)', type: 'dh' },
+            { label: 'TLS Auth Key (ta.key)', type: 'ta' }
+          ]
+        : [
+            { label: 'CA Certificate (.crt)', type: 'ca' },
+            { label: 'Client Certificate (.crt)', type: 'cert' },
+            { label: 'Client Private Key (.key)', type: 'key' },
+            { label: 'TLS Auth Key (ta.key)', type: 'ta' }
+          ]
+
+      btns.innerHTML = options.map(o => `
+        <button class="btn btn-primary-soft text-start" onclick="downloadCert('${name}','${o.type}')">
+          <i class="bi bi-file-earmark-lock me-2"></i>${o.label}
+        </button>`).join('')
+
+      new bootstrap.Modal(document.getElementById('certDownloadModal')).show()
+    }
+
+    async function downloadCert(name, type) {
+      const res = await fetch('/api/openvpn/certificates/download?name=' + name + '&type=' + type, {
+        headers: h.headers
+      })
+      const data = await res.json()
+      if (!data.content) return showAlert('Certificate not found', true)
+      const ext = type === 'cert' ? 'crt' : type === 'key' ? 'key' : type === 'dh' ? 'pem' : type
+      const blob = new Blob([data.content], { type: 'text/plain' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = name + '_' + type + '.' + ext
+      a.click()
+      URL.revokeObjectURL(url)
+    }
+
+    async function revokeCert(name) {
+      if (!confirm('Revoke certificate for "' + name + '"? This cannot be undone.')) return
+      const res = await fetch('/api/openvpn/certificates/revoke', {
+        method: 'POST', ...h, body: JSON.stringify({ name })
+      })
+      const data = await res.json()
+      if (data.success) { showAlert('Certificate revoked'); loadCertificates() }
+      else showAlert(data.error, true)
+    }
+
+    loadServers()
+    setInterval(loadServers, 15000)
+  
+    async function createCert() {
+      const name = document.getElementById('new-cert-name').value.trim()
+      if (!name) return showAlert('Name required', true)
+      const btn = document.getElementById('create-cert-btn')
+      btn.disabled = true
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating...'
+      const res = await fetch('/api/openvpn/certificates/create', {
+        method: 'POST', ...h, body: JSON.stringify({ name })
+      })
+      const data = await res.json()
+      btn.disabled = false
+      btn.innerHTML = '<i class="bi bi-plus-lg me-1"></i>Create Certificate'
+      bootstrap.Modal.getInstance(document.getElementById('createCertModal')).hide()
+      document.getElementById('new-cert-name').value = ''
+      if (data.success) { showAlert('Certificate "' + name + '" created'); loadCertificates() }
+      else showAlert(data.error, true)
+    }
+
+    async function deleteCertAndClient(cn) {
+      if (!confirm('Delete certificate "' + cn + '"? This will revoke it and cannot be undone.')) return
+      try {
+        await fetch('/api/openvpn/certificates/revoke', {
+          method: 'POST', ...h, body: JSON.stringify({ name: cn })
+        })
+        showAlert('Certificate "' + cn + '" revoked and deleted')
+        loadCertificates()
+      } catch(e) {
+        showAlert('Error deleting certificate', true)
+      }
+    }
+
+</script>
+</body>
+</html>

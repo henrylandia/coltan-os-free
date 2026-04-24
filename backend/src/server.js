@@ -50,6 +50,7 @@ fastify.register(require('./routes/dashboard.routes'))
 fastify.register(require('./routes/dhcp.routes'))
 fastify.register(require('./routes/interfaces.routes'))
 fastify.register(require('./routes/wireguard.routes'))
+fastify.register(require('./routes/openvpn.routes'))
 
 // WebSockets
 fastify.register(require('@fastify/websocket'))
