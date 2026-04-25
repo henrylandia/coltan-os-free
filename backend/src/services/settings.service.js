@@ -122,12 +122,16 @@ async function getNetworkConfig() {
   } catch(e) { return { interfaces: [], gateway: '' } }
 }
 
-async function setInterfaceConfig(iface, ip, netmask, gateway) {
+async function setInterfaceConfig(iface, ip, netmask, gateway, isDefault) {
   try {
     await execAsync(`sysrc ifconfig_${iface}="inet ${ip} netmask ${netmask}"`)
-    if (gateway) await execAsync(`sysrc defaultrouter="${gateway}"`)
-    await execAsync('service netif restart')
-    return { success: true }
+    if (gateway && isDefault) {
+      await execAsync(`sysrc defaultrouter="${gateway}"`)
+    }
+    // Apply IP change without restarting the whole network
+    // Only update the specific interface IP without restart
+    // Changes take effect on next reboot or manual restart
+    return { success: true, warning: 'Cambios guardados en rc.conf. Aplicar manualmente con: service netif restart (cuidado: puede interrumpir conexión)' }
   } catch(e) { return { success: false, error: e.message } }
 }
 
