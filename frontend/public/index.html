@@ -3,116 +3,103 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Coltan OS</title>
+  <title>Coltan OS — Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="css/main.css" rel="stylesheet">
+  <link href="/css/main.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    .module-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-      cursor: pointer;
-      transition: border-color 0.2s, transform 0.1s;
-    }
-    .module-card:hover { border-color: var(--accent); transform: translateY(-1px); }
-    .module-icon { font-size: 1.8rem; margin-bottom: 8px; }
-    .module-title { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-    .module-status { font-size: 1rem; font-weight: 700; margin-top: 4px; }
-    .module-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
-    .status-online { color: #22c55e; }
-    .status-offline { color: #ef4444; }
-    .status-warning { color: #f59e0b; }
-    .status-disabled { color: #64748b; }
-    .status-none { color: #64748b; }
+    .metric-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .metric-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .metric-value { font-size: 1.8rem; font-weight: 700; color: var(--text-primary); }
+    .metric-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+    .chart-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .chart-title { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+    .service-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .service-row:last-child { border-bottom: none; }
+    .service-name { font-size: 0.85rem; color: var(--text-primary); }
+    .dot-green { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; }
+    .dot-red { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; display: inline-block; }
+    .traffic-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .iface-name { font-weight: 700; color: var(--accent); font-size: 0.9rem; }
+    .iface-stat { font-size: 0.78rem; color: var(--text-muted); }
+    .iface-stat span { color: var(--text-primary); font-family: monospace; }
+    .progress-bar-custom { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin-top: 8px; }
+    .progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+    .vpn-badge { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
+    .vpn-badge-off { background: rgba(100,116,139,0.15); color: #64748b; border: 1px solid rgba(100,116,139,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
   </style>
 </head>
 <body>
-
   <div class="main-content">
-    <div class="dashboard p-4">
+    <div class="p-4">
 
       <!-- Metrics Row -->
-      <div class="row g-4 mb-4">
+      <div class="row g-3 mb-4">
         <div class="col-md-3">
-          <div class="widget">
-            <div class="widget-icon text-success"><i class="bi bi-cpu"></i></div>
-            <div class="widget-label">CPU</div>
-            <div class="widget-value" id="cpu">--</div>
+          <div class="metric-card">
+            <div class="metric-label"><i class="bi bi-cpu me-1"></i>CPU</div>
+            <div class="metric-value" id="cpu-val">--%</div>
+            <div class="progress-bar-custom"><div class="progress-fill bg-accent" id="cpu-bar" style="width:0%;background:var(--accent)"></div></div>
           </div>
         </div>
         <div class="col-md-3">
-          <div class="widget">
-            <div class="widget-icon text-info"><i class="bi bi-memory"></i></div>
-            <div class="widget-label">Memory</div>
-            <div class="widget-value" id="memory">--</div>
+          <div class="metric-card">
+            <div class="metric-label"><i class="bi bi-memory me-1"></i>Memory</div>
+            <div class="metric-value" id="mem-val">--</div>
+            <div class="progress-bar-custom"><div class="progress-fill" id="mem-bar" style="width:0%;background:#a855f7"></div></div>
           </div>
         </div>
         <div class="col-md-3">
-          <div class="widget">
-            <div class="widget-icon text-warning"><i class="bi bi-hdd"></i></div>
-            <div class="widget-label">Disk</div>
-            <div class="widget-value" id="disk">--</div>
+          <div class="metric-card">
+            <div class="metric-label"><i class="bi bi-hdd me-1"></i>Disk</div>
+            <div class="metric-value" id="disk-val">--</div>
+            <div class="progress-bar-custom"><div class="progress-fill" id="disk-bar" style="width:0%;background:#f59e0b"></div></div>
           </div>
         </div>
         <div class="col-md-3">
-          <div class="widget">
-            <div class="widget-icon text-primary"><i class="bi bi-activity"></i></div>
-            <div class="widget-label">Uptime</div>
-            <div class="widget-value" id="uptime">--</div>
+          <div class="metric-card">
+            <div class="metric-label"><i class="bi bi-clock me-1"></i>Uptime</div>
+            <div class="metric-value" style="font-size:1.4rem" id="uptime-val">--</div>
+            <div class="metric-sub" id="hostname-val">coltanos</div>
           </div>
         </div>
       </div>
 
-      <!-- Modules Row -->
-      <div class="row g-4">
-        <div class="col-md-3">
-          <div class="module-card" onclick="window.location.href='/pages/networking.html'">
-            <div class="module-icon">🌐</div>
-            <div class="module-title">Networking</div>
-            <div class="module-status status-online">Active</div>
-            <div class="module-sub" id="net-sub">em0, em1</div>
+      <!-- Charts Row -->
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <div class="chart-card">
+            <div class="chart-title"><i class="bi bi-cpu me-2"></i>CPU Usage — Last 60s</div>
+            <canvas id="cpuChart" height="120"></canvas>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="chart-card">
+            <div class="chart-title"><i class="bi bi-memory me-2"></i>Memory Usage — Last 60s</div>
+            <canvas id="memChart" height="120"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Network + Services Row -->
+      <div class="row g-3 mb-4">
+        <div class="col-md-5">
+          <div class="traffic-card">
+            <div class="chart-title"><i class="bi bi-ethernet me-2"></i>Network Interfaces</div>
+            <div id="ifaces-container"><div class="text-muted">Loading...</div></div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="traffic-card">
+            <div class="chart-title"><i class="bi bi-activity me-2"></i>Services</div>
+            <div id="services-container"><div class="text-muted">Loading...</div></div>
           </div>
         </div>
         <div class="col-md-3">
-          <div class="module-card" onclick="window.location.href='/pages/firewall.html'">
-            <div class="module-icon">🛡️</div>
-            <div class="module-title">Firewall</div>
-            <div class="module-status" id="fw-status">--</div>
-            <div class="module-sub" id="fw-sub">--</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="module-card" onclick="window.location.href='/pages/fileserver.html'">
-            <div class="module-icon">🗄️</div>
-            <div class="module-title">File Server</div>
-            <div class="module-status" id="fs-status">--</div>
-            <div class="module-sub" id="fs-sub">--</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="module-card" onclick="window.location.href='/pages/backup.html'">
-            <div class="module-icon">💾</div>
-            <div class="module-title">Backup</div>
-            <div class="module-status" id="bk-status">--</div>
-            <div class="module-sub" id="bk-sub">--</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="module-card" onclick="window.location.href='/pages/console.html'">
-            <div class="module-icon">🖥️</div>
-            <div class="module-title">Console</div>
-            <div class="module-status status-online">Ready</div>
-            <div class="module-sub">Web terminal</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="module-card" onclick="window.location.href='/pages/settings.html'">
-            <div class="module-icon">⚙️</div>
-            <div class="module-title">Settings</div>
-            <div class="module-status status-online">Configured</div>
-            <div class="module-sub" id="settings-sub">--</div>
+          <div class="traffic-card">
+            <div class="chart-title"><i class="bi bi-lock me-2"></i>VPN Status</div>
+            <div id="vpn-container"><div class="text-muted">Loading...</div></div>
           </div>
         </div>
       </div>
@@ -121,12 +108,151 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="js/sidebar.js"></script>
-  <script src="js/main.js"></script>
+  <script src="/js/sidebar.js"></script>
   <script>
+    const token = localStorage.getItem('coltan_token')
+    if (!token) window.location.href = '/login.html'
     loadSidebar('dashboard')
-    loadTopbar('Dashboard')
+    loadTopbar('<i class="bi bi-speedometer2 me-2"></i>Dashboard')
     startClock()
+
+    const h = { headers: { 'Authorization': 'Bearer ' + token } }
+
+    // Chart setup
+    const chartOpts = (color) => ({
+      responsive: true,
+      animation: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false },
+        y: {
+          min: 0, max: 100,
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: { color: '#64748b', font: { size: 10 }, callback: v => v + '%' }
+        }
+      },
+      elements: { point: { radius: 0 }, line: { tension: 0.4, borderWidth: 2 } }
+    })
+
+    const labels = Array(60).fill('')
+    const cpuData = Array(60).fill(0)
+    const memData = Array(60).fill(0)
+
+    const cpuChart = new Chart(document.getElementById('cpuChart'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{ data: cpuData, borderColor: 'var(--accent)', backgroundColor: 'rgba(79,142,247,0.1)', fill: true }]
+      },
+      options: chartOpts('var(--accent)')
+    })
+
+    const memChart = new Chart(document.getElementById('memChart'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{ data: memData, borderColor: '#a855f7', backgroundColor: 'rgba(168,85,247,0.1)', fill: true }]
+      },
+      options: chartOpts('#a855f7')
+    })
+
+    function formatBytes(bytes) {
+      if (bytes > 1073741824) return (bytes / 1073741824).toFixed(1) + ' GB'
+      if (bytes > 1048576) return (bytes / 1048576).toFixed(1) + ' MB'
+      if (bytes > 1024) return (bytes / 1024).toFixed(1) + ' KB'
+      return bytes + ' B'
+    }
+
+    let prevTraffic = {}
+
+    async function loadDashboard() {
+      try {
+        const res = await fetch('/api/dashboard', { headers: h.headers })
+        const data = await res.json()
+        const m = data.metrics
+
+        // CPU
+        const cpu = typeof m.cpu === 'number' ? m.cpu : parseFloat(m.cpu) || 0
+        document.getElementById('cpu-val').textContent = cpu + '%'
+        document.getElementById('cpu-bar').style.width = cpu + '%'
+        document.getElementById('cpu-bar').style.background = cpu > 80 ? '#ef4444' : cpu > 60 ? '#f59e0b' : 'var(--accent)'
+        cpuData.push(cpu); cpuData.shift()
+        cpuChart.update()
+
+        // Memory
+        const mem = m.memory
+        if (mem && typeof mem === 'object') {
+          document.getElementById('mem-val').textContent = mem.label
+          document.getElementById('mem-bar').style.width = mem.percent + '%'
+          document.getElementById('mem-bar').style.background = mem.percent > 80 ? '#ef4444' : '#a855f7'
+          memData.push(mem.percent); memData.shift()
+        } else {
+          document.getElementById('mem-val').textContent = mem || '--'
+        }
+        memChart.update()
+
+        // Disk
+        const disk = m.disk
+        if (disk && typeof disk === 'object') {
+          document.getElementById('disk-val').textContent = disk.label
+          document.getElementById('disk-bar').style.width = disk.percent + '%'
+        } else {
+          document.getElementById('disk-val').textContent = disk || '--'
+        }
+
+        // Uptime
+        document.getElementById('uptime-val').textContent = m.uptime || '--'
+
+        // Network interfaces
+        if (m.traffic && m.traffic.length > 0) {
+          const ifacesHtml = m.traffic.map(iface => {
+            const prev = prevTraffic[iface.name] || iface
+            const rxRate = Math.max(0, iface.rxBytes - prev.rxBytes)
+            const txRate = Math.max(0, iface.txBytes - prev.txBytes)
+            prevTraffic[iface.name] = iface
+            return `
+              <div style="margin-bottom:14px">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <div class="iface-name">${iface.name}</div>
+                  <div style="font-size:0.72rem;color:var(--text-muted)">Total: ${formatBytes(iface.rxBytes)} / ${formatBytes(iface.txBytes)}</div>
+                </div>
+                <div style="display:flex;gap:16px;margin-top:4px">
+                  <div class="iface-stat">↓ <span>${formatBytes(rxRate)}/s</span></div>
+                  <div class="iface-stat">↑ <span>${formatBytes(txRate)}/s</span></div>
+                </div>
+              </div>`
+          }).join('')
+          document.getElementById('ifaces-container').innerHTML = ifacesHtml
+        }
+
+        // Services
+        if (m.services && m.services.length > 0) {
+          document.getElementById('services-container').innerHTML = m.services.map(s => `
+            <div class="service-row">
+              <div class="service-name">${s.name}</div>
+              <span class="${s.running ? 'dot-green' : 'dot-red'}"></span>
+            </div>`).join('')
+        }
+
+        // VPN
+        if (m.vpn) {
+          document.getElementById('vpn-container').innerHTML = `
+            <div style="margin-bottom:16px">
+              <div style="font-size:0.85rem;font-weight:600;margin-bottom:8px;color:var(--text-muted)">WireGuard</div>
+              <span class="${m.vpn.wireguard.running ? 'vpn-badge' : 'vpn-badge-off'}">${m.vpn.wireguard.running ? 'Running' : 'Stopped'}</span>
+              ${m.vpn.wireguard.running ? `<div style="font-size:0.78rem;color:var(--text-muted);margin-top:6px">${m.vpn.wireguard.connected}/${m.vpn.wireguard.peers} peers connected</div>` : ''}
+            </div>
+            <div>
+              <div style="font-size:0.85rem;font-weight:600;margin-bottom:8px;color:var(--text-muted)">OpenVPN</div>
+              <span class="${m.vpn.openvpn.running ? 'vpn-badge' : 'vpn-badge-off'}">${m.vpn.openvpn.running ? 'Running' : 'Stopped'}</span>
+            </div>`
+        }
+
+      } catch(e) { console.error('Dashboard error:', e) }
+    }
+
+    loadDashboard()
+    setInterval(loadDashboard, 3000)
   </script>
 </body>
 </html>

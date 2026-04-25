@@ -1,5 +1,4 @@
 'use strict'
-
 const { getAllMetrics } = require('../services/metrics.service')
 const { getStatus: getFirewallStatus } = require('../services/firewall.service')
 const { getStatus: getSambaStatus } = require('../services/samba.service')
@@ -7,7 +6,6 @@ const { getPools } = require('../services/zfs.service')
 const { getPolicies, getSnapshots } = require('../services/backup.service')
 
 async function dashboardRoutes(fastify, options) {
-
   fastify.get('/api/dashboard', {
     onRequest: [fastify.authenticate]
   }, async (request, reply) => {
@@ -20,14 +18,8 @@ async function dashboardRoutes(fastify, options) {
       getSnapshots()
     ])
 
-    // Check if any backup policy failed
     const failedPolicies = policies.filter(p => p.lastStatus === 'error')
-    const pendingPolicies = policies.filter(p => p.lastStatus === null && p.enabled)
-
-    // Pool health
     const poolHealth = pools.every(p => p.health === 'ONLINE') ? 'healthy' : 'degraded'
-    const totalPools = pools.length
-    const totalSnapshots = snapshots.length
 
     return {
       metrics,
@@ -40,8 +32,8 @@ async function dashboardRoutes(fastify, options) {
         fileserver: {
           status: samba.running ? 'online' : 'offline',
           poolHealth,
-          totalPools,
-          totalSnapshots
+          totalPools: pools.length,
+          totalSnapshots: snapshots.length
         },
         backup: {
           totalPolicies: policies.length,
@@ -52,7 +44,5 @@ async function dashboardRoutes(fastify, options) {
       }
     }
   })
-
 }
-
 module.exports = dashboardRoutes
