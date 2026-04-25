@@ -279,6 +279,7 @@ scrub in all
   }
 
 
+  conf += `\n# Sites blocking anchor\nanchor "coltan/sites"\n\n`
   conf += `\n# Default block\nblock in all\npass out all keep state\n\n`
   conf += `# WireGuard interface - allow all traffic\npass quick on wg0 all keep state\n\n`
 
