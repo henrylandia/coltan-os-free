@@ -327,6 +327,8 @@ async function generateAndReload() {
   const conf = await generatePFConf()
   await fs.writeFile(PF_CONF, conf)
   try {
+    // Always ensure IP forwarding is enabled
+    await execAsync('sysctl net.inet.ip.forwarding=1 2>/dev/null')
     await execAsync('pfctl -f /etc/pf.conf 2>/dev/null')
     await execAsync('pfctl -e 2>/dev/null')
   } catch(e) {}

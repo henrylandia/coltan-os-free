@@ -68,6 +68,10 @@ async function getInterfacesWithRoles() {
 }
 
 async function setInterfaceRole(name, role, description) {
+  // Enable IP forwarding when assigning LAN/OPT role
+  if (role === 'LAN' || role === 'OPT') {
+    try { await execAsync('sysctl net.inet.ip.forwarding=1 2>/dev/null') } catch(e) {}
+  }
   const assignments = await getAssignments()
   assignments[name] = { role, description: description || '' }
   await saveAssignments(assignments)
