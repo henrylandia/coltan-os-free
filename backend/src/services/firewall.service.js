@@ -58,17 +58,18 @@ function makeRule(id, action, direction, protocol, iface, srcAddr, srcPort, dstA
 async function getDefaultRules(wan, lans) {
   const rules = [
     makeRule('sys-icmp', 'pass', 'in', 'icmp', wan, 'any', '', 'any', '', 'Allow ICMP (ping)', true),
-    makeRule('sys-ssh', 'pass', 'in', 'tcp', wan, 'any', '', 'any', '22', 'Allow SSH', true),
-    makeRule('sys-webui', 'pass', 'in', 'tcp', wan, 'any', '', 'any', '3000', 'Allow Coltan OS WebUI', true),
+    makeRule('sys-webui-wan', 'pass', 'in', 'tcp', wan, 'any', '', 'any', '3000', 'Allow Coltan OS WebUI (WAN)', true),
     makeRule('sys-http', 'pass', 'in', 'tcp', wan, 'any', '', 'any', '80', 'Allow HTTP', true),
     makeRule('sys-https', 'pass', 'in', 'tcp', wan, 'any', '', 'any', '443', 'Allow HTTPS', true),
     makeRule('sys-samba-tcp', 'pass', 'in', 'tcp', wan, 'any', '', 'any', '{ 139, 445 }', 'Allow Samba TCP', true),
     makeRule('sys-samba-udp', 'pass', 'in', 'udp', wan, 'any', '', 'any', '{ 137, 138 }', 'Allow Samba UDP', true),
     makeRule('sys-dhcp', 'pass', 'in', 'udp', wan, 'any', '', 'any', '67', 'Allow DHCP', true),
     makeRule('sys-wireguard', 'pass', 'in', 'udp', wan, 'any', '', 'any', '51820', 'Allow WireGuard VPN', true),
+    makeRule('sys-openvpn', 'pass', 'in', 'udp', wan, 'any', '', 'any', '1194', 'Allow OpenVPN', true),
   ]
   lans.forEach(lan => {
     rules.push(makeRule(`sys-lan-${lan}`, 'pass', 'in', 'any', lan, 'any', '', 'any', '', `Allow all LAN traffic (${lan})`, true))
+    rules.push(makeRule(`sys-webui-lan-${lan}`, 'pass', 'in', 'tcp', lan, 'any', '', 'any', '3000', `Allow WebUI from LAN (${lan})`, true))
   })
   return rules
 }
@@ -76,23 +77,42 @@ async function getDefaultRules(wan, lans) {
 // ─── RULES ────────────────────────────────────────────────────────────────────
 
 async function getRules() {
+  await ensureDir()
+  const wan = await getWanIface()
+  const lans = await getLanIfaces()
+
+  // Load saved custom rules
+  let saved = []
+  try {
+    const raw = await fs.readFile(RULES_FILE, 'utf8')
+    saved = JSON.parse(raw)
+  } catch(e) {}
+
+  // Always regenerate system rules from current interfaces
+  const systemRules = await getDefaultRules(wan, lans)
+
+  // Keep only non-system saved rules
+  const customRules = saved.filter(r => !r.system)
+
+  // Merge: system rules first, then custom
+  const merged = [...systemRules, ...customRules]
+
+  return merged
+}
+
+async function getRulesRaw() {
   try {
     await ensureDir()
     const content = await fs.readFile(RULES_FILE, 'utf8')
     return JSON.parse(content)
-  } catch(e) {
-    // Initialize with default rules
-    const wan = await getWanIface()
-    const lans = await getLanIfaces()
-    const defaults = await getDefaultRules(wan, lans)
-    await saveRules(defaults)
-    return defaults
-  }
+  } catch(e) { return [] }
 }
 
 async function saveRules(rules) {
   await ensureDir()
-  await fs.writeFile(RULES_FILE, JSON.stringify(rules, null, 2))
+  // Only save custom rules, system rules are always regenerated
+  const customOnly = rules.filter(r => !r.system)
+  await fs.writeFile(RULES_FILE, JSON.stringify(customOnly, null, 2))
 }
 
 async function addRule(rule) {

@@ -247,6 +247,26 @@ async function refreshDNS() {
 
 // ─── PF BLOCKING ──────────────────────────────────────────────────────────────
 
+async function getLanIface() {
+  try {
+    const data = JSON.parse(require('fs').readFileSync('/usr/local/etc/coltan/interfaces.json', 'utf8'))
+    for (const [name, val] of Object.entries(data)) {
+      if (val.role === 'LAN') return name
+    }
+  } catch(e) {}
+  return 're1'
+}
+
+async function getWanIface() {
+  try {
+    const data = JSON.parse(require('fs').readFileSync('/usr/local/etc/coltan/interfaces.json', 'utf8'))
+    for (const [name, val] of Object.entries(data)) {
+      if (val.role === 'WAN') return name
+    }
+  } catch(e) {}
+  return 're0'
+}
+
 async function applyBlocking() {
   const groups = await getGroups()
   const enabledGroups = groups.filter(g => g.enabled)
@@ -287,7 +307,12 @@ async function applyBlocking() {
       anchorConf += `block in quick on ${group.applyToValue} from any to { ${ipList} }\n`
       anchorConf += `block out quick on ${group.applyToValue} to { ${ipList} }\n`
     } else if (group.applyTo === 'ip' || group.applyTo === 'range') {
-      anchorConf += `block out quick from ${group.applyToValue} to { ${ipList} }\n`
+      const lan = await getLanIface()
+      const wan = await getWanIface()
+      // Block on LAN interface incoming from client
+      anchorConf += `block return in quick on ${lan} from ${group.applyToValue} to { ${ipList} }\n`
+      // Also block on WAN outgoing (post-NAT)
+      anchorConf += `block out quick on ${wan} from ${group.applyToValue} to { ${ipList} }\n`
     }
   }
 
