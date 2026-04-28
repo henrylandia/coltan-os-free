@@ -270,10 +270,10 @@ scrub in all
   }
 
   // NAT for each LAN
-  lans.forEach((lan, i) => {
-    const lanVar = `$lan_if${i === 0 ? '' : i}`
-    conf += `nat on $ext_if from ${lanVar}:network to any -> ($ext_if)\n`
-  })
+  // NAT per LAN interface - dynamic
+  for (const lan of lans) {
+    conf += `nat on $ext_if from ${lan}:network to any -> ($ext_if)\n`
+  }
 
   // NAT for WireGuard — dynamic based on config
   try {

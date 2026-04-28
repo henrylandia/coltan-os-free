@@ -84,6 +84,11 @@ async function setInterfaceIP(name, ip, netmask, gateway) {
     if (gateway) await execAsync(`sysrc defaultrouter="${gateway}"`)
     // Apply IP change on the fly WITHOUT restarting the whole network
     try { await execAsync(`ifconfig ${name} inet ${ip} netmask ${netmask}`) } catch(e) {}
+    // Regenerate firewall with new IPs
+    try {
+      const { generateAndReload } = require('./firewall.service')
+      await generateAndReload()
+    } catch(e) {}
     return { success: true }
   } catch(e) { return { success: false, error: e.message } }
 }
