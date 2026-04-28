@@ -47,7 +47,6 @@
 
       <ul class="nav nav-tabs mb-4">
         <li class="nav-item"><a class="nav-link active" href="#" onclick="showTab('system', this)"><i class="bi bi-pc-display me-2"></i>System</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('network', this)"><i class="bi bi-ethernet me-2"></i>Network</a></li>
         <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('security', this)"><i class="bi bi-shield-lock me-2"></i>Security</a></li>
         <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('notifications', this)"><i class="bi bi-bell me-2"></i>Notifications</a></li>
         <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('about', this)"><i class="bi bi-info-circle me-2"></i>About</a></li>
@@ -92,72 +91,6 @@
             </button>
           </div>
           <div class="log-container" id="update-log"></div>
-        </div>
-      </div>
-
-      <!-- Network Tab -->
-      <div id="tab-network" style="display:none">
-        <div class="settings-card">
-          <h6><i class="bi bi-ethernet me-2"></i>Network Interface Configuration</h6>
-
-          <div class="mb-3">
-            <label class="form-label">Select Interface</label>
-            <select class="form-select" id="iface-select" onchange="loadIfaceDetails()">
-              <option value="">— Select an interface —</option>
-            </select>
-          </div>
-
-          <div class="iface-details" id="iface-details">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <div style="font-weight:700;color:var(--accent)" id="iface-detail-name"></div>
-              <span id="iface-detail-status"></span>
-            </div>
-            <div class="row g-3">
-              <div class="col-md-4">
-                <label class="form-label">IP Address</label>
-                <input type="text" class="form-control" id="iface-ip" placeholder="192.168.1.210">
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Netmask</label>
-                <input type="text" class="form-control" id="iface-netmask" placeholder="255.255.255.0">
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Gateway</label>
-                <input type="text" class="form-control" id="iface-gateway" placeholder="192.168.1.1">
-              </div>
-              <div class="col-12">
-                <div class="form-check mt-1">
-                  <input class="form-check-input" type="checkbox" id="iface-is-default">
-                  <label class="form-check-label" style="color:var(--text-muted);font-size:0.85rem" for="iface-is-default">Usar como gateway por defecto (defaultrouter)</label>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">DNS Server 1</label>
-                <input type="text" class="form-control" id="iface-dns1" placeholder="8.8.8.8">
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">DNS Server 2</label>
-                <input type="text" class="form-control" id="iface-dns2" placeholder="1.1.1.1">
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">MAC Address</label>
-                <input type="text" class="form-control" id="iface-mac" readonly style="opacity:0.5">
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Media</label>
-                <input type="text" class="form-control" id="iface-media" readonly style="opacity:0.5">
-              </div>
-            </div>
-            <div class="mt-4 d-flex gap-2">
-              <button class="btn btn-accent" onclick="saveIfaceConfig()">
-                <i class="bi bi-floppy me-2"></i>Save & Apply
-              </button>
-              <button class="btn btn-primary-soft" onclick="restartNetwork()">
-                <i class="bi bi-arrow-clockwise me-2"></i>Restart Network
-              </button>
-            </div>
-            <small class="text-muted d-block mt-2">⚠️ Changing IP may disconnect your current session</small>
-          </div>
         </div>
       </div>
 
@@ -268,13 +201,12 @@
     let currentDNS = []
 
     function showTab(tab, el) {
-      ['system','network','security','notifications','about'].forEach(t => {
+      ['system','security','notifications','about'].forEach(t => {
         document.getElementById(`tab-${t}`).style.display = t === tab ? 'block' : 'none'
       })
       document.querySelectorAll('.nav-tabs .nav-link').forEach(e => e.classList.remove('active'))
       if (el) el.classList.add('active')
       if (tab === 'about') loadSysInfo()
-      if (tab === 'network') loadNetworkTab()
       if (tab === 'notifications') loadNotifications()
     }
 
@@ -287,96 +219,6 @@
         document.getElementById('alert-text').textContent = msg
         document.getElementById('alert-success').style.display = 'block'
         setTimeout(() => document.getElementById('alert-success').style.display = 'none', 3000)
-      }
-    }
-
-    async function loadNetworkTab() {
-      const [netRes, dnsRes] = await Promise.all([
-        fetch('/api/settings/network', { headers: h.headers }),
-        fetch('/api/settings/dns', { headers: h.headers })
-      ])
-      const net = await netRes.json()
-      const dns = await dnsRes.json()
-      allInterfaces = net.interfaces || []
-      currentGateway = net.gateway || ''
-      currentDNS = dns.servers || []
-
-      const select = document.getElementById('iface-select')
-      select.innerHTML = '<option value="">— Select an interface —</option>'
-      allInterfaces.forEach(iface => {
-        const opt = document.createElement('option')
-        opt.value = iface.name
-        opt.textContent = `${iface.name} — ${iface.ip || 'No IP'} (${iface.status})`
-        select.appendChild(opt)
-      })
-    }
-
-    function loadIfaceDetails() {
-      const name = document.getElementById('iface-select').value
-      if (!name) {
-        document.getElementById('iface-details').style.display = 'none'
-        return
-      }
-      const iface = allInterfaces.find(i => i.name === name)
-      if (!iface) return
-
-      document.getElementById('iface-details').style.display = 'block'
-      document.getElementById('iface-detail-name').textContent = iface.name
-      document.getElementById('iface-detail-status').innerHTML =
-        `<span class="${iface.status === 'active' ? 'badge-active' : 'badge-inactive'}">${iface.status}</span>`
-      document.getElementById('iface-ip').value = iface.ip || ''
-      document.getElementById('iface-netmask').value = iface.netmask || '255.255.255.0'
-      document.getElementById('iface-gateway').value = currentGateway
-      document.getElementById('iface-is-default').checked = !!currentGateway
-      document.getElementById('iface-dns1').value = currentDNS[0] || ''
-      document.getElementById('iface-dns2').value = currentDNS[1] || ''
-      document.getElementById('iface-mac').value = iface.mac || ''
-      document.getElementById('iface-media').value = iface.media || ''
-    }
-
-    async function saveIfaceConfig() {
-      const iface = document.getElementById('iface-select').value
-      const ip = document.getElementById('iface-ip').value.trim()
-      const netmask = document.getElementById('iface-netmask').value.trim()
-      const gateway = document.getElementById('iface-gateway').value.trim()
-      const dns1 = document.getElementById('iface-dns1').value.trim()
-      const dns2 = document.getElementById('iface-dns2').value.trim()
-
-      if (!ip || !netmask) return showAlert('IP and netmask are required', true)
-      if (!confirm(`Save config for ${iface}? This may disconnect your session.`)) return
-
-      const servers = [dns1, dns2].filter(s => s)
-      const [ifaceRes, dnsRes] = await Promise.all([
-        fetch('/api/settings/interface', {
-          method: 'POST', ...h,
-          body: JSON.stringify({ iface, ip, netmask, gateway, isDefault: document.getElementById("iface-is-default").checked })
-        }),
-        fetch('/api/settings/dns', {
-          method: 'POST', ...h,
-          body: JSON.stringify({ servers })
-        })
-      ])
-
-      if (ifaceRes.ok) { showAlert("Configuración guardada en rc.conf") }
-      else showAlert('Error saving interface config', true)
-    }
-
-    async function restartNetwork() {
-      if (!confirm('Restart network service? This will briefly disconnect the network.')) return
-      try {
-        await fetch('/api/settings/interface', {
-          method: 'POST', ...h,
-          body: JSON.stringify({
-            iface: document.getElementById('iface-select').value,
-            ip: document.getElementById('iface-ip').value,
-            netmask: document.getElementById('iface-netmask').value,
-            gateway: document.getElementById('iface-gateway').value,
-            restart: true
-          })
-        })
-        showAlert('Network restarted')
-      } catch(e) {
-        showAlert('Network restarted (reconnect if needed)')
       }
     }
 
