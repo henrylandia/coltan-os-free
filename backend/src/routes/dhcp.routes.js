@@ -41,7 +41,7 @@ async function dhcpRoutes(fastify, options) {
   }, async (request, reply) => {
     const { mac, ip, hostname } = request.body
     if (!mac || !ip) return reply.code(400).send({ error: 'mac and ip required' })
-    return await addReservation(request.params.id, { mac, ip, hostname })
+    return await addReservation(request.params.id, mac, ip, hostname)
   })
 
   fastify.delete('/api/dhcp/subnets/:id/reservations/:mac', {
@@ -60,6 +60,18 @@ async function dhcpRoutes(fastify, options) {
     onRequest: [fastify.authenticate]
   }, async (request, reply) => {
     return await startKea()
+  })
+
+  fastify.post('/api/dhcp/leases/clear', {
+    onRequest: [fastify.authenticate]
+  }, async (request, reply) => {
+    try {
+      const { execAsync } = require('../services/dhcp.service')
+      await require('fs').promises.writeFile('/var/db/kea/dhcp4.leases', '')
+      try { await require('fs').promises.writeFile('/var/db/kea/dhcp4.leases.2', '') } catch(e) {}
+      await require('../services/dhcp.service').restartKea()
+      return { success: true }
+    } catch(e) { return { success: false, error: e.message } }
   })
 
   fastify.post('/api/dhcp/stop', {

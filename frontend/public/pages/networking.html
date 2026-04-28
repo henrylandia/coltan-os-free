@@ -192,7 +192,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-accent" onclick="saveDHCPConfig()">
+          <button type="button" id="dhcp-save-btn" class="btn btn-accent" onclick="saveDHCPConfig()">
             <i class="bi bi-router me-1"></i>Enable DHCP Server
           </button>
         </div>
@@ -482,26 +482,31 @@
       document.getElementById('dhcp-container').innerHTML = keaStatus + cards + leasesSection
     }
 
+    let dhcpModalInstance = null
+
     function openDHCPModal(ifaceName, ifaceIp) {
       document.getElementById('dhcp-iface-name').value = ifaceName
       document.getElementById('dhcp-subnet-id').value = ''
-      document.getElementById('dhcpModalTitle').innerHTML = `<i class="bi bi-router me-2"></i>Enable DHCP on ${ifaceName}`
+      document.getElementById('dhcpModalTitle').innerHTML = '<i class="bi bi-router me-2"></i>Enable DHCP on ' + ifaceName
 
-      // Auto-fill based on interface IP
       if (ifaceIp) {
         const parts = ifaceIp.split('.')
-        const base = `${parts[0]}.${parts[1]}.${parts[2]}`
-        document.getElementById('dhcp-subnet').value = `${base}.0/24`
-        document.getElementById('dhcp-pool-start').value = `${base}.100`
-        document.getElementById('dhcp-pool-end').value = `${base}.200`
+        const base = parts[0] + '.' + parts[1] + '.' + parts[2]
+        document.getElementById('dhcp-subnet').value = base + '.0/24'
+        document.getElementById('dhcp-pool-start').value = base + '.100'
+        document.getElementById('dhcp-pool-end').value = base + '.200'
         document.getElementById('dhcp-gateway').value = ifaceIp
-        document.getElementById('dhcp-dns').value = '8.8.8.8, 1.1.1.1'
+        document.getElementById('dhcp-dns').value = ifaceIp
       }
 
-      new bootstrap.Modal(document.getElementById('dhcpConfigModal')).show()
+      const el = document.getElementById('dhcpConfigModal')
+      dhcpModalInstance = new bootstrap.Modal(el, { backdrop: 'static' })
+      dhcpModalInstance.show()
     }
 
     async function saveDHCPConfig() {
+      const btn = document.getElementById('dhcp-save-btn')
+      if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enabling...' }
       const body = {
         interface: document.getElementById('dhcp-iface-name').value,
         subnet: document.getElementById('dhcp-subnet').value.trim(),
@@ -512,16 +517,20 @@
         domain: document.getElementById('dhcp-domain').value.trim(),
         leaseTime: document.getElementById('dhcp-lease').value
       }
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-router me-1"></i>Enable DHCP Server' }
       if (!body.subnet || !body.poolStart || !body.poolEnd || !body.gateway) {
         return showAlert('All fields are required', true)
       }
       const res = await fetch('/api/dhcp/subnets', { method: 'POST', ...h, body: JSON.stringify(body) })
       const data = await res.json()
-      bootstrap.Modal.getInstance(document.getElementById('dhcpConfigModal')).hide()
       if (data.success) {
-        showAlert(`DHCP enabled on ${body.interface}`)
-        loadDHCP()
-      } else showAlert(data.error, true)
+        // Force close modal
+        document.getElementById('dhcpConfigModal').querySelector('[data-bs-dismiss]').click()
+        showAlert('DHCP enabled on ' + body.interface)
+        setTimeout(() => loadDHCP(), 2000)
+      } else {
+        showAlert(data.error || 'Error enabling DHCP', true)
+      }
     }
 
     async function disableDHCP(subnetId) {
@@ -533,7 +542,7 @@
       const data = await res.json()
       if (data.success) {
         showAlert('DHCP disabled')
-        await loadDHCP()
+        setTimeout(() => document.querySelector('.nav-tabs .nav-link[onclick*="dhcp"]')?.click(), 1000)
       } else showAlert(data.error || 'Error disabling DHCP', true)
     }
 
@@ -561,12 +570,14 @@
     }
 
     async function deleteReservation(subnetId, mac) {
-      if (!confirm(`Delete reservation for ${mac}?`)) return
-      await fetch(`/api/dhcp/subnets/${subnetId}/reservations/${encodeURIComponent(mac)}`, {
-        method: 'DELETE', ...h
+      if (!confirm('Delete reservation for ' + mac + '?')) return
+      const res = await fetch('/api/dhcp/subnets/' + subnetId + '/reservations/' + encodeURIComponent(mac), {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
       })
-      showAlert('Reservation deleted')
-      loadDHCP()
+      const data = await res.json()
+      if (data.success) { showAlert('Reservation deleted'); setTimeout(() => loadDHCP(), 2000) }
+      else showAlert(data.error || 'Error deleting reservation', true)
     }
 
     async function loadLeases() {

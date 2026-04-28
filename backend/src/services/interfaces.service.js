@@ -82,7 +82,8 @@ async function setInterfaceIP(name, ip, netmask, gateway) {
   try {
     await execAsync(`sysrc ifconfig_${name}="inet ${ip} netmask ${netmask}"`)
     if (gateway) await execAsync(`sysrc defaultrouter="${gateway}"`)
-    await execAsync('service netif restart')
+    // Apply IP change on the fly WITHOUT restarting the whole network
+    try { await execAsync(`ifconfig ${name} inet ${ip} netmask ${netmask}`) } catch(e) {}
     return { success: true }
   } catch(e) { return { success: false, error: e.message } }
 }
