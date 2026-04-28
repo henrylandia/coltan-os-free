@@ -18,6 +18,9 @@ function loadSidebar(activePage) {
         <a href="/pages/sites.html" class="nav-item ${activePage === 'sites' ? 'active' : ''}">
           <i class="bi bi-shield-x"></i> Site Blocking
         </a>
+        <a href="/pages/security.html" class="nav-item ${activePage === 'security' ? 'active' : ''}">
+          <i class="bi bi-shield-fill"></i> Security
+        </a>
         <div class="nav-group">
           <div class="nav-group-title"><i class="bi bi-lock"></i> VPN</div>
           <a href="/pages/wireguard.html" class="nav-item nav-sub ${activePage === 'wireguard' ? 'active' : ''}">
