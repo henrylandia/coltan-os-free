@@ -8,12 +8,27 @@ const fs = require('fs').promises
 const KEA_CONF = '/usr/local/etc/kea/kea-dhcp4.conf'
 const LEASES_FILE = '/var/db/kea/dhcp4.leases'
 
+async function getStatus() {
+  try {
+    const { stdout } = await execAsync('service kea status 2>/dev/null')
+    const running = stdout.includes('DHCPv4 server: active')
+    return { running }
+  } catch(e) { return { running: false } }
+}
+
 async function getConfig() {
   try {
     const content = await fs.readFile(KEA_CONF, 'utf8')
     return JSON.parse(content)
   } catch(e) {
-    return { Dhcp4: { 'interfaces-config': { interfaces: [] }, 'lease-database': { type: 'memfile', persist: true, name: LEASES_FILE }, subnet4: [], 'option-data': [] } }
+    return {
+      Dhcp4: {
+        'interfaces-config': { interfaces: [] },
+        'lease-database': { type: 'memfile', persist: true, name: LEASES_FILE },
+        subnet4: [],
+        'option-data': []
+      }
+    }
   }
 }
 
@@ -21,63 +36,69 @@ async function saveConfig(config) {
   await fs.writeFile(KEA_CONF, JSON.stringify(config, null, 2))
 }
 
-async function getStatus() {
-  try {
-    const { stdout } = await execAsync('service kea status')
-    return { running: stdout.includes('active') }
-  } catch(e) { return { running: false } }
-}
-
 async function getSubnets() {
   const config = await getConfig()
   return config.Dhcp4.subnet4 || []
 }
 
-async function addSubnet(subnet) {
+async function addSubnet(data) {
   const config = await getConfig()
-  const id = Math.floor(Math.random() * 4000000) + 1
-  const entry = {
-    id,
-    subnet: subnet.subnet,
-    pools: [{ pool: `${subnet.poolStart} - ${subnet.poolEnd}` }],
+  const subnets = config.Dhcp4.subnet4 || []
+
+  // Check if subnet already exists
+  const existing = subnets.find(s => s.subnet === data.subnet)
+  if (existing) return { success: false, error: 'Subnet already exists' }
+
+  // Get LAN IP to use as DNS
+  let dnsServer = '8.8.8.8'
+  try {
+    const { stdout } = await execAsync(`ifconfig ${data.interface} 2>/dev/null | grep "inet " | awk '{print $2}'`)
+    if (stdout.trim()) dnsServer = stdout.trim()
+  } catch(e) {}
+
+  const subnet = {
+    id: Math.floor(Math.random() * 4000000) + 1,
+    subnet: data.subnet,
+    pools: [{ pool: `${data.poolStart} - ${data.poolEnd}` }],
     'option-data': [
-      { name: 'routers', data: subnet.gateway },
-      { name: 'domain-name-servers', data: subnet.dns || '8.8.8.8, 1.1.1.1' },
-      { name: 'domain-name', data: subnet.domain || 'local' }
+      { name: 'routers', data: data.gateway || data.subnet.split('.').slice(0,3).join('.') + '.1' },
+      { name: 'domain-name-servers', data: dnsServer },
+      { name: 'domain-name', data: 'local' }
     ],
-    'valid-lifetime': parseInt(subnet.leaseTime) || 86400,
+    'valid-lifetime': 86400,
     reservations: []
   }
 
-  // Add interface
-  const ifaces = config.Dhcp4['interfaces-config'].interfaces
-  if (subnet.interface && !ifaces.includes(subnet.interface)) {
-    ifaces.push(subnet.interface)
+  // Update interface
+  if (!config.Dhcp4['interfaces-config'].interfaces.includes(data.interface)) {
+    config.Dhcp4['interfaces-config'].interfaces.push(data.interface)
   }
 
-  config.Dhcp4.subnet4.push(entry)
+  subnets.push(subnet)
+  config.Dhcp4.subnet4 = subnets
   await saveConfig(config)
   await restartKea()
-  return { success: true, id }
+  return { success: true, subnet }
 }
 
 async function deleteSubnet(id) {
   const config = await getConfig()
-  config.Dhcp4.subnet4 = config.Dhcp4.subnet4.filter(s => s.id !== parseInt(id))
+  const numId = parseInt(id)
+  config.Dhcp4.subnet4 = (config.Dhcp4.subnet4 || []).filter(s => s.id !== numId)
   await saveConfig(config)
   await restartKea()
   return { success: true }
 }
 
-async function addReservation(subnetId, reservation) {
+async function addReservation(subnetId, mac, ip, hostname) {
   const config = await getConfig()
   const subnet = config.Dhcp4.subnet4.find(s => s.id === parseInt(subnetId))
   if (!subnet) return { success: false, error: 'Subnet not found' }
   if (!subnet.reservations) subnet.reservations = []
   subnet.reservations.push({
-    'hw-address': reservation.mac,
-    'ip-address': reservation.ip,
-    hostname: reservation.hostname || ''
+    'hw-address': mac,
+    'ip-address': ip,
+    hostname: hostname || ''
   })
   await saveConfig(config)
   await restartKea()
@@ -96,12 +117,12 @@ async function deleteReservation(subnetId, mac) {
 
 async function getLeases() {
   try {
-    let content = ''
     const files = [
       '/var/db/kea/dhcp4.leases.2',
-      '/var/db/kea/dhcp4.leases.1', 
+      '/var/db/kea/dhcp4.leases.1',
       '/var/db/kea/dhcp4.leases'
     ]
+    let content = ''
     for (const f of files) {
       try {
         const c = await fs.readFile(f, 'utf8')
@@ -118,33 +139,33 @@ async function getLeases() {
       const obj = {}
       headers.forEach((h, i) => obj[h.trim()] = values[i]?.trim())
       return obj
-    }).filter(l => l.address && parseInt(l['valid-lft'] || l.valid_lifetime) > 0)
+    }).filter(l => l.address)
   } catch(e) { return [] }
-}
-
-async function restartKea() {
-  try {
-    await execAsync('service kea restart 2>/dev/null || service kea start 2>/dev/null')
-    return { success: true }
-  } catch(e) { return { success: false, error: e.message } }
 }
 
 async function startKea() {
   try {
-    await execAsync('service kea start')
+    await execAsync('service kea start 2>/dev/null')
     return { success: true }
   } catch(e) { return { success: false, error: e.message } }
 }
 
 async function stopKea() {
   try {
-    await execAsync('service kea stop')
+    await execAsync('service kea stop 2>/dev/null')
     return { success: true }
   } catch(e) { return { success: false, error: e.message } }
 }
 
+async function restartKea() {
+  try {
+    await execAsync('service kea restart 2>/dev/null')
+  } catch(e) {}
+}
+
 module.exports = {
-  getStatus, getSubnets, addSubnet, deleteSubnet,
-  addReservation, deleteReservation, getLeases,
-  startKea, stopKea, restartKea
+  getStatus, getConfig, saveConfig,
+  getSubnets, addSubnet, deleteSubnet,
+  addReservation, deleteReservation,
+  getLeases, startKea, stopKea, restartKea
 }
