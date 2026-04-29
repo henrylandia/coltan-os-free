@@ -12,29 +12,27 @@
     .nav-tabs .nav-link { color: var(--text-muted); border: none; padding: 10px 20px; }
     .nav-tabs .nav-link.active { color: var(--accent); border-bottom: 2px solid var(--accent); background: none; }
     .section-title { font-size: 1rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
-    .status-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
-    .status-header { display: flex; align-items: center; justify-content: space-between; }
-    .status-icon { font-size: 2rem; margin-right: 16px; }
-    .status-name { font-weight: 700; font-size: 1rem; }
-    .status-detail { font-size: 0.82rem; color: var(--text-muted); margin-top: 2px; }
+    .module-card { background: var(--bg-card); border: 2px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; cursor: pointer; transition: border-color 0.2s; }
+    .module-card:hover { border-color: rgba(79,142,247,0.5); }
+    .module-card.active { border-color: var(--accent); background: rgba(79,142,247,0.05); }
     .settings-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
     .btn-accent { background: var(--accent); border: none; color: white; padding: 6px 16px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; }
     .btn-accent:hover { opacity: 0.85; color: white; }
     .btn-danger-soft { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
     .btn-success-soft { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; padding: 6px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; }
-    .btn-warning-soft { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); color: #f59e0b; padding: 6px 16px; border-radius: 8px; font-size: 0.85rem; }
     .btn-primary-soft { background: rgba(79,142,247,0.15); border: 1px solid rgba(79,142,247,0.3); color: var(--accent); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
     .modal-content { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); }
     .modal-header, .modal-footer { border-color: var(--border); }
     .form-control, .form-select { background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-primary); }
-    .form-control:focus { background: var(--bg-dark); border-color: var(--accent); color: var(--text-primary); box-shadow: none; }
+    .form-control:focus, .form-select:focus { background: var(--bg-dark); border-color: var(--accent); color: var(--text-primary); box-shadow: none; }
     .form-label { color: var(--text-muted); font-size: 0.85rem; }
     .form-check-input { background-color: var(--bg-dark); border-color: var(--border); }
     .alert-success-custom { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; border-radius: 8px; padding: 12px 16px; display: none; margin-bottom: 16px; }
     .alert-error-custom { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #f87171; border-radius: 8px; padding: 12px 16px; display: none; margin-bottom: 16px; }
     .badge-running { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); padding: 3px 10px; border-radius: 999px; font-size: 0.78rem; }
     .badge-stopped { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); padding: 3px 10px; border-radius: 999px; font-size: 0.78rem; }
-    .badge-soon { background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); padding: 3px 10px; border-radius: 999px; font-size: 0.78rem; }
+    .badge-ids { background: rgba(79,142,247,0.15); color: var(--accent); padding: 3px 10px; border-radius: 999px; font-size: 0.78rem; }
+    .badge-ips { background: rgba(239,68,68,0.15); color: #f87171; padding: 3px 10px; border-radius: 999px; font-size: 0.78rem; }
     .log-box { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 10px; padding: 14px; font-family: monospace; font-size: 0.78rem; color: var(--text-muted); max-height: 200px; overflow-y: auto; white-space: pre-wrap; }
     .domain-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border-radius: 6px; margin-bottom: 4px; background: var(--bg-dark); }
     .test-result { border-radius: 8px; padding: 10px 14px; font-size: 0.85rem; margin-top: 12px; display: none; }
@@ -42,8 +40,16 @@
     .test-allowed { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; }
     .list-toggle { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
     .list-toggle:last-child { border-bottom: none; }
-    .list-name { font-size: 0.9rem; color: var(--text-primary); }
-    .list-desc { font-size: 0.78rem; color: var(--text-muted); }
+    .rule-toggle { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .rule-toggle:last-child { border-bottom: none; }
+    .alerts-box { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 10px; max-height: 400px; overflow-y: auto; }
+    .alert-row { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 0.82rem; }
+    .alert-row:last-child { border-bottom: none; }
+    .sev-1 { border-left: 3px solid #ef4444; }
+    .sev-2 { border-left: 3px solid #f59e0b; }
+    .sev-3 { border-left: 3px solid #64748b; }
+    .module-section { display: none; }
+    .module-section.active { display: block; }
   </style>
 </head>
 <body>
@@ -53,193 +59,253 @@
       <div id="alert-success" class="alert-success-custom"><i class="bi bi-check-circle me-2"></i><span id="alert-text"></span></div>
       <div id="alert-error" class="alert-error-custom"><i class="bi bi-exclamation-triangle me-2"></i><span id="alert-error-text"></span></div>
 
-      <!-- Status Cards -->
+      <!-- Module Selector Cards -->
       <div class="row g-3 mb-4">
-        <div class="col-md-4">
-          <div class="status-card">
-            <div class="status-header">
-              <div style="display:flex;align-items:center">
-                <span class="status-icon">🛡️</span>
+        <div class="col-md-6">
+          <div class="module-card active" id="card-dns" onclick="switchModule('dns')">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div style="display:flex;align-items:center;gap:14px">
+                <span style="font-size:2rem">🛡️</span>
                 <div>
-                  <div class="status-name">DNS Blocker</div>
-                  <div class="status-detail" id="dns-detail">Unbound DNS</div>
+                  <div style="font-weight:700;font-size:1rem">DNS Blocker</div>
+                  <div style="font-size:0.82rem;color:var(--text-muted)" id="dns-detail">Unbound DNS</div>
                 </div>
               </div>
-              <span class="badge-stopped" id="dns-badge">Stopped</span>
-            </div>
-            <div style="margin-top:12px;font-size:0.82rem;color:var(--text-muted)">
-              Dominios bloqueados: <strong style="color:var(--accent)" id="dns-domains">0</strong>
+              <div style="text-align:right">
+                <div><span class="badge-stopped" id="dns-badge">Stopped</span></div>
+                <div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px">Dominios: <strong style="color:var(--accent)" id="dns-domains">0</strong></div>
+              </div>
             </div>
           </div>
         </div>
-        <div class="col-md-4">
-          <div class="status-card">
-            <div class="status-header">
-              <div style="display:flex;align-items:center">
-                <span class="status-icon">🦠</span>
+        <div class="col-md-6">
+          <div class="module-card" id="card-ids" onclick="switchModule('ids')">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div style="display:flex;align-items:center;gap:14px">
+                <span style="font-size:2rem">🔍</span>
                 <div>
-                  <div class="status-name">Antivirus</div>
-                  <div class="status-detail">ClamAV</div>
+                  <div style="font-weight:700;font-size:1rem">IDS/IPS — Suricata</div>
+                  <div style="font-size:0.82rem;color:var(--text-muted)" id="ids-detail">Suricata</div>
                 </div>
               </div>
-              <span class="badge-soon">Próximamente</span>
-            </div>
-            <div style="margin-top:12px;font-size:0.82rem;color:var(--text-muted)">
-              Escaneo de tráfico HTTP en tiempo real
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="status-card">
-            <div class="status-header">
-              <div style="display:flex;align-items:center">
-                <span class="status-icon">🔍</span>
+              <div style="text-align:right">
                 <div>
-                  <div class="status-name">IDS/IPS</div>
-                  <div class="status-detail">Suricata</div>
+                  <span class="badge-stopped" id="ids-badge">Stopped</span>
+                  <span class="badge-ids" id="ids-mode-badge" style="margin-left:4px">IDS</span>
                 </div>
+                <div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px">Alertas: <strong style="color:#f59e0b" id="ids-alerts">0</strong></div>
               </div>
-              <span class="badge-soon">Próximamente</span>
-            </div>
-            <div style="margin-top:12px;font-size:0.82rem;color:var(--text-muted)">
-              Detección de intrusiones y botnets
             </div>
           </div>
         </div>
       </div>
 
-      <ul class="nav nav-tabs mb-4">
-        <li class="nav-item"><a class="nav-link active" href="#" onclick="showTab('dns',this)"><i class="bi bi-shield-check me-2"></i>DNS Blocker</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('whitelist',this)"><i class="bi bi-check-circle me-2"></i>Whitelist</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('blacklist',this)"><i class="bi bi-x-circle me-2"></i>Blacklist</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('test',this)"><i class="bi bi-search me-2"></i>Test</a></li>
-      </ul>
+      <!-- DNS BLOCKER MODULE -->
+      <div id="module-dns" class="module-section active">
+        <ul class="nav nav-tabs mb-4" id="dns-tabs">
+          <li class="nav-item"><a class="nav-link active" href="#" onclick="showDnsTab('config',this)"><i class="bi bi-shield-check me-2"></i>DNS Blocker</a></li>
+          <li class="nav-item"><a class="nav-link" href="#" onclick="showDnsTab('whitelist',this)"><i class="bi bi-check-circle me-2"></i>Whitelist</a></li>
+          <li class="nav-item"><a class="nav-link" href="#" onclick="showDnsTab('blacklist',this)"><i class="bi bi-x-circle me-2"></i>Blacklist</a></li>
+          <li class="nav-item"><a class="nav-link" href="#" onclick="showDnsTab('test',this)"><i class="bi bi-search me-2"></i>Test</a></li>
+        </ul>
 
-      <!-- DNS Tab -->
-      <div id="tab-dns">
-        <div class="settings-card">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="section-title mb-0"><i class="bi bi-toggles me-2"></i>DNS Blocker — Unbound</div>
-            <div style="display:flex;gap:8px">
-              <button class="btn btn-success-soft" onclick="enableDNS()"><i class="bi bi-play-fill me-1"></i>Enable</button>
-              <button class="btn btn-danger-soft" onclick="disableDNS()"><i class="bi bi-stop-fill me-1"></i>Disable</button>
+        <!-- DNS Config Tab -->
+        <div id="dns-tab-config">
+          <div class="settings-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div class="section-title mb-0"><i class="bi bi-toggles me-2"></i>DNS Blocker — Unbound</div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-success-soft" onclick="enableDNS()"><i class="bi bi-play-fill me-1"></i>Enable</button>
+                <button class="btn btn-danger-soft" onclick="disableDNS()"><i class="bi bi-stop-fill me-1"></i>Disable</button>
+              </div>
+            </div>
+            <div style="background:rgba(79,142,247,0.08);border:1px solid rgba(79,142,247,0.2);border-radius:8px;padding:12px 16px;font-size:0.82rem;color:var(--text-muted);margin-bottom:20px">
+              <i class="bi bi-info-circle me-2" style="color:var(--accent)"></i>
+              Intercepta las consultas DNS de todos los dispositivos en la LAN y VPN, bloqueando dominios de ads, malware y contenido no deseado <strong style="color:var(--text-primary)">antes de que se realice la conexión</strong>.
+            </div>
+            <div class="section-title">Listas de Bloqueo</div>
+            <div class="list-toggle">
+              <div><div style="font-size:0.9rem;color:var(--text-primary)">🚫 Ads & Tracking</div><div style="font-size:0.78rem;color:var(--text-muted)">Steven Black hosts — ~180.000 dominios de publicidad y rastreo</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="list-ads" checked></div>
+            </div>
+            <div class="list-toggle">
+              <div><div style="font-size:0.9rem;color:var(--text-primary)">☣️ Malware & Phishing</div><div style="font-size:0.78rem;color:var(--text-muted)">Dominios de malware, phishing, ransomware y botnets</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="list-malware" checked></div>
+            </div>
+            <div class="list-toggle">
+              <div><div style="font-size:0.9rem;color:var(--text-primary)">📰 Fake News</div><div style="font-size:0.78rem;color:var(--text-muted)">Sitios de noticias falsas y desinformación</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="list-fakenews"></div>
+            </div>
+            <div class="list-toggle">
+              <div><div style="font-size:0.9rem;color:var(--text-primary)">🔞 Contenido Adulto</div><div style="font-size:0.78rem;color:var(--text-muted)">Sitios pornográficos (~6.000 dominios)</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="list-adult"></div>
+            </div>
+            <div class="list-toggle">
+              <div><div style="font-size:0.9rem;color:var(--text-primary)">🎰 Apuestas</div><div style="font-size:0.78rem;color:var(--text-muted)">Sitios de juegos de azar y apuestas online</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="list-gambling"></div>
+            </div>
+            <div class="mt-4 d-flex gap-2">
+              <button class="btn btn-accent" onclick="saveDnsLists()"><i class="bi bi-floppy me-2"></i>Guardar Selección</button>
+              <button class="btn btn-accent" onclick="updateBlocklists()"><i class="bi bi-cloud-download me-2"></i>Descargar y Actualizar Listas</button>
+            </div>
+            <div class="mt-3" id="update-log-container" style="display:none">
+              <div class="section-title">Log de actualización</div>
+              <div class="log-box" id="update-log">--</div>
             </div>
           </div>
+        </div>
 
-          <div style="background:rgba(79,142,247,0.08);border:1px solid rgba(79,142,247,0.2);border-radius:8px;padding:12px 16px;font-size:0.82rem;color:var(--text-muted);margin-bottom:20px">
-            <i class="bi bi-info-circle me-2" style="color:var(--accent)"></i>
-            El DNS Blocker intercepta las consultas DNS de todos los dispositivos en la LAN y VPN, bloqueando dominios de ads, malware y contenido no deseado <strong style="color:var(--text-primary)">antes de que se realice la conexión</strong>.
+        <!-- DNS Whitelist Tab -->
+        <div id="dns-tab-whitelist" style="display:none">
+          <div class="settings-card">
+            <div class="section-title mb-3"><i class="bi bi-check-circle me-2"></i>Whitelist — Dominios permitidos siempre</div>
+            <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:10px 14px;font-size:0.82rem;color:var(--text-muted);margin-bottom:16px">
+              <i class="bi bi-info-circle me-2" style="color:#22c55e"></i>Los dominios en whitelist nunca serán bloqueados, aunque estén en las listas de bloqueo.
+            </div>
+            <div id="whitelist-container" style="margin-bottom:16px"></div>
+            <div class="d-flex gap-2">
+              <input type="text" class="form-control" id="whitelist-input" placeholder="dominio.com" style="max-width:300px">
+              <button class="btn btn-success-soft" onclick="addWhitelist()"><i class="bi bi-plus me-1"></i>Agregar</button>
+            </div>
           </div>
+        </div>
 
-          <div class="section-title">Listas de Bloqueo</div>
-          <div class="list-toggle">
-            <div>
-              <div class="list-name">🚫 Ads & Tracking</div>
-              <div class="list-desc">Steven Black hosts — ~180.000 dominios de publicidad y rastreo</div>
+        <!-- DNS Blacklist Tab -->
+        <div id="dns-tab-blacklist" style="display:none">
+          <div class="settings-card">
+            <div class="section-title mb-3"><i class="bi bi-x-circle me-2"></i>Blacklist — Dominios bloqueados siempre</div>
+            <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:10px 14px;font-size:0.82rem;color:var(--text-muted);margin-bottom:16px">
+              <i class="bi bi-info-circle me-2" style="color:#f87171"></i>Los dominios en blacklist siempre serán bloqueados, independientemente de las listas.
             </div>
-            <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="list-ads" checked>
-            </div>
-          </div>
-          <div class="list-toggle">
-            <div>
-              <div class="list-name">☣️ Malware & Phishing</div>
-              <div class="list-desc">Dominios de malware, phishing, ransomware y botnets</div>
-            </div>
-            <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="list-malware" checked>
+            <div id="blacklist-container" style="margin-bottom:16px"></div>
+            <div class="d-flex gap-2">
+              <input type="text" class="form-control" id="blacklist-input" placeholder="dominio.com" style="max-width:300px">
+              <button class="btn btn-danger-soft" onclick="addBlacklist()"><i class="bi bi-plus me-1"></i>Agregar</button>
             </div>
           </div>
-          <div class="list-toggle">
-            <div>
-              <div class="list-name">📰 Fake News</div>
-              <div class="list-desc">Sitios de noticias falsas y desinformación</div>
-            </div>
-            <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="list-fakenews">
-            </div>
-          </div>
-          <div class="list-toggle">
-            <div>
-              <div class="list-name">🔞 Contenido Adulto</div>
-              <div class="list-desc">Sitios pornográficos (~6.000 dominios)</div>
-            </div>
-            <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="list-adult">
-            </div>
-          </div>
-          <div class="list-toggle">
-            <div>
-              <div class="list-name">🎰 Apuestas</div>
-              <div class="list-desc">Sitios de juegos de azar y apuestas online</div>
-            </div>
-            <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="list-gambling">
-            </div>
-          </div>
+        </div>
 
-          <div class="mt-4 d-flex gap-2">
-            <button class="btn btn-accent" onclick="updateBlocklists()">
-              <i class="bi bi-cloud-download me-2"></i>Descargar y Actualizar Listas
-            </button>
-          </div>
-
-          <div class="mt-3" id="update-log-container" style="display:none">
-            <div class="section-title">Log de actualización</div>
-            <div class="log-box" id="update-log">--</div>
+        <!-- DNS Test Tab -->
+        <div id="dns-tab-test" style="display:none">
+          <div class="settings-card">
+            <div class="section-title"><i class="bi bi-search me-2"></i>Probar Dominio</div>
+            <p style="color:var(--text-muted);font-size:0.85rem">Verificá si un dominio está siendo bloqueado por el DNS Blocker.</p>
+            <div class="d-flex gap-2">
+              <input type="text" class="form-control" id="test-domain" placeholder="xvideos.com / doubleclick.net..." style="max-width:400px">
+              <button class="btn btn-accent" onclick="testDomain()"><i class="bi bi-search me-1"></i>Probar</button>
+            </div>
+            <div class="test-result" id="test-result"></div>
           </div>
         </div>
       </div>
 
-      <!-- Whitelist Tab -->
-      <div id="tab-whitelist" style="display:none">
-        <div class="settings-card">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="section-title mb-0"><i class="bi bi-check-circle me-2"></i>Whitelist — Dominios permitidos siempre</div>
+      <!-- IDS/IPS MODULE -->
+      <div id="module-ids" class="module-section">
+        <ul class="nav nav-tabs mb-4" id="ids-tabs">
+          <li class="nav-item"><a class="nav-link active" href="#" onclick="showIdsTab('alerts',this)"><i class="bi bi-exclamation-triangle me-2"></i>Alertas</a></li>
+          <li class="nav-item"><a class="nav-link" href="#" onclick="showIdsTab('config',this)"><i class="bi bi-gear me-2"></i>Configuración</a></li>
+        </ul>
+
+        <!-- IDS Alerts Tab -->
+        <div id="ids-tab-alerts">
+          <div class="settings-card mb-3" style="padding:14px 20px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div style="display:flex;gap:8px;align-items:center">
+                <span id="ids-status-inner" class="badge-stopped">Stopped</span>
+                <span id="ids-mode-inner" class="badge-ids">IDS</span>
+                <span style="font-size:0.82rem;color:var(--text-muted)" id="ids-iface-label">—</span>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-success-soft" onclick="showStartModal()"><i class="bi bi-play-fill me-1"></i>Start</button>
+                <button class="btn btn-danger-soft" onclick="stopSuricata()"><i class="bi bi-stop-fill me-1"></i>Stop</button>
+                <button class="btn btn-primary-soft" onclick="loadSuricataAlerts()"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+                <button class="btn btn-danger-soft" onclick="clearAlerts()"><i class="bi bi-trash me-1"></i>Limpiar</button>
+              </div>
+            </div>
           </div>
-          <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:10px 14px;font-size:0.82rem;color:var(--text-muted);margin-bottom:16px">
-            <i class="bi bi-info-circle me-2" style="color:#22c55e"></i>
-            Los dominios en whitelist nunca serán bloqueados, aunque estén en las listas de bloqueo.
+          <div class="alerts-box" id="alerts-container">
+            <div style="padding:20px;color:var(--text-muted);text-align:center">Iniciá Suricata para comenzar el monitoreo</div>
           </div>
-          <div id="whitelist-container" style="margin-bottom:16px"></div>
-          <div class="d-flex gap-2">
-            <input type="text" class="form-control" id="whitelist-input" placeholder="dominio.com" style="max-width:300px">
-            <button class="btn btn-success-soft" onclick="addWhitelist()"><i class="bi bi-plus me-1"></i>Agregar</button>
+        </div>
+
+        <!-- IDS Config Tab -->
+        <div id="ids-tab-config" style="display:none">
+          <div class="settings-card">
+            <div class="section-title"><i class="bi bi-gear me-2"></i>Reglas de Detección</div>
+            <div class="rule-toggle">
+              <div><div style="font-weight:600;color:var(--text-primary)">☣️ Malware</div><div style="font-size:0.78rem;color:var(--text-muted)">Detección de malware conocido</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rule-malware" checked></div>
+            </div>
+            <div class="rule-toggle">
+              <div><div style="font-weight:600;color:var(--text-primary)">🤖 Botnets</div><div style="font-size:0.78rem;color:var(--text-muted)">Tráfico de botnets y C&C servers</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rule-botcc" checked></div>
+            </div>
+            <div class="rule-toggle">
+              <div><div style="font-weight:600;color:var(--text-primary)">💥 Exploits</div><div style="font-size:0.78rem;color:var(--text-muted)">Intentos de explotación de vulnerabilidades</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rule-exploit" checked></div>
+            </div>
+            <div class="rule-toggle">
+              <div><div style="font-weight:600;color:var(--text-primary)">🐴 Trojans</div><div style="font-size:0.78rem;color:var(--text-muted)">Troyanos y backdoors</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rule-trojan" checked></div>
+            </div>
+            <div class="rule-toggle">
+              <div><div style="font-weight:600;color:var(--text-primary)">🔍 Port Scanning</div><div style="font-size:0.78rem;color:var(--text-muted)">Detección de escaneos de puertos</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rule-scan" checked></div>
+            </div>
+            <div class="rule-toggle">
+              <div><div style="font-weight:600;color:var(--text-primary)">📋 Policy Violations</div><div style="font-size:0.78rem;color:var(--text-muted)">Violaciones de políticas de red</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rule-policy"></div>
+            </div>
+            <div class="rule-toggle">
+              <div><div style="font-weight:600;color:var(--text-primary)">💣 DoS/DDoS</div><div style="font-size:0.78rem;color:var(--text-muted)">Ataques de denegación de servicio</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rule-dos"></div>
+            </div>
+            <div class="rule-toggle">
+              <div><div style="font-weight:600;color:var(--text-primary)">🌐 Web Attacks</div><div style="font-size:0.78rem;color:var(--text-muted)">SQL injection, XSS, ataques web</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rule-web"></div>
+            </div>
+            <div class="mt-4">
+              <button class="btn btn-accent" onclick="saveSuricataConfig()"><i class="bi bi-floppy me-2"></i>Guardar Configuración</button>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Blacklist Tab -->
-      <div id="tab-blacklist" style="display:none">
-        <div class="settings-card">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="section-title mb-0"><i class="bi bi-x-circle me-2"></i>Blacklist — Dominios bloqueados siempre</div>
+    </div>
+  </div>
+
+  <!-- Start Suricata Modal -->
+  <div class="modal fade" id="startModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-play-fill me-2"></i>Iniciar Suricata</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Interface a monitorear</label>
+            <select class="form-select" id="start-interface"></select>
+            <small class="text-muted">Recomendado: interface WAN</small>
           </div>
-          <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:10px 14px;font-size:0.82rem;color:var(--text-muted);margin-bottom:16px">
-            <i class="bi bi-info-circle me-2" style="color:#f87171"></i>
-            Los dominios en blacklist siempre serán bloqueados, independientemente de las listas.
+          <div class="mb-3">
+            <label class="form-label">Modo</label>
+            <select class="form-select" id="start-mode">
+              <option value="ids">IDS — Solo detectar y alertar (recomendado)</option>
+              <option value="ips">IPS — Detectar y bloquear automáticamente</option>
+            </select>
           </div>
-          <div id="blacklist-container" style="margin-bottom:16px"></div>
-          <div class="d-flex gap-2">
-            <input type="text" class="form-control" id="blacklist-input" placeholder="dominio.com" style="max-width:300px">
-            <button class="btn btn-danger-soft" onclick="addBlacklist()"><i class="bi bi-plus me-1"></i>Agregar</button>
+          <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:10px 14px;font-size:0.82rem;color:#f59e0b">
+            <i class="bi bi-exclamation-triangle me-2"></i>El modo IPS puede interrumpir tráfico legítimo. Se recomienda usar IDS primero.
           </div>
         </div>
-      </div>
-
-      <!-- Test Tab -->
-      <div id="tab-test" style="display:none">
-        <div class="settings-card">
-          <div class="section-title"><i class="bi bi-search me-2"></i>Probar Dominio</div>
-          <p style="color:var(--text-muted);font-size:0.85rem">Verificá si un dominio está siendo bloqueado por el DNS Blocker.</p>
-          <div class="d-flex gap-2">
-            <input type="text" class="form-control" id="test-domain" placeholder="xvideos.com / doubleclick.net..." style="max-width:400px">
-            <button class="btn btn-accent" onclick="testDomain()"><i class="bi bi-search me-1"></i>Probar</button>
-          </div>
-          <div class="test-result" id="test-result"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-accent" id="start-btn" onclick="startSuricata()">
+            <i class="bi bi-play-fill me-1"></i>Iniciar
+          </button>
         </div>
       </div>
-
     </div>
   </div>
 
@@ -254,14 +320,32 @@
 
     const h = { headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } }
 
-    function showTab(tab, el) {
-      ['dns','whitelist','blacklist','test'].forEach(t => {
-        document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none'
+    // ── MODULE SWITCHING ──────────────────────────────────────────────────────
+    function switchModule(mod) {
+      document.getElementById('module-dns').className = 'module-section' + (mod === 'dns' ? ' active' : '')
+      document.getElementById('module-ids').className = 'module-section' + (mod === 'ids' ? ' active' : '')
+      document.getElementById('card-dns').className = 'module-card' + (mod === 'dns' ? ' active' : '')
+      document.getElementById('card-ids').className = 'module-card' + (mod === 'ids' ? ' active' : '')
+      if (mod === 'ids') { loadSuricataAlerts(); loadSuricataConfig() }
+    }
+
+    // ── DNS TABS ──────────────────────────────────────────────────────────────
+    function showDnsTab(tab, el) {
+      ['config','whitelist','blacklist','test'].forEach(t => {
+        document.getElementById('dns-tab-' + t).style.display = t === tab ? 'block' : 'none'
       })
-      document.querySelectorAll('.nav-tabs .nav-link').forEach(e => e.classList.remove('active'))
+      document.querySelectorAll('#dns-tabs .nav-link').forEach(e => e.classList.remove('active'))
       if (el) el.classList.add('active')
-      if (tab === 'whitelist') loadLists()
-      if (tab === 'blacklist') loadLists()
+      if (tab === 'whitelist' || tab === 'blacklist') loadLists()
+    }
+
+    // ── IDS TABS ──────────────────────────────────────────────────────────────
+    function showIdsTab(tab, el) {
+      ['alerts','config'].forEach(t => {
+        document.getElementById('ids-tab-' + t).style.display = t === tab ? 'block' : 'none'
+      })
+      document.querySelectorAll('#ids-tabs .nav-link').forEach(e => e.classList.remove('active'))
+      if (el) el.classList.add('active')
     }
 
     function showAlert(msg, isError) {
@@ -276,21 +360,19 @@
       }
     }
 
-    async function loadStatus() {
+    // ── DNS BLOCKER ───────────────────────────────────────────────────────────
+    async function loadDnsStatus() {
       const res = await fetch('/api/security/status', { headers: h.headers })
       const data = await res.json()
-
-      // DNS
-      const dnsBadge = document.getElementById('dns-badge')
-      dnsBadge.textContent = data.unbound.running ? 'Running' : 'Stopped'
-      dnsBadge.className = data.unbound.running ? 'badge-running' : 'badge-stopped'
-      document.getElementById('dns-domains').textContent = data.unbound.domains.toLocaleString()
-      document.getElementById('dns-detail').textContent = data.unbound.running
-        ? data.unbound.domains + ' dominios bloqueados'
-        : 'Unbound DNS — Detenido'
+      const running = data.unbound && data.unbound.running
+      const domains = (data.unbound && data.unbound.domains) || 0
+      document.getElementById('dns-badge').textContent = running ? 'Running' : 'Stopped'
+      document.getElementById('dns-badge').className = running ? 'badge-running' : 'badge-stopped'
+      document.getElementById('dns-domains').textContent = domains.toLocaleString()
+      document.getElementById('dns-detail').textContent = running ? domains + ' dominios bloqueados' : 'Unbound DNS — Detenido'
     }
 
-    async function loadSettings() {
+    async function loadDnsSettings() {
       const res = await fetch('/api/security/settings', { headers: h.headers })
       const data = await res.json()
       if (data.dnsBlocker && data.dnsBlocker.lists) {
@@ -302,47 +384,48 @@
       }
     }
 
+    async function saveDnsLists() {
+      const res = await fetch('/api/security/settings', { headers: h.headers })
+      const current = await res.json()
+      if (!current.dnsBlocker) current.dnsBlocker = {}
+      current.dnsBlocker.lists = {
+        ads: document.getElementById('list-ads').checked,
+        malware: document.getElementById('list-malware').checked,
+        fakenews: document.getElementById('list-fakenews').checked,
+        adult: document.getElementById('list-adult').checked,
+        gambling: document.getElementById('list-gambling').checked
+      }
+      const saveRes = await fetch('/api/security/settings', { method: 'POST', ...h, body: JSON.stringify(current) })
+      const saved = await saveRes.json()
+      if (saved.success) showAlert('Configuración guardada')
+      else showAlert(saved.error || 'Error al guardar', true)
+    }
+
     async function loadLists() {
       const res = await fetch('/api/security/settings', { headers: h.headers })
       const data = await res.json()
-
-      // Whitelist
       const wl = document.getElementById('whitelist-container')
-      if (data.whitelist && data.whitelist.length > 0) {
-        wl.innerHTML = data.whitelist.map(d => `
-          <div class="domain-item">
-            <span style="font-family:monospace;font-size:0.85rem;color:#22c55e">${d}</span>
-            <button class="btn btn-danger-soft" onclick="removeWhitelist('${d}')"><i class="bi bi-x"></i></button>
-          </div>`).join('')
-      } else {
-        wl.innerHTML = '<div style="color:var(--text-muted);font-size:0.82rem">No hay dominios en whitelist</div>'
-      }
-
-      // Blacklist
+      wl.innerHTML = data.whitelist && data.whitelist.length > 0
+        ? data.whitelist.map(d => `<div class="domain-item"><span style="font-family:monospace;font-size:0.85rem;color:#22c55e">${d}</span><button class="btn btn-danger-soft" onclick="removeWhitelist('${d}')"><i class="bi bi-x"></i></button></div>`).join('')
+        : '<div style="color:var(--text-muted);font-size:0.82rem">No hay dominios en whitelist</div>'
       const bl = document.getElementById('blacklist-container')
-      if (data.blacklist && data.blacklist.length > 0) {
-        bl.innerHTML = data.blacklist.map(d => `
-          <div class="domain-item">
-            <span style="font-family:monospace;font-size:0.85rem;color:#f87171">${d}</span>
-            <button class="btn btn-danger-soft" onclick="removeBlacklist('${d}')"><i class="bi bi-x"></i></button>
-          </div>`).join('')
-      } else {
-        bl.innerHTML = '<div style="color:var(--text-muted);font-size:0.82rem">No hay dominios en blacklist</div>'
-      }
+      bl.innerHTML = data.blacklist && data.blacklist.length > 0
+        ? data.blacklist.map(d => `<div class="domain-item"><span style="font-family:monospace;font-size:0.85rem;color:#f87171">${d}</span><button class="btn btn-danger-soft" onclick="removeBlacklist('${d}')"><i class="bi bi-x"></i></button></div>`).join('')
+        : '<div style="color:var(--text-muted);font-size:0.82rem">No hay dominios en blacklist</div>'
     }
 
     async function enableDNS() {
       const res = await fetch('/api/security/dns/enable', { method: 'POST', ...h, body: '{}' })
       const data = await res.json()
-      if (data.success) { showAlert('DNS Blocker activado'); loadStatus() }
-      else showAlert(data.error, true)
+      if (data.success) { showAlert('DNS Blocker activado'); loadDnsStatus() }
+      else showAlert(data.error || 'Error', true)
     }
 
     async function disableDNS() {
       const res = await fetch('/api/security/dns/disable', { method: 'POST', ...h, body: '{}' })
       const data = await res.json()
-      if (data.success) { showAlert('DNS Blocker desactivado'); loadStatus() }
-      else showAlert(data.error, true)
+      if (data.success) { showAlert('DNS Blocker desactivado'); loadDnsStatus() }
+      else showAlert(data.error || 'Error', true)
     }
 
     async function updateBlocklists() {
@@ -353,69 +436,45 @@
         adult: document.getElementById('list-adult').checked,
         gambling: document.getElementById('list-gambling').checked
       }
-
       showAlert('Descargando listas... esto puede tardar varios minutos')
       document.getElementById('update-log-container').style.display = 'block'
-
-      const res = await fetch('/api/security/dns/update', {
-        method: 'POST', ...h, body: JSON.stringify({ lists })
-      })
+      const res = await fetch('/api/security/dns/update', { method: 'POST', ...h, body: JSON.stringify({ lists }) })
       const data = await res.json()
-
       if (data.success) {
-        showAlert('Actualización iniciada en segundo plano')
-        // Poll log every 5 seconds
         const interval = setInterval(async () => {
           const logRes = await fetch('/api/security/dns/log', { headers: h.headers })
           const logData = await logRes.json()
           document.getElementById('update-log').textContent = logData.log
-          loadStatus()
-          if (logData.log.includes('Update complete')) {
-            clearInterval(interval)
-            showAlert('Listas actualizadas correctamente')
-          }
+          loadDnsStatus()
+          if (logData.log.includes('Update complete')) { clearInterval(interval); showAlert('Listas actualizadas correctamente') }
         }, 5000)
-      } else showAlert(data.error, true)
+      } else showAlert(data.error || 'Error', true)
     }
 
     async function testDomain() {
       const domain = document.getElementById('test-domain').value.trim()
       if (!domain) return showAlert('Ingresá un dominio', true)
-
-      const res = await fetch('/api/security/dns/test', {
-        method: 'POST', ...h, body: JSON.stringify({ domain })
-      })
+      const res = await fetch('/api/security/dns/test', { method: 'POST', ...h, body: JSON.stringify({ domain }) })
       const data = await res.json()
-
       const result = document.getElementById('test-result')
       result.style.display = 'block'
-      if (data.blocked) {
-        result.className = 'test-result test-blocked'
-        result.innerHTML = '<i class="bi bi-shield-x me-2"></i><strong>' + domain + '</strong> está BLOQUEADO ✅'
-      } else {
-        result.className = 'test-result test-allowed'
-        result.innerHTML = '<i class="bi bi-shield me-2"></i><strong>' + domain + '</strong> NO está bloqueado'
-      }
+      result.className = 'test-result ' + (data.blocked ? 'test-blocked' : 'test-allowed')
+      result.innerHTML = data.blocked
+        ? '<i class="bi bi-shield-x me-2"></i><strong>' + domain + '</strong> está BLOQUEADO ✅'
+        : '<i class="bi bi-shield me-2"></i><strong>' + domain + '</strong> NO está bloqueado'
     }
 
     async function addWhitelist() {
       const domain = document.getElementById('whitelist-input').value.trim()
       if (!domain) return
-      const res = await fetch('/api/security/whitelist', {
-        method: 'POST', ...h, body: JSON.stringify({ domain })
-      })
+      const res = await fetch('/api/security/whitelist', { method: 'POST', ...h, body: JSON.stringify({ domain }) })
       const data = await res.json()
-      if (data.success) {
-        document.getElementById('whitelist-input').value = ''
-        showAlert(domain + ' agregado a whitelist')
-        loadLists()
-      }
+      if (data.success) { document.getElementById('whitelist-input').value = ''; showAlert(domain + ' agregado a whitelist'); loadLists() }
+      else showAlert(data.error || 'Error', true)
     }
 
     async function removeWhitelist(domain) {
-      const res = await fetch('/api/security/whitelist/' + encodeURIComponent(domain), {
-        method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token }
-      })
+      const res = await fetch('/api/security/whitelist/' + encodeURIComponent(domain), { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } })
       const data = await res.json()
       if (data.success) { showAlert('Eliminado de whitelist'); loadLists() }
     }
@@ -423,28 +482,222 @@
     async function addBlacklist() {
       const domain = document.getElementById('blacklist-input').value.trim()
       if (!domain) return
-      const res = await fetch('/api/security/blacklist', {
-        method: 'POST', ...h, body: JSON.stringify({ domain })
-      })
+      const res = await fetch('/api/security/blacklist', { method: 'POST', ...h, body: JSON.stringify({ domain }) })
       const data = await res.json()
-      if (data.success) {
-        document.getElementById('blacklist-input').value = ''
-        showAlert(domain + ' agregado a blacklist')
-        loadLists()
-      }
+      if (data.success) { document.getElementById('blacklist-input').value = ''; showAlert(domain + ' agregado a blacklist'); loadLists() }
+      else showAlert(data.error || 'Error', true)
     }
 
     async function removeBlacklist(domain) {
-      const res = await fetch('/api/security/blacklist/' + encodeURIComponent(domain), {
-        method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token }
-      })
+      const res = await fetch('/api/security/blacklist/' + encodeURIComponent(domain), { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } })
       const data = await res.json()
       if (data.success) { showAlert('Eliminado de blacklist'); loadLists() }
     }
 
-    loadStatus()
-    loadSettings()
-    setInterval(loadStatus, 10000)
+    // ── SURICATA ──────────────────────────────────────────────────────────────
+    async function loadSuricataStatus() {
+      const res = await fetch('/api/suricata/status', { headers: h.headers })
+      const data = await res.json()
+      const running = data.running === true
+      const mode = data.mode || 'ids'
+
+      // Update top card badges (always visible)
+      document.getElementById('ids-badge').textContent = running ? 'Running' : 'Stopped'
+      document.getElementById('ids-badge').className = running ? 'badge-running' : 'badge-stopped'
+      document.getElementById('ids-mode-badge').textContent = mode === 'ips' ? 'IPS' : 'IDS'
+      document.getElementById('ids-mode-badge').className = mode === 'ips' ? 'badge-ips' : 'badge-ids'
+      document.getElementById('ids-alerts').textContent = data.alerts || 0
+      document.getElementById('ids-detail').textContent = running
+        ? (mode === 'ips' ? 'IPS — Bloqueando' : 'IDS — Monitoreando') + ' en ' + (data.interface || '—')
+        : 'Suricata — Detenido'
+
+      // Update inner badges (only visible when IDS module is active)
+      const inner = document.getElementById('ids-status-inner')
+      if (inner) { inner.textContent = running ? 'Running' : 'Stopped'; inner.className = running ? 'badge-running' : 'badge-stopped' }
+      const modeInner = document.getElementById('ids-mode-inner')
+      if (modeInner) { modeInner.textContent = mode === 'ips' ? 'IPS' : 'IDS'; modeInner.className = mode === 'ips' ? 'badge-ips' : 'badge-ids' }
+      const ifaceLabel = document.getElementById('ids-iface-label')
+      if (ifaceLabel) ifaceLabel.textContent = data.interface ? 'en ' + data.interface : '—'
+    }
+
+    async function loadSuricataAlerts() {
+      const [alertsRes, blockedRes] = await Promise.all([
+        fetch('/api/suricata/alerts?limit=100', { headers: h.headers }),
+        fetch('/api/firewall/blocked-ips', { headers: h.headers })
+      ])
+      const data = await alertsRes.json()
+      const blockedData = await blockedRes.json()
+      const blockedIPs = new Set((blockedData.ips || []).map(b => b.ip || b))
+      const container = document.getElementById('alerts-container')
+      if (!data.alerts || data.alerts.length === 0) {
+        container.innerHTML = '<div style="padding:20px;color:var(--text-muted);text-align:center">No hay alertas</div>'
+        return
+      }
+      container.innerHTML = data.alerts.map((a, i) => {
+        const sevColor = a.severity === 1 ? '#ef4444' : a.severity === 2 ? '#f59e0b' : '#64748b'
+        const actionBadge = a.action === 'blocked' 
+          ? '<span style="background:rgba(239,68,68,0.2);color:#f87171;padding:1px 6px;border-radius:4px;font-size:0.72rem;margin-left:6px">BLOCKED</span>'
+          : '<span style="background:rgba(100,116,139,0.2);color:#94a3b8;padding:1px 6px;border-radius:4px;font-size:0.72rem;margin-left:6px">ALLOWED</span>'
+        const httpInfo = a.http ? `<div style="color:var(--text-muted);font-size:0.75rem;margin-top:4px;font-family:monospace">${a.http.method} ${a.http.url} · UA: ${a.http.userAgent || '—'}</div>` : ''
+        const payloadInfo = a.payload ? `<div style="color:#64748b;font-size:0.72rem;margin-top:4px;font-family:monospace;white-space:pre-wrap;background:rgba(0,0,0,0.2);padding:4px 8px;border-radius:4px;display:none" id="payload-${i}">${a.payload}</div>` : ''
+        const payloadBtn = a.payload ? `<span onclick="togglePayload(${i})" style="cursor:pointer;color:var(--accent);font-size:0.72rem;margin-left:8px">ver payload</span>` : ''
+        return `<div class="alert-row" style="border-left:3px solid ${sevColor}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="flex:1">
+              <div>
+                <span style="color:#f59e0b;font-size:0.75rem">${a.timestamp ? new Date(a.timestamp).toLocaleString() : '—'}</span>
+                ${actionBadge}
+              </div>
+              <div style="margin-top:3px"><strong style="color:var(--text-primary)">${a.signature || 'Unknown'}</strong>${payloadBtn}</div>
+              <div style="color:var(--text-muted);font-size:0.78rem;margin-top:2px">
+                <span style="color:#f87171">${a.srcIP || '—'}:${a.srcPort || ''}</span>
+                <span style="color:#64748b"> → </span>
+                <span style="color:#22c55e">${a.dstIP || '—'}:${a.dstPort || ''}</span>
+                <span style="color:#64748b;margin-left:8px">${a.proto || ''}</span>
+                ${a.category ? `<span style="color:#94a3b8;margin-left:8px">· ${a.category}</span>` : ''}
+              </div>
+              ${httpInfo}
+              ${payloadInfo}
+            </div>
+            ${blockedIPs.has(a.srcIP)
+              ? `<button onclick="unblockAlertIP('${a.srcIP}')" style="margin-left:12px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);color:#22c55e;padding:3px 10px;border-radius:6px;font-size:0.75rem;white-space:nowrap;cursor:pointer"><i class="bi bi-shield-check"></i> Unblock</button>`
+              : `<button onclick="blockAlertIP('${a.srcIP}')" style="margin-left:12px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;padding:3px 10px;border-radius:6px;font-size:0.75rem;white-space:nowrap;cursor:pointer"><i class="bi bi-shield-x"></i> Block IP</button>`
+            }
+          </div>
+        </div>`
+      }).join('')
+    }
+
+    async function loadSuricataConfig() {
+      const res = await fetch('/api/suricata/settings', { headers: h.headers })
+      const data = await res.json()
+      if (data.rules) {
+        document.getElementById('rule-malware').checked = data.rules.malware !== false
+        document.getElementById('rule-botcc').checked = data.rules.botcc !== false
+        document.getElementById('rule-exploit').checked = data.rules.exploit !== false
+        document.getElementById('rule-trojan').checked = data.rules.trojan !== false
+        document.getElementById('rule-scan').checked = data.rules.scan !== false
+        document.getElementById('rule-policy').checked = data.rules.policy === true
+        document.getElementById('rule-dos').checked = data.rules.dos === true
+        document.getElementById('rule-web').checked = data.rules.web === true
+      }
+    }
+
+    async function saveSuricataConfig() {
+      const rules = {
+        malware: document.getElementById('rule-malware').checked,
+        botcc: document.getElementById('rule-botcc').checked,
+        exploit: document.getElementById('rule-exploit').checked,
+        trojan: document.getElementById('rule-trojan').checked,
+        scan: document.getElementById('rule-scan').checked,
+        policy: document.getElementById('rule-policy').checked,
+        dos: document.getElementById('rule-dos').checked,
+        web: document.getElementById('rule-web').checked
+      }
+      const res = await fetch('/api/suricata/settings', { headers: h.headers })
+      const current = await res.json()
+      const saveRes = await fetch('/api/suricata/settings', { method: 'POST', ...h, body: JSON.stringify({ ...current, rules }) })
+      const data = await saveRes.json()
+      if (data.success) showAlert('Configuración de Suricata guardada')
+      else showAlert(data.error || 'Error al guardar', true)
+    }
+
+    async function showStartModal() {
+      const res = await fetch('/api/suricata/interfaces', { headers: h.headers })
+      const data = await res.json()
+      document.getElementById('start-interface').innerHTML = (data.interfaces || []).map(i =>
+        `<option value="${i.name}" ${i.role === 'WAN' ? 'selected' : ''}>${i.name} (${i.role})</option>`
+      ).join('')
+      // Pre-select current mode if set
+      const settingsRes = await fetch('/api/suricata/settings', { headers: h.headers })
+      const settings = await settingsRes.json()
+      if (settings.mode) document.getElementById('start-mode').value = settings.mode
+      new bootstrap.Modal(document.getElementById('startModal')).show()
+    }
+
+    async function startSuricata() {
+      const btn = document.getElementById('start-btn')
+      btn.disabled = true
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Iniciando...'
+      const body = {
+        interface: document.getElementById('start-interface').value,
+        mode: document.getElementById('start-mode').value,
+        rules: {
+          malware: document.getElementById('rule-malware').checked,
+          botcc: document.getElementById('rule-botcc').checked,
+          exploit: document.getElementById('rule-exploit').checked,
+          trojan: document.getElementById('rule-trojan').checked,
+          scan: document.getElementById('rule-scan').checked,
+          policy: document.getElementById('rule-policy').checked,
+          dos: document.getElementById('rule-dos').checked,
+          web: document.getElementById('rule-web').checked
+        }
+      }
+      const res = await fetch('/api/suricata/start', { method: 'POST', ...h, body: JSON.stringify(body) })
+      const data = await res.json()
+      btn.disabled = false
+      btn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Iniciar'
+      bootstrap.Modal.getInstance(document.getElementById('startModal')).hide()
+      if (data.success) { showAlert('Suricata iniciado'); setTimeout(loadSuricataStatus, 2000) }
+      else showAlert(data.error || 'Error al iniciar', true)
+    }
+
+    async function stopSuricata() {
+      if (!confirm('Detener Suricata?')) return
+      const res = await fetch('/api/suricata/stop', { method: 'POST', ...h, body: '{}' })
+      const data = await res.json()
+      if (data.success) { showAlert('Suricata detenido'); setTimeout(loadSuricataStatus, 1000) }
+      else showAlert(data.error || 'Error', true)
+    }
+
+    async function unblockAlertIP(ip) {
+      if (!confirm('Desbloquear IP ' + ip + '?')) return
+      const res = await fetch('/api/firewall/blocked-ips/' + encodeURIComponent(ip), {
+        method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token }
+      })
+      const data = await res.json()
+      if (data.success) { showAlert('IP ' + ip + ' desbloqueada ✅'); loadSuricataAlerts() }
+      else showAlert(data.error || 'Error al desbloquear', true)
+    }
+
+    async function blockAlertIP(ip) {
+      if (!confirm('Bloquear IP ' + ip + ' en el firewall?')) return
+      const res = await fetch('/api/firewall/blocked-ips', {
+        method: 'POST', ...h, body: JSON.stringify({ ip, description: 'Bloqueado desde alerta Suricata' })
+      })
+      const data = await res.json()
+      if (data.success) { showAlert('IP ' + ip + ' bloqueada en el firewall ✅'); loadSuricataAlerts() }
+      else showAlert(data.error || 'Error al bloquear', true)
+    }
+
+    async function blockAlertIP(ip) {
+      if (!confirm('Bloquear IP ' + ip + ' en el firewall?')) return
+      const res = await fetch('/api/firewall/blocked-ips', {
+        method: 'POST', ...h, body: JSON.stringify({ ip, description: 'Bloqueado desde alerta Suricata' })
+      })
+      const data = await res.json()
+      if (data.success) showAlert('IP ' + ip + ' bloqueada en el firewall ✅')
+      else showAlert(data.error || 'Error al bloquear', true)
+    }
+
+    function togglePayload(i) {
+      const el = document.getElementById('payload-' + i)
+      if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none'
+    }
+
+    async function clearAlerts() {
+      if (!confirm('Limpiar todas las alertas?')) return
+      const res = await fetch('/api/suricata/alerts/clear', { method: 'POST', ...h, body: '{}' })
+      const data = await res.json()
+      if (data.success) { showAlert('Alertas limpiadas'); loadSuricataAlerts() }
+      else showAlert(data.error || 'Error', true)
+    }
+
+    // ── INIT ──────────────────────────────────────────────────────────────────
+    loadDnsStatus()
+    loadDnsSettings()
+    loadSuricataStatus()
+    setInterval(() => { loadDnsStatus(); loadSuricataStatus() }, 5000)
   </script>
 </body>
 </html>
