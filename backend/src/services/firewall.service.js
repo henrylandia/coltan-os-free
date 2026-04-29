@@ -39,18 +39,8 @@ async function getLanIfaces() {
 
 function makeRule(id, action, direction, protocol, iface, srcAddr, srcPort, dstAddr, dstPort, description, system = false) {
   return {
-    id,
-    enabled: true,
-    system,
-    action,
-    direction,
-    protocol,
-    interface: iface,
-    srcAddr,
-    srcPort,
-    dstAddr,
-    dstPort,
-    description,
+    id, enabled: true, system, action, direction, protocol,
+    interface: iface, srcAddr, srcPort, dstAddr, dstPort, description,
     createdAt: new Date().toISOString()
   }
 }
@@ -66,6 +56,7 @@ async function getDefaultRules(wan, lans) {
     makeRule('sys-dhcp', 'pass', 'in', 'udp', wan, 'any', '', 'any', '67', 'Allow DHCP', true),
     makeRule('sys-wireguard', 'pass', 'in', 'udp', wan, 'any', '', 'any', '51820', 'Allow WireGuard VPN', true),
     makeRule('sys-openvpn', 'pass', 'in', 'udp', wan, 'any', '', 'any', '1194', 'Allow OpenVPN', true),
+    makeRule('sys-ssh', 'pass', 'in', 'tcp', wan, 'any', '', 'any', '22', 'Allow SSH', true),
   ]
   lans.forEach(lan => {
     rules.push(makeRule(`sys-lan-${lan}`, 'pass', 'in', 'any', lan, 'any', '', 'any', '', `Allow all LAN traffic (${lan})`, true))
@@ -80,24 +71,14 @@ async function getRules() {
   await ensureDir()
   const wan = await getWanIface()
   const lans = await getLanIfaces()
-
-  // Load saved custom rules
   let saved = []
   try {
     const raw = await fs.readFile(RULES_FILE, 'utf8')
     saved = JSON.parse(raw)
   } catch(e) {}
-
-  // Always regenerate system rules from current interfaces
   const systemRules = await getDefaultRules(wan, lans)
-
-  // Keep only non-system saved rules
   const customRules = saved.filter(r => !r.system)
-
-  // Merge: system rules first, then custom
-  const merged = [...systemRules, ...customRules]
-
-  return merged
+  return [...systemRules, ...customRules]
 }
 
 async function getRulesRaw() {
@@ -110,7 +91,6 @@ async function getRulesRaw() {
 
 async function saveRules(rules) {
   await ensureDir()
-  // Only save custom rules, system rules are always regenerated
   const customOnly = rules.filter(r => !r.system)
   await fs.writeFile(RULES_FILE, JSON.stringify(customOnly, null, 2))
 }
@@ -118,19 +98,12 @@ async function saveRules(rules) {
 async function addRule(rule) {
   const rules = await getRules()
   const newRule = {
-    id: Date.now().toString(),
-    enabled: true,
-    system: false,
-    action: rule.action || 'pass',
-    direction: rule.direction || 'in',
-    protocol: rule.protocol || 'tcp',
-    interface: rule.interface || 'any',
-    srcAddr: rule.srcAddr || 'any',
-    srcPort: rule.srcPort || '',
-    dstAddr: rule.dstAddr || 'any',
-    dstPort: rule.dstPort || '',
-    description: rule.description || '',
-    createdAt: new Date().toISOString()
+    id: Date.now().toString(), enabled: true, system: false,
+    action: rule.action || 'pass', direction: rule.direction || 'in',
+    protocol: rule.protocol || 'tcp', interface: rule.interface || 'any',
+    srcAddr: rule.srcAddr || 'any', srcPort: rule.srcPort || '',
+    dstAddr: rule.dstAddr || 'any', dstPort: rule.dstPort || '',
+    description: rule.description || '', createdAt: new Date().toISOString()
   }
   rules.push(newRule)
   await saveRules(rules)
@@ -212,12 +185,9 @@ async function getPortForwards() {
 async function addPortForward(pf) {
   const list = await getPortForwards()
   const entry = {
-    id: Date.now().toString(),
-    enabled: true,
+    id: Date.now().toString(), enabled: true,
     protocol: pf.protocol || 'tcp',
-    extPort: pf.extPort,
-    intIP: pf.intIP,
-    intPort: pf.intPort,
+    extPort: pf.extPort, intIP: pf.intIP, intPort: pf.intPort,
     description: pf.description || ''
   }
   list.push(entry)
@@ -264,18 +234,12 @@ scrub in all
 
 `
 
-  // Blocked IPs table
-  if (blockedIPs.length > 0) {
-    conf += `# Blocked IPs\ntable <blocked> { ${blockedIPs.map(i => i.ip).join(', ')} }\nblock in quick from <blocked> to any\nblock out quick from any to <blocked>\n\n`
-  }
-
-  // NAT for each LAN
-  // NAT per LAN interface - dynamic
+  // ── 1. NAT (must come before filtering) ──────────────────────────────────
   for (const lan of lans) {
     conf += `nat on $ext_if from ${lan}:network to any -> ($ext_if)\n`
   }
 
-  // NAT for WireGuard — dynamic based on config
+  // NAT for WireGuard
   try {
     const wgConfigRaw = require('fs').readFileSync('/usr/local/etc/coltan/wg-config.json', 'utf8')
     const wgConfig = JSON.parse(wgConfigRaw)
@@ -288,40 +252,46 @@ scrub in all
       conf += `pass in on wg0 from ${wgNet} to ${lanVar}:network keep state\n`
       conf += `pass out on ${lan} from ${wgNet} to ${lanVar}:network keep state\n`
     })
-    // Also pass traffic to the WireGuard server IP itself
     conf += `pass in on wg0 proto icmp all keep state\n`
     conf += `pass out on wg0 proto icmp all keep state\n`
   } catch(e) {
-    // Default fallback
     conf += `nat on $ext_if from 10.0.0.0/8 to any -> ($ext_if)\n`
     conf += `pass in on wg0 all keep state\n`
     conf += `pass out on wg0 all keep state\n`
   }
 
-
-  conf += `\n# Sites blocking anchor\nanchor "coltan/sites"\n\n`
-  conf += `\n# Default block\nblock in all\npass out all keep state\n\n`
-  conf += `# WireGuard interface - allow all traffic\npass quick on wg0 all keep state\n\n`
-
-  // Port forwards
+  // ── 2. Port Forwards (rdr - translation, before filtering) ───────────────
   const enabledForwards = portForwards.filter(p => p.enabled)
   if (enabledForwards.length > 0) {
-    conf += `# Port Forwarding\n`
+    conf += `\n# Port Forwarding\n`
     enabledForwards.forEach(p => {
       conf += `rdr on $ext_if proto ${p.protocol} from any to any port ${p.extPort} -> ${p.intIP} port ${p.intPort}\n`
-      conf += `pass in on $ext_if proto ${p.protocol} from any to ${p.intIP} port ${p.intPort} keep state\n`
     })
-    conf += '\n'
   }
 
-  // All rules (system + custom) in order
+  conf += `\n# Sites blocking anchor\nanchor "coltan/sites"\n`
+  conf += `\n# Default block\nblock in all\npass out all keep state\n`
+  conf += `\n# WireGuard interface - allow all traffic\npass quick on wg0 all keep state\n`
+
+  // ── 3. Blocked IPs (filtering - after NAT) ────────────────────────────────
+  if (blockedIPs.length > 0) {
+    conf += `\n# Blocked IPs\ntable <blocked> { ${blockedIPs.map(i => i.ip).join(', ')} }\nblock in quick from <blocked> to any\nblock out quick from any to <blocked>\n`
+  }
+
+  // ── 4. Port forward pass rules ────────────────────────────────────────────
+  if (enabledForwards.length > 0) {
+    enabledForwards.forEach(p => {
+      conf += `pass in on $ext_if proto ${p.protocol} from any to ${p.intIP} port ${p.intPort} keep state\n`
+    })
+  }
+
+  // ── 5. Firewall rules (system + custom) ───────────────────────────────────
   const enabledRules = rules.filter(r => r.enabled)
   if (enabledRules.length > 0) {
-    conf += `# Firewall Rules\n`
+    conf += `\n# Firewall Rules\n`
     enabledRules.forEach(r => {
       let rule = `${r.action} ${r.direction}`
       if (r.interface && r.interface !== 'any') {
-        // Replace interface name with variable if it matches
         if (r.interface === wan) rule += ` on $ext_if`
         else {
           const lanIdx = lans.indexOf(r.interface)
@@ -347,7 +317,6 @@ async function generateAndReload() {
   const conf = await generatePFConf()
   await fs.writeFile(PF_CONF, conf)
   try {
-    // Always ensure IP forwarding is enabled
     await execAsync('sysctl net.inet.ip.forwarding=1 2>/dev/null')
     await execAsync('pfctl -f /etc/pf.conf 2>/dev/null')
     await execAsync('pfctl -e 2>/dev/null')
