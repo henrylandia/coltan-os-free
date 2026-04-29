@@ -45,9 +45,6 @@
     .alerts-box { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 10px; max-height: 400px; overflow-y: auto; }
     .alert-row { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 0.82rem; }
     .alert-row:last-child { border-bottom: none; }
-    .sev-1 { border-left: 3px solid #ef4444; }
-    .sev-2 { border-left: 3px solid #f59e0b; }
-    .sev-3 { border-left: 3px solid #64748b; }
     .module-section { display: none; }
     .module-section.active { display: block; }
   </style>
@@ -108,8 +105,6 @@
           <li class="nav-item"><a class="nav-link" href="#" onclick="showDnsTab('blacklist',this)"><i class="bi bi-x-circle me-2"></i>Blacklist</a></li>
           <li class="nav-item"><a class="nav-link" href="#" onclick="showDnsTab('test',this)"><i class="bi bi-search me-2"></i>Test</a></li>
         </ul>
-
-        <!-- DNS Config Tab -->
         <div id="dns-tab-config">
           <div class="settings-card">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -125,7 +120,7 @@
             </div>
             <div class="section-title">Listas de Bloqueo</div>
             <div class="list-toggle">
-              <div><div style="font-size:0.9rem;color:var(--text-primary)">🚫 Ads & Tracking</div><div style="font-size:0.78rem;color:var(--text-muted)">Steven Black hosts — ~180.000 dominios de publicidad y rastreo</div></div>
+              <div><div style="font-size:0.9rem;color:var(--text-primary)">🚫 Ads & Tracking</div><div style="font-size:0.78rem;color:var(--text-muted)">Steven Black hosts — ~180.000 dominios</div></div>
               <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="list-ads" checked></div>
             </div>
             <div class="list-toggle">
@@ -154,13 +149,11 @@
             </div>
           </div>
         </div>
-
-        <!-- DNS Whitelist Tab -->
         <div id="dns-tab-whitelist" style="display:none">
           <div class="settings-card">
             <div class="section-title mb-3"><i class="bi bi-check-circle me-2"></i>Whitelist — Dominios permitidos siempre</div>
             <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:10px 14px;font-size:0.82rem;color:var(--text-muted);margin-bottom:16px">
-              <i class="bi bi-info-circle me-2" style="color:#22c55e"></i>Los dominios en whitelist nunca serán bloqueados, aunque estén en las listas de bloqueo.
+              <i class="bi bi-info-circle me-2" style="color:#22c55e"></i>Los dominios en whitelist nunca serán bloqueados.
             </div>
             <div id="whitelist-container" style="margin-bottom:16px"></div>
             <div class="d-flex gap-2">
@@ -169,13 +162,11 @@
             </div>
           </div>
         </div>
-
-        <!-- DNS Blacklist Tab -->
         <div id="dns-tab-blacklist" style="display:none">
           <div class="settings-card">
             <div class="section-title mb-3"><i class="bi bi-x-circle me-2"></i>Blacklist — Dominios bloqueados siempre</div>
             <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:10px 14px;font-size:0.82rem;color:var(--text-muted);margin-bottom:16px">
-              <i class="bi bi-info-circle me-2" style="color:#f87171"></i>Los dominios en blacklist siempre serán bloqueados, independientemente de las listas.
+              <i class="bi bi-info-circle me-2" style="color:#f87171"></i>Los dominios en blacklist siempre serán bloqueados.
             </div>
             <div id="blacklist-container" style="margin-bottom:16px"></div>
             <div class="d-flex gap-2">
@@ -184,8 +175,6 @@
             </div>
           </div>
         </div>
-
-        <!-- DNS Test Tab -->
         <div id="dns-tab-test" style="display:none">
           <div class="settings-card">
             <div class="section-title"><i class="bi bi-search me-2"></i>Probar Dominio</div>
@@ -204,9 +193,10 @@
         <ul class="nav nav-tabs mb-4" id="ids-tabs">
           <li class="nav-item"><a class="nav-link active" href="#" onclick="showIdsTab('alerts',this)"><i class="bi bi-exclamation-triangle me-2"></i>Alertas</a></li>
           <li class="nav-item"><a class="nav-link" href="#" onclick="showIdsTab('config',this)"><i class="bi bi-gear me-2"></i>Configuración</a></li>
+          <li class="nav-item"><a class="nav-link" href="#" onclick="showIdsTab('autoblock',this)"><i class="bi bi-robot me-2"></i>Auto-Block</a></li>
         </ul>
 
-        <!-- IDS Alerts Tab -->
+        <!-- Alerts Tab -->
         <div id="ids-tab-alerts">
           <div class="settings-card mb-3" style="padding:14px 20px">
             <div style="display:flex;align-items:center;justify-content:space-between">
@@ -223,12 +213,22 @@
               </div>
             </div>
           </div>
+          <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;font-size:0.82rem;color:var(--text-muted)">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="checkbox" id="filter-nosuspicious" checked onchange="loadSuricataAlerts()">
+              Ocultar "Not Suspicious Traffic"
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="checkbox" id="filter-policy" checked onchange="loadSuricataAlerts()">
+              Ocultar Policy Violations
+            </label>
+          </div>
           <div class="alerts-box" id="alerts-container">
             <div style="padding:20px;color:var(--text-muted);text-align:center">Iniciá Suricata para comenzar el monitoreo</div>
           </div>
         </div>
 
-        <!-- IDS Config Tab -->
+        <!-- Config Tab -->
         <div id="ids-tab-config" style="display:none">
           <div class="settings-card">
             <div class="section-title"><i class="bi bi-gear me-2"></i>Reglas de Detección</div>
@@ -269,6 +269,61 @@
             </div>
           </div>
         </div>
+
+        <!-- Auto-Block Tab -->
+        <div id="ids-tab-autoblock" style="display:none">
+          <div class="settings-card">
+            <div class="section-title"><i class="bi bi-robot me-2"></i>Bloqueo Automático</div>
+            <div style="background:rgba(79,142,247,0.08);border:1px solid rgba(79,142,247,0.2);border-radius:8px;padding:12px 16px;font-size:0.82rem;color:var(--text-muted);margin-bottom:20px">
+              <i class="bi bi-info-circle me-2" style="color:var(--accent)"></i>
+              En modo <strong style="color:var(--text-primary)">IPS</strong>, bloquea automáticamente las IPs que disparen las categorías activadas. En modo <strong style="color:var(--text-primary)">IDS</strong> solo alerta sin bloquear.
+            </div>
+            <div class="d-flex align-items-center justify-content-between mb-4" style="background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;padding:12px 16px">
+              <div>
+                <div style="font-weight:600;color:var(--text-primary)">Auto-Block Activado</div>
+                <div style="font-size:0.78rem;color:var(--text-muted)">Bloquear automáticamente IPs detectadas</div>
+              </div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="autoblock-enabled"></div>
+            </div>
+            <div class="section-title">Categorías a bloquear automáticamente</div>
+            <div class="rule-toggle">
+              <div><div style="font-weight:600;color:var(--text-primary)">🔍 Escaneos de Red</div><div style="font-size:0.78rem;color:var(--text-muted)">Zmap, Nmap, port scanners</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="ab-scan" checked></div>
+            </div>
+            <div class="rule-toggle">
+              <div><div style="font-weight:600;color:var(--text-primary)">💣 DoS/DDoS</div><div style="font-size:0.78rem;color:var(--text-muted)">Ataques de denegación de servicio</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="ab-dos" checked></div>
+            </div>
+            <div class="rule-toggle">
+              <div><div style="font-weight:600;color:var(--text-primary)">☣️ Malware</div><div style="font-size:0.78rem;color:var(--text-muted)">Tráfico de malware conocido</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="ab-malware" checked></div>
+            </div>
+            <div class="rule-toggle">
+              <div><div style="font-weight:600;color:var(--text-primary)">🤖 Botnets</div><div style="font-size:0.78rem;color:var(--text-muted)">C&C servers y botnets</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="ab-botcc" checked></div>
+            </div>
+            <div class="rule-toggle">
+              <div><div style="font-weight:600;color:var(--text-primary)">💥 Exploits</div><div style="font-size:0.78rem;color:var(--text-muted)">Intentos de explotación</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="ab-exploit" checked></div>
+            </div>
+            <div class="rule-toggle">
+              <div><div style="font-weight:600;color:var(--text-primary)">🐴 Trojans</div><div style="font-size:0.78rem;color:var(--text-muted)">Troyanos y backdoors</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="ab-trojan" checked></div>
+            </div>
+            <div class="rule-toggle">
+              <div><div style="font-weight:600;color:var(--text-primary)">📋 Policy Violations</div><div style="font-size:0.78rem;color:var(--text-muted)">Violaciones de políticas</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="ab-policy"></div>
+            </div>
+            <div class="rule-toggle">
+              <div><div style="font-weight:600;color:var(--text-primary)">🌐 Web Attacks</div><div style="font-size:0.78rem;color:var(--text-muted)">SQLi, XSS, ataques web</div></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="ab-web"></div>
+            </div>
+            <div class="mt-4">
+              <button class="btn btn-accent" onclick="saveAutoBlock()"><i class="bi bi-floppy me-2"></i>Guardar Auto-Block</button>
+            </div>
+          </div>
+        </div>
+
       </div>
 
     </div>
@@ -326,7 +381,7 @@
       document.getElementById('module-ids').className = 'module-section' + (mod === 'ids' ? ' active' : '')
       document.getElementById('card-dns').className = 'module-card' + (mod === 'dns' ? ' active' : '')
       document.getElementById('card-ids').className = 'module-card' + (mod === 'ids' ? ' active' : '')
-      if (mod === 'ids') { loadSuricataAlerts(); loadSuricataConfig() }
+      if (mod === 'ids') { loadSuricataAlerts(); loadSuricataConfig(); loadAutoBlock() }
     }
 
     // ── DNS TABS ──────────────────────────────────────────────────────────────
@@ -341,11 +396,14 @@
 
     // ── IDS TABS ──────────────────────────────────────────────────────────────
     function showIdsTab(tab, el) {
-      ['alerts','config'].forEach(t => {
-        document.getElementById('ids-tab-' + t).style.display = t === tab ? 'block' : 'none'
+      ['alerts','config','autoblock'].forEach(t => {
+        const el2 = document.getElementById('ids-tab-' + t)
+        if (el2) el2.style.display = t === tab ? 'block' : 'none'
       })
       document.querySelectorAll('#ids-tabs .nav-link').forEach(e => e.classList.remove('active'))
       if (el) el.classList.add('active')
+      if (tab === 'autoblock') loadAutoBlock()
+      if (tab === 'config') loadSuricataConfig()
     }
 
     function showAlert(msg, isError) {
@@ -500,8 +558,6 @@
       const data = await res.json()
       const running = data.running === true
       const mode = data.mode || 'ids'
-
-      // Update top card badges (always visible)
       document.getElementById('ids-badge').textContent = running ? 'Running' : 'Stopped'
       document.getElementById('ids-badge').className = running ? 'badge-running' : 'badge-stopped'
       document.getElementById('ids-mode-badge').textContent = mode === 'ips' ? 'IPS' : 'IDS'
@@ -510,8 +566,6 @@
       document.getElementById('ids-detail').textContent = running
         ? (mode === 'ips' ? 'IPS — Bloqueando' : 'IDS — Monitoreando') + ' en ' + (data.interface || '—')
         : 'Suricata — Detenido'
-
-      // Update inner badges (only visible when IDS module is active)
       const inner = document.getElementById('ids-status-inner')
       if (inner) { inner.textContent = running ? 'Running' : 'Stopped'; inner.className = running ? 'badge-running' : 'badge-stopped' }
       const modeInner = document.getElementById('ids-mode-inner')
@@ -529,25 +583,30 @@
       const blockedData = await blockedRes.json()
       const blockedIPs = new Set((blockedData.ips || []).map(b => b.ip || b))
       const container = document.getElementById('alerts-container')
-      if (!data.alerts || data.alerts.length === 0) {
-        container.innerHTML = '<div style="padding:20px;color:var(--text-muted);text-align:center">No hay alertas</div>'
+      const filterNoSusp = document.getElementById('filter-nosuspicious')?.checked
+      const filterPolicy = document.getElementById('filter-policy')?.checked
+      let alerts = data.alerts || []
+      if (filterNoSusp) alerts = alerts.filter(a => a.category !== 'Not Suspicious Traffic')
+      if (filterPolicy) alerts = alerts.filter(a => !a.category?.includes('Policy'))
+      if (alerts.length === 0) {
+        container.innerHTML = '<div style="padding:20px;color:var(--text-muted);text-align:center">No hay alertas' + (data.alerts.length > 0 ? ' (filtradas ' + data.alerts.length + ')' : '') + '</div>'
         return
       }
-      container.innerHTML = data.alerts.map((a, i) => {
+      container.innerHTML = alerts.map((a, i) => {
         const sevColor = a.severity === 1 ? '#ef4444' : a.severity === 2 ? '#f59e0b' : '#64748b'
-        const actionBadge = a.action === 'blocked' 
+        const actionBadge = a.action === 'blocked'
           ? '<span style="background:rgba(239,68,68,0.2);color:#f87171;padding:1px 6px;border-radius:4px;font-size:0.72rem;margin-left:6px">BLOCKED</span>'
           : '<span style="background:rgba(100,116,139,0.2);color:#94a3b8;padding:1px 6px;border-radius:4px;font-size:0.72rem;margin-left:6px">ALLOWED</span>'
         const httpInfo = a.http ? `<div style="color:var(--text-muted);font-size:0.75rem;margin-top:4px;font-family:monospace">${a.http.method} ${a.http.url} · UA: ${a.http.userAgent || '—'}</div>` : ''
         const payloadInfo = a.payload ? `<div style="color:#64748b;font-size:0.72rem;margin-top:4px;font-family:monospace;white-space:pre-wrap;background:rgba(0,0,0,0.2);padding:4px 8px;border-radius:4px;display:none" id="payload-${i}">${a.payload}</div>` : ''
         const payloadBtn = a.payload ? `<span onclick="togglePayload(${i})" style="cursor:pointer;color:var(--accent);font-size:0.72rem;margin-left:8px">ver payload</span>` : ''
+        const blockBtn = blockedIPs.has(a.srcIP)
+          ? `<button onclick="unblockAlertIP('${a.srcIP}')" style="margin-left:12px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);color:#22c55e;padding:3px 10px;border-radius:6px;font-size:0.75rem;white-space:nowrap;cursor:pointer"><i class="bi bi-shield-check"></i> Unblock</button>`
+          : `<button onclick="blockAlertIP('${a.srcIP}')" style="margin-left:12px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;padding:3px 10px;border-radius:6px;font-size:0.75rem;white-space:nowrap;cursor:pointer"><i class="bi bi-shield-x"></i> Block IP</button>`
         return `<div class="alert-row" style="border-left:3px solid ${sevColor}">
           <div style="display:flex;justify-content:space-between;align-items:flex-start">
             <div style="flex:1">
-              <div>
-                <span style="color:#f59e0b;font-size:0.75rem">${a.timestamp ? new Date(a.timestamp).toLocaleString() : '—'}</span>
-                ${actionBadge}
-              </div>
+              <div><span style="color:#f59e0b;font-size:0.75rem">${a.timestamp ? new Date(a.timestamp).toLocaleString() : '—'}</span>${actionBadge}</div>
               <div style="margin-top:3px"><strong style="color:var(--text-primary)">${a.signature || 'Unknown'}</strong>${payloadBtn}</div>
               <div style="color:var(--text-muted);font-size:0.78rem;margin-top:2px">
                 <span style="color:#f87171">${a.srcIP || '—'}:${a.srcPort || ''}</span>
@@ -556,13 +615,9 @@
                 <span style="color:#64748b;margin-left:8px">${a.proto || ''}</span>
                 ${a.category ? `<span style="color:#94a3b8;margin-left:8px">· ${a.category}</span>` : ''}
               </div>
-              ${httpInfo}
-              ${payloadInfo}
+              ${httpInfo}${payloadInfo}
             </div>
-            ${blockedIPs.has(a.srcIP)
-              ? `<button onclick="unblockAlertIP('${a.srcIP}')" style="margin-left:12px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);color:#22c55e;padding:3px 10px;border-radius:6px;font-size:0.75rem;white-space:nowrap;cursor:pointer"><i class="bi bi-shield-check"></i> Unblock</button>`
-              : `<button onclick="blockAlertIP('${a.srcIP}')" style="margin-left:12px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;padding:3px 10px;border-radius:6px;font-size:0.75rem;white-space:nowrap;cursor:pointer"><i class="bi bi-shield-x"></i> Block IP</button>`
-            }
+            ${blockBtn}
           </div>
         </div>`
       }).join('')
@@ -581,6 +636,44 @@
         document.getElementById('rule-dos').checked = data.rules.dos === true
         document.getElementById('rule-web').checked = data.rules.web === true
       }
+    }
+
+    async function loadAutoBlock() {
+      const res = await fetch('/api/suricata/settings', { headers: h.headers })
+      const data = await res.json()
+      const ab = data.autoBlock || {}
+      document.getElementById('autoblock-enabled').checked = ab.enabled === true
+      const cats = ab.categories || {}
+      document.getElementById('ab-scan').checked = cats.scan !== false
+      document.getElementById('ab-dos').checked = cats.dos !== false
+      document.getElementById('ab-malware').checked = cats.malware !== false
+      document.getElementById('ab-botcc').checked = cats.botcc !== false
+      document.getElementById('ab-exploit').checked = cats.exploit !== false
+      document.getElementById('ab-trojan').checked = cats.trojan !== false
+      document.getElementById('ab-policy').checked = cats.policy === true
+      document.getElementById('ab-web').checked = cats.web === true
+    }
+
+    async function saveAutoBlock() {
+      const res = await fetch('/api/suricata/settings', { headers: h.headers })
+      const current = await res.json()
+      current.autoBlock = {
+        enabled: document.getElementById('autoblock-enabled').checked,
+        categories: {
+          scan: document.getElementById('ab-scan').checked,
+          dos: document.getElementById('ab-dos').checked,
+          malware: document.getElementById('ab-malware').checked,
+          botcc: document.getElementById('ab-botcc').checked,
+          exploit: document.getElementById('ab-exploit').checked,
+          trojan: document.getElementById('ab-trojan').checked,
+          policy: document.getElementById('ab-policy').checked,
+          web: document.getElementById('ab-web').checked
+        }
+      }
+      const saveRes = await fetch('/api/suricata/settings', { method: 'POST', ...h, body: JSON.stringify(current) })
+      const data = await saveRes.json()
+      if (data.success) showAlert('Auto-Block guardado')
+      else showAlert(data.error || 'Error', true)
     }
 
     async function saveSuricataConfig() {
@@ -608,7 +701,6 @@
       document.getElementById('start-interface').innerHTML = (data.interfaces || []).map(i =>
         `<option value="${i.name}" ${i.role === 'WAN' ? 'selected' : ''}>${i.name} (${i.role})</option>`
       ).join('')
-      // Pre-select current mode if set
       const settingsRes = await fetch('/api/suricata/settings', { headers: h.headers })
       const settings = await settingsRes.json()
       if (settings.mode) document.getElementById('start-mode').value = settings.mode
@@ -650,6 +742,16 @@
       else showAlert(data.error || 'Error', true)
     }
 
+    async function blockAlertIP(ip) {
+      if (!confirm('Bloquear IP ' + ip + ' en el firewall?')) return
+      const res = await fetch('/api/firewall/blocked-ips', {
+        method: 'POST', ...h, body: JSON.stringify({ ip, description: 'Bloqueado desde alerta Suricata' })
+      })
+      const data = await res.json()
+      if (data.success) { showAlert('IP ' + ip + ' bloqueada ✅'); loadSuricataAlerts() }
+      else showAlert(data.error || 'Error al bloquear', true)
+    }
+
     async function unblockAlertIP(ip) {
       if (!confirm('Desbloquear IP ' + ip + '?')) return
       const res = await fetch('/api/firewall/blocked-ips/' + encodeURIComponent(ip), {
@@ -658,26 +760,6 @@
       const data = await res.json()
       if (data.success) { showAlert('IP ' + ip + ' desbloqueada ✅'); loadSuricataAlerts() }
       else showAlert(data.error || 'Error al desbloquear', true)
-    }
-
-    async function blockAlertIP(ip) {
-      if (!confirm('Bloquear IP ' + ip + ' en el firewall?')) return
-      const res = await fetch('/api/firewall/blocked-ips', {
-        method: 'POST', ...h, body: JSON.stringify({ ip, description: 'Bloqueado desde alerta Suricata' })
-      })
-      const data = await res.json()
-      if (data.success) { showAlert('IP ' + ip + ' bloqueada en el firewall ✅'); loadSuricataAlerts() }
-      else showAlert(data.error || 'Error al bloquear', true)
-    }
-
-    async function blockAlertIP(ip) {
-      if (!confirm('Bloquear IP ' + ip + ' en el firewall?')) return
-      const res = await fetch('/api/firewall/blocked-ips', {
-        method: 'POST', ...h, body: JSON.stringify({ ip, description: 'Bloqueado desde alerta Suricata' })
-      })
-      const data = await res.json()
-      if (data.success) showAlert('IP ' + ip + ' bloqueada en el firewall ✅')
-      else showAlert(data.error || 'Error al bloquear', true)
     }
 
     function togglePayload(i) {

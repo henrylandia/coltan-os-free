@@ -33,6 +33,19 @@ async function getSettings() {
         policy: false,
         dos: false,
         web: false
+      },
+      autoBlock: {
+        enabled: false,
+        categories: {
+          scan: true,
+          dos: true,
+          malware: true,
+          botcc: true,
+          exploit: true,
+          trojan: true,
+          policy: false,
+          web: false
+        }
       }
     }
   }
@@ -62,12 +75,19 @@ async function generateConfig(settings) {
   if (settings.rules.policy) ruleFiles.push(`  - ${SURICATA_RULES}/emerging-policy.rules`)
   if (settings.rules.dos) ruleFiles.push(`  - ${SURICATA_RULES}/emerging-dos.rules`)
   if (settings.rules.web) ruleFiles.push(`  - ${SURICATA_RULES}/emerging-web_server.rules`)
+  if (settings.rules.web) ruleFiles.push(`  - ${SURICATA_RULES}/emerging-sql.rules`)
+  ruleFiles.push(`  - ${SURICATA_RULES}/emerging-user_agents.rules`)
 
   const yaml = `%YAML 1.1
 ---
 vars:
   address-groups:
     HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
+    HTTP_SERVERS: "$HOME_NET"
+    SMTP_SERVERS: "$HOME_NET"
+    SQL_SERVERS: "$HOME_NET"
+    DNS_SERVERS: "$HOME_NET"
+    TELNET_SERVERS: "$HOME_NET"
     EXTERNAL_NET: "!$HOME_NET"
   port-groups:
     HTTP_PORTS: "80"
@@ -128,6 +148,12 @@ app-layer:
         enabled: yes
         detection-ports:
           dp: 53
+
+suppress:
+  - gen_id: 1
+    track: by_src
+    ip: 192.168.0.0/16
+    signature: "ET POLICY"
 `
   await fs.writeFile(SURICATA_CONF, yaml)
 }
