@@ -270,7 +270,7 @@ scrub in all
   }
 
   conf += `\n# Sites blocking anchor\nanchor "coltan/sites"\n`
-  conf += `\n# Default block\nblock in all\npass out all keep state\n`
+  conf += `\n# Default: pass out, block only what's explicitly blocked\npass out all keep state\n`
   conf += `\n# WireGuard interface - allow all traffic\npass quick on wg0 all keep state\n`
 
   // ── 3. Blocked IPs (filtering - after NAT) ────────────────────────────────

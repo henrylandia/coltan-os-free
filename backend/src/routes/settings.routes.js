@@ -58,6 +58,16 @@ async function settingsRoutes(fastify, options) {
     return await setInterfaceConfig(iface, ip, netmask, gateway, isDefault)
   })
 
+  fastify.post('/api/settings/reboot', { onRequest: [fastify.authenticate] }, async (req, reply) => {
+    setTimeout(() => require('child_process').exec('reboot'), 1000)
+    return { success: true }
+  })
+
+  fastify.post('/api/settings/shutdown', { onRequest: [fastify.authenticate] }, async (req, reply) => {
+    setTimeout(() => require('child_process').exec('shutdown -p now'), 1000)
+    return { success: true }
+  })
+
   fastify.post('/api/settings/update', { onRequest: [fastify.authenticate] }, async (request, reply) => {
     return await updatePackages()
   })

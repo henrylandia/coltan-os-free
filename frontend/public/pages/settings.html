@@ -32,9 +32,6 @@
     .log-container { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.8rem; max-height: 200px; overflow-y: auto; margin-top: 12px; color: var(--text-primary); display: none; }
     .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .iface-details { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-top: 16px; display: none; }
-    .badge-active { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; }
-    .badge-inactive { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; }
   </style>
 </head>
 <body>
@@ -91,6 +88,19 @@
             </button>
           </div>
           <div class="log-container" id="update-log"></div>
+        </div>
+
+        <div class="settings-card">
+          <h6><i class="bi bi-power me-2"></i>Power</h6>
+          <p style="color:var(--text-muted);font-size:0.85rem">Reiniciar o apagar el servidor Coltan OS.</p>
+          <div class="d-flex gap-2">
+            <button class="btn btn-warning-soft" onclick="rebootSystem()">
+              <i class="bi bi-arrow-clockwise me-2"></i>Reiniciar
+            </button>
+            <button class="btn btn-danger-soft" onclick="shutdownSystem()">
+              <i class="bi bi-power me-2"></i>Apagar
+            </button>
+          </div>
         </div>
       </div>
 
@@ -196,9 +206,6 @@
     startClock()
 
     const h = { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
-    let allInterfaces = []
-    let currentGateway = ''
-    let currentDNS = []
 
     function showTab(tab, el) {
       ['system','security','notifications','about'].forEach(t => {
@@ -235,6 +242,40 @@
         <div class="sysinfo-row"><span class="sysinfo-label">Timezone</span><span class="sysinfo-value">${data.timezone}</span></div>
         <div class="sysinfo-row"><span class="sysinfo-label">System Uptime</span><span class="sysinfo-value">${data.uptime}</span></div>
       `
+    }
+
+    async function rebootSystem() {
+      if (!confirm('¿Reiniciar el servidor? El panel no estará disponible por ~1 minuto.')) return
+      await fetch('/api/settings/reboot', { method: 'POST', ...h, body: '{}' })
+      document.body.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#0f1117;color:#e2e8f0;font-family:sans-serif">
+          <div style="font-size:3rem;margin-bottom:24px">🔄</div>
+          <div style="font-size:1.5rem;font-weight:700;margin-bottom:12px">Reiniciando servidor...</div>
+          <div style="color:#64748b;margin-bottom:32px">El panel volverá en aproximadamente 1 minuto.</div>
+          <div style="width:40px;height:40px;border:3px solid #1e293b;border-top:3px solid #4f8ef7;border-radius:50%;animation:spin 1s linear infinite"></div>
+          <div style="margin-top:32px;color:#64748b;font-size:0.85rem" id="countdown">Reintentando en 15 segundos...</div>
+          <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+        </div>`
+      let attempts = 0
+      setTimeout(function checkOnline() {
+        attempts++
+        const el = document.getElementById('countdown')
+        if (el) el.textContent = 'Intento ' + attempts + ' de reconexión...'
+        fetch('/api/settings/sysinfo', { headers: { 'Authorization': 'Bearer ' + token } })
+          .then(r => { if (r.ok) window.location.href = '/login.html' })
+          .catch(() => setTimeout(checkOnline, 3000))
+      }, 15000)
+    }
+
+    async function shutdownSystem() {
+      if (!confirm('¿Apagar el servidor? Necesitará acceso físico para encenderlo nuevamente.')) return
+      await fetch('/api/settings/shutdown', { method: 'POST', ...h, body: '{}' })
+      document.body.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#0f1117;color:#e2e8f0;font-family:sans-serif">
+          <div style="font-size:3rem;margin-bottom:24px">⏻</div>
+          <div style="font-size:1.5rem;font-weight:700;margin-bottom:12px">Apagando servidor...</div>
+          <div style="color:#64748b">El servidor se está apagando. Necesitará acceso físico para encenderlo.</div>
+        </div>`
     }
 
     async function saveSystemSettings() {
