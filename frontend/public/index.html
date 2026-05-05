@@ -9,101 +9,333 @@
   <link href="/css/main.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    .metric-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
-    .metric-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-    .metric-value { font-size: 1.8rem; font-weight: 700; color: var(--text-primary); }
-    .metric-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
-    .chart-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
-    .chart-title { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
-    .service-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
-    .service-row:last-child { border-bottom: none; }
-    .service-name { font-size: 0.85rem; color: var(--text-primary); }
-    .dot-green { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; }
-    .dot-red { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; display: inline-block; }
-    .traffic-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
-    .iface-name { font-weight: 700; color: var(--accent); font-size: 0.9rem; }
-    .iface-stat { font-size: 0.78rem; color: var(--text-muted); }
-    .iface-stat span { color: var(--text-primary); font-family: monospace; }
-    .progress-bar-custom { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin-top: 8px; }
-    .progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
-    .vpn-badge { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
-    .vpn-badge-off { background: rgba(100,116,139,0.15); color: #64748b; border: 1px solid rgba(100,116,139,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
+    .stat-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px 20px; cursor: pointer; transition: border-color 0.2s, transform 0.1s;
+    }
+    .stat-card:hover { border-color: rgba(79,142,247,0.5); transform: translateY(-1px); }
+    .stat-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+    .stat-value { font-size: 1.6rem; font-weight: 700; color: var(--text-primary); line-height: 1; }
+    .stat-sub { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; }
+    .progress-bar-custom { height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; margin-top: 10px; }
+    .progress-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+
+    .panel {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px 20px; position: relative; transition: border-color 0.15s, opacity 0.15s;
+    }
+    .panel.dragging { opacity: 0.4; border: 2px dashed var(--accent); }
+    .panel.drag-over { border: 2px solid var(--accent); background: rgba(79,142,247,0.05); }
+
+    .panel-header {
+      font-size: 0.72rem; font-weight: 700; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 6px;
+      cursor: grab; user-select: none;
+    }
+    .panel-header:active { cursor: grabbing; }
+    .panel-header.clickable { cursor: pointer; }
+    .panel-header.clickable:hover { color: var(--accent); }
+    .drag-icon { opacity: 0.3; margin-left: auto; font-size: 0.8rem; }
+    .panel-header:hover .drag-icon { opacity: 0.7; }
+
+    .iface-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 10px; border-radius: 8px; margin-bottom: 6px;
+      background: var(--bg-dark); cursor: pointer; transition: background 0.15s;
+    }
+    .iface-row:hover { background: rgba(79,142,247,0.08); }
+    .iface-name { font-weight: 700; color: var(--accent); font-size: 0.85rem; }
+    .iface-role { font-size: 0.7rem; color: var(--text-muted); margin-left: 6px; }
+    .iface-speeds { display: flex; gap: 12px; font-size: 0.78rem; font-family: monospace; }
+    .speed-rx { color: #22c55e; }
+    .speed-tx { color: #f59e0b; }
+
+    .service-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 7px 10px; border-radius: 8px; margin-bottom: 4px;
+      background: var(--bg-dark); transition: background 0.15s;
+    }
+    .service-item.clickable { cursor: pointer; }
+    .service-item.clickable:hover { background: rgba(79,142,247,0.08); }
+    .service-name { font-size: 0.82rem; color: var(--text-primary); }
+    .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+    .dot-green { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.5); }
+    .dot-red { background: #ef4444; }
+
+    .vpn-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 10px; border-radius: 8px; margin-bottom: 6px;
+      background: var(--bg-dark); cursor: pointer; transition: background 0.15s;
+    }
+    .vpn-item:hover { background: rgba(79,142,247,0.08); }
+    .badge-on { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.72rem; }
+    .badge-off { background: rgba(100,116,139,0.15); color: #64748b; border: 1px solid rgba(100,116,139,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.72rem; }
+
+    .sec-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 10px; border-radius: 8px; margin-bottom: 6px;
+      background: var(--bg-dark); cursor: pointer; transition: background 0.15s;
+    }
+    .sec-item:hover { background: rgba(239,68,68,0.08); }
+    .sec-count { font-size: 1.2rem; font-weight: 700; color: #f87171; font-family: monospace; }
+    .sec-label { font-size: 0.78rem; color: var(--text-muted); }
+
+    .user-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 10px; border-radius: 8px; margin-bottom: 4px;
+      background: var(--bg-dark); font-size: 0.8rem;
+    }
+    .user-name { color: var(--accent); font-weight: 600; }
+    .user-ip { color: var(--text-muted); font-family: monospace; font-size: 0.75rem; }
+
+    .info-pill {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--bg-dark); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 16px; font-size: 0.82rem;
+    }
+    .info-pill-label { color: var(--text-muted); font-size: 0.72rem; }
+    .info-pill-value { color: var(--text-primary); font-weight: 600; font-family: monospace; }
+
+    .btn-speedtest {
+      background: rgba(79,142,247,0.15); border: 1px solid rgba(79,142,247,0.3);
+      color: var(--accent); padding: 10px 20px; border-radius: 10px;
+      font-size: 0.82rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+    }
+    .btn-speedtest:hover { background: rgba(79,142,247,0.25); }
+
+    .float-modal {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6); z-index: 9999; align-items: center; justify-content: center;
+    }
+    .float-modal.open { display: flex; }
+    .float-modal-inner {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 24px; min-width: 480px; max-width: 90vw; max-height: 80vh; overflow-y: auto;
+    }
+    .float-modal-title {
+      font-size: 1rem; font-weight: 700; color: var(--text-primary);
+      margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .float-modal-close { cursor: pointer; color: var(--text-muted); font-size: 1.2rem; }
+    .float-modal-close:hover { color: var(--text-primary); }
+
+    .geo-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.82rem;
+    }
+    .geo-row:last-child { border-bottom: none; }
+    .geo-count { color: #f87171; font-weight: 700; font-family: monospace; }
+
+    .btn-save-layout {
+      background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3);
+      color: #22c55e; padding: 6px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+    }
+    .btn-reset-layout {
+      background: rgba(100,116,139,0.15); border: 1px solid rgba(100,116,139,0.3);
+      color: #64748b; padding: 6px 14px; border-radius: 8px; font-size: 0.78rem; cursor: pointer;
+    }
+
+    #panels-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    #panel-speedtest { grid-column: 1 / -1; }
   </style>
 </head>
 <body>
   <div class="main-content">
     <div class="p-4">
 
-      <!-- Metrics Row -->
+      <!-- Layout controls -->
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px">
+        <button class="btn-reset-layout" onclick="resetLayout()"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</button>
+        <button class="btn-save-layout" onclick="saveLayout()"><i class="bi bi-floppy me-1"></i>Guardar Layout</button>
+      </div>
+
+      <!-- Stats row -->
       <div class="row g-3 mb-4">
-        <div class="col-md-3">
-          <div class="metric-card">
-            <div class="metric-label"><i class="bi bi-cpu me-1"></i>CPU</div>
-            <div class="metric-value" id="cpu-val">--%</div>
-            <div class="progress-bar-custom"><div class="progress-fill bg-accent" id="cpu-bar" style="width:0%;background:var(--accent)"></div></div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card" onclick="openModal('cpu-modal')">
+            <div class="stat-label"><i class="bi bi-cpu me-1"></i>CPU</div>
+            <div class="stat-value" id="cpu-val">--%</div>
+            <div class="stat-sub" id="cpu-sub">Click para ver gráfico</div>
+            <div class="progress-bar-custom"><div class="progress-fill" id="cpu-bar" style="width:0%;background:var(--accent)"></div></div>
           </div>
         </div>
-        <div class="col-md-3">
-          <div class="metric-card">
-            <div class="metric-label"><i class="bi bi-memory me-1"></i>Memory</div>
-            <div class="metric-value" id="mem-val">--</div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card" onclick="openModal('mem-modal')">
+            <div class="stat-label"><i class="bi bi-memory me-1"></i>Memory</div>
+            <div class="stat-value" id="mem-val">--</div>
+            <div class="stat-sub" id="mem-sub">Click para ver gráfico</div>
             <div class="progress-bar-custom"><div class="progress-fill" id="mem-bar" style="width:0%;background:#a855f7"></div></div>
           </div>
         </div>
-        <div class="col-md-3">
-          <div class="metric-card">
-            <div class="metric-label"><i class="bi bi-hdd me-1"></i>Disk</div>
-            <div class="metric-value" id="disk-val">--</div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-hdd me-1"></i>Disk</div>
+            <div class="stat-value" id="disk-val">--</div>
+            <div class="stat-sub" id="disk-sub">—</div>
             <div class="progress-bar-custom"><div class="progress-fill" id="disk-bar" style="width:0%;background:#f59e0b"></div></div>
           </div>
         </div>
-        <div class="col-md-3">
-          <div class="metric-card">
-            <div class="metric-label"><i class="bi bi-clock me-1"></i>Uptime</div>
-            <div class="metric-value" style="font-size:1.4rem" id="uptime-val">--</div>
-            <div class="metric-sub" id="hostname-val">coltanos</div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-clock me-1"></i>Uptime</div>
+            <div class="stat-value" style="font-size:1.2rem" id="uptime-val">--</div>
+            <div class="stat-sub" id="hostname-val">coltanos</div>
           </div>
         </div>
       </div>
 
-      <!-- Charts Row -->
-      <div class="row g-3 mb-4">
-        <div class="col-md-6">
-          <div class="chart-card">
-            <div class="chart-title"><i class="bi bi-cpu me-2"></i>CPU Usage — Last 60s</div>
-            <canvas id="cpuChart" height="120"></canvas>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="chart-card">
-            <div class="chart-title"><i class="bi bi-memory me-2"></i>Memory Usage — Last 60s</div>
-            <canvas id="memChart" height="120"></canvas>
-          </div>
-        </div>
-      </div>
+      <!-- Draggable panels -->
+      <div id="panels-grid">
 
-      <!-- Network + Services Row -->
-      <div class="row g-3 mb-4">
-        <div class="col-md-5">
-          <div class="traffic-card">
-            <div class="chart-title"><i class="bi bi-ethernet me-2"></i>Network Interfaces</div>
-            <div id="ifaces-container"><div class="text-muted">Loading...</div></div>
+        <div class="panel" id="panel-interfaces" draggable="true" ondragstart="dragStart(event,'panel-interfaces')" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <div class="panel-header">
+            <i class="bi bi-ethernet"></i>Interfaces Activas
+            <i class="bi bi-grip-vertical drag-icon"></i>
           </div>
+          <div id="ifaces-container"><div style="color:var(--text-muted);font-size:0.82rem">Cargando...</div></div>
         </div>
-        <div class="col-md-4">
-          <div class="traffic-card">
-            <div class="chart-title"><i class="bi bi-activity me-2"></i>Services</div>
-            <div id="services-container"><div class="text-muted">Loading...</div></div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="traffic-card">
-            <div class="chart-title"><i class="bi bi-lock me-2"></i>VPN Status</div>
-            <div id="vpn-container"><div class="text-muted">Loading...</div></div>
-          </div>
-        </div>
-      </div>
 
+        <div class="panel" id="panel-services" draggable="true" ondragstart="dragStart(event,'panel-services')" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <div class="panel-header">
+            <i class="bi bi-activity"></i>Servicios
+            <i class="bi bi-grip-vertical drag-icon"></i>
+          </div>
+          <div id="services-container"><div style="color:var(--text-muted);font-size:0.82rem">Cargando...</div></div>
+        </div>
+
+        <div class="panel" id="panel-vpn" draggable="true" ondragstart="dragStart(event,'panel-vpn')" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <div class="panel-header">
+            <i class="bi bi-shield-lock"></i>VPN
+            <i class="bi bi-grip-vertical drag-icon"></i>
+          </div>
+          <div id="vpn-container"><div style="color:var(--text-muted);font-size:0.82rem">Cargando...</div></div>
+        </div>
+
+        <div class="panel" id="panel-suricata" draggable="true" ondragstart="dragStart(event,'panel-suricata')" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <div class="panel-header clickable" onclick="openModal('suricata-modal');loadSuricataModal()">
+            <i class="bi bi-shield-exclamation"></i>Suricata IDS/IPS <i class="bi bi-box-arrow-up-right" style="font-size:0.65rem"></i>
+            <i class="bi bi-grip-vertical drag-icon"></i>
+          </div>
+          <div id="suricata-summary"></div>
+        </div>
+
+        <div class="panel" id="panel-dns" draggable="true" ondragstart="dragStart(event,'panel-dns')" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <div class="panel-header clickable" onclick="openModal('dns-modal');loadDNSModal()">
+            <i class="bi bi-ban"></i>DNS Blocker <i class="bi bi-box-arrow-up-right" style="font-size:0.65rem"></i>
+            <i class="bi bi-grip-vertical drag-icon"></i>
+          </div>
+          <div id="dns-summary"></div>
+        </div>
+
+        <div class="panel" id="panel-sites" draggable="true" ondragstart="dragStart(event,'panel-sites')" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <div class="panel-header">
+            <i class="bi bi-slash-circle"></i>Site Blocking
+            <i class="bi bi-grip-vertical drag-icon"></i>
+          </div>
+          <div id="sites-summary"></div>
+        </div>
+
+        <div class="panel" id="panel-users" draggable="true" ondragstart="dragStart(event,'panel-users')" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <div class="panel-header">
+            <i class="bi bi-people"></i>Usuarios Logueados
+            <i class="bi bi-grip-vertical drag-icon"></i>
+          </div>
+          <div id="users-container"><div style="color:var(--text-muted);font-size:0.82rem">—</div></div>
+        </div>
+
+        <div class="panel" id="panel-speedtest" draggable="true" ondragstart="dragStart(event,'panel-speedtest')" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <div class="panel-header">
+            <i class="bi bi-speedometer2"></i>Red & Velocidad
+            <i class="bi bi-grip-vertical drag-icon"></i>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <div class="info-pill flex-grow-1">
+              <div>
+                <div class="info-pill-label">IP Pública</div>
+                <div class="info-pill-value" id="public-ip">—</div>
+              </div>
+            </div>
+            <button class="btn-speedtest" onclick="runSpeedtest()"><i class="bi bi-speedometer2 me-1"></i>Test de Velocidad</button>
+            <div id="speedtest-result" style="display:none">
+              <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:2px">Resultado</div>
+              <div id="speedtest-data" style="font-size:0.85rem"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- CPU Modal -->
+  <div class="float-modal" id="cpu-modal" onclick="closeModalOutside(event,'cpu-modal')">
+    <div class="float-modal-inner">
+      <div class="float-modal-title">
+        <span><i class="bi bi-cpu me-2"></i>CPU Usage — Últimos 60s</span>
+        <span class="float-modal-close" onclick="closeModal('cpu-modal')">✕</span>
+      </div>
+      <canvas id="cpuChart" height="140"></canvas>
+    </div>
+  </div>
+
+  <!-- Memory Modal -->
+  <div class="float-modal" id="mem-modal" onclick="closeModalOutside(event,'mem-modal')">
+    <div class="float-modal-inner">
+      <div class="float-modal-title">
+        <span><i class="bi bi-memory me-2"></i>Memory Usage — Últimos 60s</span>
+        <span class="float-modal-close" onclick="closeModal('mem-modal')">✕</span>
+      </div>
+      <canvas id="memChart" height="140"></canvas>
+    </div>
+  </div>
+
+  <!-- Interface Modal -->
+  <div class="float-modal" id="iface-modal" onclick="closeModalOutside(event,'iface-modal')">
+    <div class="float-modal-inner">
+      <div class="float-modal-title">
+        <span id="iface-modal-title"><i class="bi bi-ethernet me-2"></i>Interface</span>
+        <span class="float-modal-close" onclick="closeModal('iface-modal')">✕</span>
+      </div>
+      <canvas id="ifaceChart" height="140"></canvas>
+      <div id="iface-modal-details" style="margin-top:16px;font-size:0.82rem"></div>
+    </div>
+  </div>
+
+  <!-- VPN Modal -->
+  <div class="float-modal" id="vpn-modal" onclick="closeModalOutside(event,'vpn-modal')">
+    <div class="float-modal-inner">
+      <div class="float-modal-title">
+        <span id="vpn-modal-title"><i class="bi bi-shield-lock me-2"></i>VPN Details</span>
+        <span class="float-modal-close" onclick="closeModal('vpn-modal')">✕</span>
+      </div>
+      <div id="vpn-modal-content"></div>
+    </div>
+  </div>
+
+  <!-- Suricata Modal -->
+  <div class="float-modal" id="suricata-modal" onclick="closeModalOutside(event,'suricata-modal')">
+    <div class="float-modal-inner" style="min-width:540px">
+      <div class="float-modal-title">
+        <span><i class="bi bi-shield-exclamation me-2"></i>Suricata — Detalle de Ataques</span>
+        <span class="float-modal-close" onclick="closeModal('suricata-modal')">✕</span>
+      </div>
+      <div id="suricata-modal-content"></div>
+    </div>
+  </div>
+
+  <!-- DNS Modal -->
+  <div class="float-modal" id="dns-modal" onclick="closeModalOutside(event,'dns-modal')">
+    <div class="float-modal-inner">
+      <div class="float-modal-title">
+        <span><i class="bi bi-ban me-2"></i>DNS Blocker — Detalles</span>
+        <span class="float-modal-close" onclick="closeModal('dns-modal')">✕</span>
+      </div>
+      <div id="dns-modal-content"></div>
     </div>
   </div>
 
@@ -118,21 +350,16 @@
 
     const h = { headers: { 'Authorization': 'Bearer ' + token } }
 
-    // Chart setup
-    const chartOpts = (color) => ({
-      responsive: true,
-      animation: false,
+    // ── Charts ───────────────────────────────────────────────────────────────
+    const baseChartOpts = {
+      responsive: true, animation: false,
       plugins: { legend: { display: false } },
       scales: {
         x: { display: false },
-        y: {
-          min: 0, max: 100,
-          grid: { color: 'rgba(255,255,255,0.05)' },
-          ticks: { color: '#64748b', font: { size: 10 }, callback: v => v + '%' }
-        }
+        y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 10 }, callback: v => v + '%' } }
       },
       elements: { point: { radius: 0 }, line: { tension: 0.4, borderWidth: 2 } }
-    })
+    }
 
     const labels = Array(60).fill('')
     const cpuData = Array(60).fill(0)
@@ -140,29 +367,181 @@
 
     const cpuChart = new Chart(document.getElementById('cpuChart'), {
       type: 'line',
-      data: {
-        labels,
-        datasets: [{ data: cpuData, borderColor: 'var(--accent)', backgroundColor: 'rgba(79,142,247,0.1)', fill: true }]
-      },
-      options: chartOpts('var(--accent)')
+      data: { labels, datasets: [{ data: cpuData, borderColor: '#4f8ef7', backgroundColor: 'rgba(79,142,247,0.1)', fill: true }] },
+      options: baseChartOpts
     })
-
     const memChart = new Chart(document.getElementById('memChart'), {
       type: 'line',
-      data: {
-        labels,
-        datasets: [{ data: memData, borderColor: '#a855f7', backgroundColor: 'rgba(168,85,247,0.1)', fill: true }]
-      },
-      options: chartOpts('#a855f7')
+      data: { labels, datasets: [{ data: memData, borderColor: '#a855f7', backgroundColor: 'rgba(168,85,247,0.1)', fill: true }] },
+      options: baseChartOpts
     })
 
-    function formatBytes(bytes) {
-      if (bytes > 1073741824) return (bytes / 1073741824).toFixed(1) + ' GB'
-      if (bytes > 1048576) return (bytes / 1048576).toFixed(1) + ' MB'
-      if (bytes > 1024) return (bytes / 1024).toFixed(1) + ' KB'
-      return bytes + ' B'
+    let ifaceChart = null
+
+    // ── Modals ───────────────────────────────────────────────────────────────
+    function openModal(id) { document.getElementById(id).classList.add('open') }
+    function closeModal(id) { document.getElementById(id).classList.remove('open') }
+    function closeModalOutside(e, id) { if (e.target === document.getElementById(id)) closeModal(id) }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    function formatBytes(b) {
+      if (b > 1073741824) return (b/1073741824).toFixed(1)+' GB'
+      if (b > 1048576) return (b/1048576).toFixed(1)+' MB'
+      if (b > 1024) return (b/1024).toFixed(1)+' KB'
+      return (b||0)+' B'
     }
 
+    // ── Service routes ───────────────────────────────────────────────────────
+    const SERVICE_ROUTES = {
+      'PF Firewall': '/pages/firewall.html',
+      'Suricata': '/pages/security.html',
+      'Unbound DNS': '/pages/security.html',
+      'Kea DHCP': '/pages/networking.html',
+      'Samba': '/pages/fileserver.html',
+      'WireGuard': '/pages/wireguard.html',
+      'OpenVPN': '/pages/openvpn.html'
+    }
+
+    // ── Public IP ────────────────────────────────────────────────────────────
+    async function loadPublicIP() {
+      try {
+        const res = await fetch('https://api.ipify.org?format=json')
+        const data = await res.json()
+        document.getElementById('public-ip').textContent = data.ip
+      } catch(e) { document.getElementById('public-ip').textContent = '—' }
+    }
+
+    // ── Speedtest ────────────────────────────────────────────────────────────
+    async function runSpeedtest() {
+      const el = document.getElementById('speedtest-result')
+      const dataEl = document.getElementById('speedtest-data')
+      el.style.display = 'block'
+      dataEl.innerHTML = '<span style="color:var(--text-muted)">Midiendo...</span>'
+      try {
+        const t = Date.now()
+        const res = await fetch('https://speed.cloudflare.com/__down?bytes=10000000', { cache: 'no-cache' })
+        const blob = await res.blob()
+        const mbps = ((blob.size * 8) / ((Date.now() - t) / 1000) / 1000000).toFixed(1)
+        dataEl.innerHTML = `<span style="color:#22c55e;font-size:1.1rem;font-weight:700">↓ ${mbps} Mbps</span>`
+      } catch(e) { dataEl.innerHTML = '<span style="color:#f87171">Error</span>' }
+    }
+
+    // ── Interface modal ──────────────────────────────────────────────────────
+    function openIfaceModal(name, ip, status, rxRate, txRate) {
+      document.getElementById('iface-modal-title').innerHTML = `<i class="bi bi-ethernet me-2"></i>${name}`
+      document.getElementById('iface-modal-details').innerHTML = `
+        <div style="display:flex;gap:20px;flex-wrap:wrap">
+          <div><div style="color:var(--text-muted);font-size:0.72rem">IP</div><div style="font-family:monospace;color:var(--text-primary)">${ip||'—'}</div></div>
+          <div><div style="color:var(--text-muted);font-size:0.72rem">Estado</div><div style="color:${status==='active'?'#22c55e':'#ef4444'}">${status}</div></div>
+          <div><div style="color:var(--text-muted);font-size:0.72rem">↓ RX</div><div style="color:#22c55e;font-family:monospace">${formatBytes(rxRate)}/s</div></div>
+          <div><div style="color:var(--text-muted);font-size:0.72rem">↑ TX</div><div style="color:#f59e0b;font-family:monospace">${formatBytes(txRate)}/s</div></div>
+        </div>`
+      if (ifaceChart) ifaceChart.destroy()
+      ifaceChart = new Chart(document.getElementById('ifaceChart'), {
+        type: 'line',
+        data: {
+          labels: Array(30).fill(''),
+          datasets: [
+            { label: '↓ RX', data: Array(29).fill(0).concat(rxRate), borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.1)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0 },
+            { label: '↑ TX', data: Array(29).fill(0).concat(txRate), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0 }
+          ]
+        },
+        options: {
+          responsive: true, animation: false,
+          plugins: { legend: { display: true, labels: { color: '#64748b', font: { size: 11 } } } },
+          scales: {
+            x: { display: false },
+            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 10 }, callback: v => formatBytes(v)+'/s' } }
+          }
+        }
+      })
+      openModal('iface-modal')
+    }
+
+    // ── VPN modal ────────────────────────────────────────────────────────────
+    function openVPNModal(vpnStr, type) {
+      let vpn
+      try { vpn = JSON.parse(vpnStr) } catch(e) { return }
+      const v = type === 'wg' ? vpn.wireguard : vpn.openvpn
+      document.getElementById('vpn-modal-title').innerHTML = `<i class="bi bi-shield-lock me-2"></i>${type==='wg'?'WireGuard':'OpenVPN'} — Detalles`
+      document.getElementById('vpn-modal-content').innerHTML = v?.running ? `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="background:var(--bg-dark);border-radius:8px;padding:12px">
+            <div style="color:var(--text-muted);font-size:0.72rem;margin-bottom:4px">Estado</div>
+            <div style="color:#22c55e;font-weight:600">Running</div>
+          </div>
+          <div style="background:var(--bg-dark);border-radius:8px;padding:12px">
+            <div style="color:var(--text-muted);font-size:0.72rem;margin-bottom:4px">Peers conectados</div>
+            <div style="color:var(--text-primary);font-weight:600">${v.connected||0} / ${v.peers||0}</div>
+          </div>
+          ${v.serverIP?`<div style="background:var(--bg-dark);border-radius:8px;padding:12px;grid-column:1/-1">
+            <div style="color:var(--text-muted);font-size:0.72rem;margin-bottom:4px">IP Servidor</div>
+            <div style="color:var(--text-primary);font-family:monospace">${v.serverIP}</div>
+          </div>`:''}
+        </div>`
+      : `<div style="color:var(--text-muted);padding:20px;text-align:center">VPN detenida</div>`
+      openModal('vpn-modal')
+    }
+
+    // ── Suricata modal ───────────────────────────────────────────────────────
+    async function loadSuricataModal() {
+      const el = document.getElementById('suricata-modal-content')
+      el.innerHTML = '<div style="color:var(--text-muted)">Cargando...</div>'
+      try {
+        const res = await fetch('/api/suricata/alerts?limit=200', { headers: h.headers })
+        const data = await res.json()
+        const alerts = data.alerts || []
+        const byCat = {}, byIP = {}
+        alerts.forEach(a => {
+          if (a.category) byCat[a.category] = (byCat[a.category]||0) + 1
+          if (a.srcIP) byIP[a.srcIP] = (byIP[a.srcIP]||0) + 1
+        })
+        const topCats = Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,5)
+        const topIPs = Object.entries(byIP).sort((a,b)=>b[1]-a[1]).slice(0,10)
+        el.innerHTML = `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+            <div style="background:var(--bg-dark);border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:1.8rem;font-weight:700;color:#f87171">${alerts.length}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted)">Total alertas</div>
+            </div>
+            <div style="background:var(--bg-dark);border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:1.8rem;font-weight:700;color:#f59e0b">${Object.keys(byIP).length}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted)">IPs únicas</div>
+            </div>
+          </div>
+          <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px">Top Categorías</div>
+          ${topCats.map(([cat,cnt])=>`<div class="geo-row"><span style="color:var(--text-primary)">${cat}</span><span class="geo-count">${cnt}</span></div>`).join('')}
+          <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin:12px 0 8px">Top IPs Atacantes</div>
+          ${topIPs.map(([ip,cnt])=>`<div class="geo-row"><span style="font-family:monospace;color:#f87171">${ip}</span><span class="geo-count">${cnt} alertas</span></div>`).join('')}`
+      } catch(e) { el.innerHTML = '<div style="color:var(--text-muted)">Error cargando datos</div>' }
+    }
+
+    // ── DNS modal ────────────────────────────────────────────────────────────
+    async function loadDNSModal() {
+      const el = document.getElementById('dns-modal-content')
+      el.innerHTML = '<div style="color:var(--text-muted)">Cargando...</div>'
+      try {
+        const res = await fetch('/api/security/status', { headers: h.headers })
+        const data = await res.json()
+        const domains = data.unbound?.domains || 0
+        el.innerHTML = `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div style="background:var(--bg-dark);border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:1.5rem;font-weight:700;color:#4f8ef7">${domains.toLocaleString()}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted)">Dominios bloqueados</div>
+            </div>
+            <div style="background:var(--bg-dark);border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:1.5rem;font-weight:700;color:#22c55e">${data.unbound?.running?'Running':'Stopped'}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted)">Estado</div>
+            </div>
+          </div>
+          <div style="font-size:0.82rem;color:var(--text-muted)">
+            Bloqueando ads, tracking, malware y phishing para todos los dispositivos de la LAN.
+          </div>`
+      } catch(e) { el.innerHTML = '<div style="color:var(--text-muted)">Error</div>' }
+    }
+
+    // ── Main load ────────────────────────────────────────────────────────────
     let prevTraffic = {}
 
     async function loadDashboard() {
@@ -172,22 +551,19 @@
         const m = data.metrics
 
         // CPU
-        const cpu = typeof m.cpu === 'number' ? m.cpu : parseFloat(m.cpu) || 0
+        const cpu = parseFloat(m.cpu) || 0
         document.getElementById('cpu-val').textContent = cpu + '%'
-        document.getElementById('cpu-bar').style.width = cpu + '%'
-        document.getElementById('cpu-bar').style.background = cpu > 80 ? '#ef4444' : cpu > 60 ? '#f59e0b' : 'var(--accent)'
-        cpuData.push(cpu); cpuData.shift()
-        cpuChart.update()
+        document.getElementById('cpu-sub').textContent = cpu > 80 ? '⚠️ Alto' : cpu > 60 ? 'Moderado' : 'Normal'
+        document.getElementById('cpu-bar').style.cssText = `width:${cpu}%;background:${cpu>80?'#ef4444':cpu>60?'#f59e0b':'#4f8ef7'}`
+        cpuData.push(cpu); cpuData.shift(); cpuChart.update()
 
         // Memory
         const mem = m.memory
         if (mem && typeof mem === 'object') {
           document.getElementById('mem-val').textContent = mem.label
-          document.getElementById('mem-bar').style.width = mem.percent + '%'
-          document.getElementById('mem-bar').style.background = mem.percent > 80 ? '#ef4444' : '#a855f7'
+          document.getElementById('mem-sub').textContent = mem.percent + '% usado'
+          document.getElementById('mem-bar').style.cssText = `width:${mem.percent}%;background:${mem.percent>80?'#ef4444':'#a855f7'}`
           memData.push(mem.percent); memData.shift()
-        } else {
-          document.getElementById('mem-val').textContent = mem || '--'
         }
         memChart.update()
 
@@ -195,63 +571,203 @@
         const disk = m.disk
         if (disk && typeof disk === 'object') {
           document.getElementById('disk-val').textContent = disk.label
-          document.getElementById('disk-bar').style.width = disk.percent + '%'
-        } else {
-          document.getElementById('disk-val').textContent = disk || '--'
+          document.getElementById('disk-sub').textContent = disk.percent + '% usado'
+          document.getElementById('disk-bar').style.cssText = `width:${disk.percent}%;background:${disk.percent>80?'#ef4444':'#f59e0b'}`
         }
 
-        // Uptime
         document.getElementById('uptime-val').textContent = m.uptime || '--'
+        document.getElementById('hostname-val').textContent = m.hostname || 'coltanos'
 
-        // Network interfaces
+        // Interfaces
         if (m.traffic && m.traffic.length > 0) {
-          const ifacesHtml = m.traffic.map(iface => {
+          const active = m.traffic.filter(i => i.status === 'active' || i.rxBytes > 0)
+          document.getElementById('ifaces-container').innerHTML = active.map(iface => {
             const prev = prevTraffic[iface.name] || iface
             const rxRate = Math.max(0, iface.rxBytes - prev.rxBytes)
             const txRate = Math.max(0, iface.txBytes - prev.txBytes)
             prevTraffic[iface.name] = iface
-            return `
-              <div style="margin-bottom:14px">
-                <div style="display:flex;justify-content:space-between;align-items:center">
-                  <div class="iface-name">${iface.name}</div>
-                  <div style="font-size:0.72rem;color:var(--text-muted)">Total: ${formatBytes(iface.rxBytes)} / ${formatBytes(iface.txBytes)}</div>
-                </div>
-                <div style="display:flex;gap:16px;margin-top:4px">
-                  <div class="iface-stat">↓ <span>${formatBytes(rxRate)}/s</span></div>
-                  <div class="iface-stat">↑ <span>${formatBytes(txRate)}/s</span></div>
-                </div>
-              </div>`
-          }).join('')
-          document.getElementById('ifaces-container').innerHTML = ifacesHtml
+            return `<div class="iface-row" onclick="openIfaceModal('${iface.name}','${iface.ip||''}','${iface.status}',${rxRate},${txRate})">
+              <div><span class="iface-name">${iface.name}</span><span class="iface-role">${iface.ip||'—'}</span></div>
+              <div class="iface-speeds"><span class="speed-rx">↓${formatBytes(rxRate)}/s</span><span class="speed-tx">↑${formatBytes(txRate)}/s</span></div>
+            </div>`
+          }).join('') || '<div style="color:var(--text-muted);font-size:0.82rem">Sin interfaces activas</div>'
         }
 
-        // Services
+        // Services — exclude SSH and PM2
         if (m.services && m.services.length > 0) {
-          document.getElementById('services-container').innerHTML = m.services.map(s => `
-            <div class="service-row">
-              <div class="service-name">${s.name}</div>
-              <span class="${s.running ? 'dot-green' : 'dot-red'}"></span>
-            </div>`).join('')
+          const excluded = ['SSH', 'PM2 Backend', 'PM2', 'pm2']
+          const filtered = m.services.filter(s => !excluded.includes(s.name))
+          document.getElementById('services-container').innerHTML = filtered.map(s => {
+            const route = SERVICE_ROUTES[s.name]
+            return `<div class="service-item ${route?'clickable':''}" ${route?`onclick="window.location.href='${route}'"`:''}>
+              <span class="service-name">${s.name}</span>
+              <span class="dot ${s.running?'dot-green':'dot-red'}"></span>
+            </div>`
+          }).join('')
         }
 
         // VPN
         if (m.vpn) {
+          const vpnStr = JSON.stringify(m.vpn).replace(/\\/g,'\\\\').replace(/'/g,"\\'")
           document.getElementById('vpn-container').innerHTML = `
-            <div style="margin-bottom:16px">
-              <div style="font-size:0.85rem;font-weight:600;margin-bottom:8px;color:var(--text-muted)">WireGuard</div>
-              <span class="${m.vpn.wireguard.running ? 'vpn-badge' : 'vpn-badge-off'}">${m.vpn.wireguard.running ? 'Running' : 'Stopped'}</span>
-              ${m.vpn.wireguard.running ? `<div style="font-size:0.78rem;color:var(--text-muted);margin-top:6px">${m.vpn.wireguard.connected}/${m.vpn.wireguard.peers} peers connected</div>` : ''}
+            <div class="vpn-item" onclick="openVPNModal('${vpnStr}','wg')">
+              <div>
+                <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary)">WireGuard</div>
+                ${m.vpn.wireguard?.running?`<div style="font-size:0.72rem;color:var(--text-muted)">${m.vpn.wireguard.connected||0}/${m.vpn.wireguard.peers||0} peers</div>`:''}
+              </div>
+              <span class="${m.vpn.wireguard?.running?'badge-on':'badge-off'}">${m.vpn.wireguard?.running?'ON':'OFF'}</span>
             </div>
-            <div>
-              <div style="font-size:0.85rem;font-weight:600;margin-bottom:8px;color:var(--text-muted)">OpenVPN</div>
-              <span class="${m.vpn.openvpn.running ? 'vpn-badge' : 'vpn-badge-off'}">${m.vpn.openvpn.running ? 'Running' : 'Stopped'}</span>
+            <div class="vpn-item" onclick="openVPNModal('${vpnStr}','ovpn')">
+              <div><div style="font-size:0.82rem;font-weight:600;color:var(--text-primary)">OpenVPN</div></div>
+              <span class="${m.vpn.openvpn?.running?'badge-on':'badge-off'}">${m.vpn.openvpn?.running?'ON':'OFF'}</span>
             </div>`
+        }
+
+        // Suricata
+        try {
+          const sRes = await fetch('/api/suricata/status', { headers: h.headers })
+          const sData = await sRes.json()
+          document.getElementById('suricata-summary').innerHTML = `
+            <div class="sec-item">
+              <div>
+                <div style="font-size:0.82rem;color:var(--text-primary)">${sData.running?(sData.mode==='ips'?'IPS':'IDS')+' — Running':'Detenido'}</div>
+                <div class="sec-label">en ${sData.interface||'—'}</div>
+              </div>
+              <div class="sec-count">${sData.alerts||0} <span style="font-size:0.72rem;color:var(--text-muted)">alertas</span></div>
+            </div>`
+        } catch(e) {}
+
+        // DNS Blocker
+        try {
+          const dRes = await fetch('/api/security/status', { headers: h.headers })
+          const dData = await dRes.json()
+          document.getElementById('dns-summary').innerHTML = `
+            <div class="sec-item">
+              <div>
+                <div style="font-size:0.82rem;color:var(--text-primary)">${dData.unbound?.running?'Running':'Detenido'}</div>
+                <div class="sec-label">Unbound DNS</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:1.1rem;font-weight:700;color:#4f8ef7">${(dData.unbound?.domains||0).toLocaleString()}</div>
+                <div style="font-size:0.7rem;color:var(--text-muted)">dominios</div>
+              </div>
+            </div>`
+        } catch(e) {}
+
+        // Site blocking
+        try {
+          const sitesRes = await fetch('/api/sites/groups', { headers: h.headers })
+          const sitesData = await sitesRes.json()
+          const groups = sitesData.groups || []
+          const totalSites = groups.reduce((acc,g) => acc+(g.entries?.length||0), 0)
+          document.getElementById('sites-summary').innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+              <div style="background:var(--bg-dark);border-radius:8px;padding:10px;text-align:center">
+                <div style="font-size:1.4rem;font-weight:700;color:#4f8ef7">${groups.length}</div>
+                <div style="font-size:0.72rem;color:var(--text-muted)">Grupos</div>
+              </div>
+              <div style="background:var(--bg-dark);border-radius:8px;padding:10px;text-align:center">
+                <div style="font-size:1.4rem;font-weight:700;color:#f87171">${totalSites}</div>
+                <div style="font-size:0.72rem;color:var(--text-muted)">Sitios bloqueados</div>
+              </div>
+            </div>
+            ${groups.slice(0,4).map(g=>`
+              <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.78rem;border-bottom:1px solid var(--border)">
+                <span style="color:var(--text-primary)">${g.name}</span>
+                <span style="color:var(--text-muted)">${g.entries?.length||0} sitios</span>
+              </div>`).join('')}`
+        } catch(e) {
+          document.getElementById('sites-summary').innerHTML = '<div style="color:var(--text-muted);font-size:0.82rem">Sin datos</div>'
+        }
+
+        // Users
+        try {
+          const uRes = await fetch('/api/auth/sessions', { headers: h.headers })
+          if (uRes.ok) {
+            const uData = await uRes.json()
+            const sessions = uData.sessions || []
+            document.getElementById('users-container').innerHTML = sessions.length > 0
+              ? sessions.map(s=>`<div class="user-item"><span class="user-name"><i class="bi bi-person-fill me-1"></i>${s.username}</span><span class="user-ip">${s.ip||'—'}</span></div>`).join('')
+              : '<div style="color:var(--text-muted);font-size:0.82rem">No hay sesiones activas</div>'
+          }
+        } catch(e) {
+          const u = localStorage.getItem('coltan_user') || 'admin'
+          document.getElementById('users-container').innerHTML = `<div class="user-item"><span class="user-name"><i class="bi bi-person-fill me-1"></i>${u}</span><span class="user-ip">Esta sesión</span></div>`
         }
 
       } catch(e) { console.error('Dashboard error:', e) }
     }
 
+    // ── Drag & Drop individual panels ────────────────────────────────────────
+    let dragSrcId = null
+
+    function dragStart(e, id) {
+      dragSrcId = id
+      e.dataTransfer.effectAllowed = 'move'
+      e.dataTransfer.setData('text/plain', id)
+      setTimeout(() => { const el = document.getElementById(id); if(el) el.classList.add('dragging') }, 0)
+    }
+
+    function dragOver(e) {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'move'
+      const panel = e.currentTarget
+      if (panel.classList.contains('panel') && panel.id !== dragSrcId) {
+        document.querySelectorAll('.panel.drag-over').forEach(el => el.classList.remove('drag-over'))
+        panel.classList.add('drag-over')
+      }
+    }
+
+    function dragEnd(e) {
+      document.querySelectorAll('.panel.dragging, .panel.drag-over').forEach(el => {
+        el.classList.remove('dragging', 'drag-over')
+      })
+    }
+
+    function drop(e) {
+      e.preventDefault()
+      const target = e.currentTarget
+      target.classList.remove('drag-over')
+      if (!dragSrcId || !target.classList.contains('panel') || target.id === dragSrcId) return
+      const grid = document.getElementById('panels-grid')
+      const src = document.getElementById(dragSrcId)
+      if (!src || !target) return
+      // Insert src before target
+      const allPanels = [...grid.querySelectorAll('.panel')]
+      const srcIdx = allPanels.indexOf(src)
+      const tgtIdx = allPanels.indexOf(target)
+      if (srcIdx < tgtIdx) grid.insertBefore(src, target.nextSibling)
+      else grid.insertBefore(src, target)
+      dragSrcId = null
+    }
+
+    function saveLayout() {
+      const grid = document.getElementById('panels-grid')
+      const order = [...grid.querySelectorAll('.panel')].map(p => p.id)
+      localStorage.setItem('dashboard_layout', JSON.stringify(order))
+      const btn = document.querySelector('.btn-save-layout')
+      btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Guardado!'
+      setTimeout(() => { btn.innerHTML = '<i class="bi bi-floppy me-1"></i>Guardar Layout' }, 2000)
+    }
+
+    function resetLayout() {
+      localStorage.removeItem('dashboard_layout')
+      location.reload()
+    }
+
+    function applyLayout() {
+      const saved = localStorage.getItem('dashboard_layout')
+      if (!saved) return
+      try {
+        const order = JSON.parse(saved)
+        const grid = document.getElementById('panels-grid')
+        order.forEach(id => { const el = document.getElementById(id); if (el) grid.appendChild(el) })
+      } catch(e) {}
+    }
+
+    applyLayout()
     loadDashboard()
+    loadPublicIP()
     setInterval(loadDashboard, 3000)
   </script>
 </body>
