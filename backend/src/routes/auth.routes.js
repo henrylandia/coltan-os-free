@@ -1,6 +1,6 @@
 'use strict'
 
-const { findUser, validatePassword } = require('../services/auth.service')
+const { findUser, validatePassword, changePassword } = require('../services/auth.service')
 const bcrypt = require('bcrypt')
 
 async function authRoutes(fastify, options) {
@@ -47,7 +47,7 @@ async function authRoutes(fastify, options) {
     if (!user) return reply.code(404).send({ error: 'User not found' })
     const valid = await validatePassword(currentPassword, user.password)
     if (!valid) return reply.code(401).send({ error: 'Current password is incorrect' })
-    user.password = await bcrypt.hash(newPassword, 10)
+    await changePassword(request.user.username, newPassword)
     return { success: true, message: 'Password changed successfully' }
   })
 
