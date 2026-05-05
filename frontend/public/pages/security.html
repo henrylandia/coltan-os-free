@@ -339,9 +339,9 @@
         </div>
         <div class="modal-body">
           <div class="mb-3">
-            <label class="form-label">Interface a monitorear</label>
-            <select class="form-select" id="start-interface"></select>
-            <small class="text-muted">Recomendado: interface WAN</small>
+            <label class="form-label">Interfaces a monitorear</label>
+            <select class="form-select" id="start-interface" multiple size="3"></select>
+            <small class="text-muted">Seleccioná una o más interfaces (Ctrl+Click para múltiples). Recomendado: WAN + LAN</small>
           </div>
           <div class="mb-3">
             <label class="form-label">Modo</label>
@@ -639,10 +639,11 @@
     }
 
     async function loadAutoBlock() {
-      const res = await fetch('/api/suricata/settings', { headers: h.headers })
+      const res = await fetch('/api/suricata/settings?t=' + Date.now(), { headers: h.headers })
       const data = await res.json()
       const ab = data.autoBlock || {}
-      document.getElementById('autoblock-enabled').checked = ab.enabled === true
+      const enabledVal = ab.enabled === true
+      document.getElementById('autoblock-enabled').checked = enabledVal
       const cats = ab.categories || {}
       document.getElementById('ab-scan').checked = cats.scan !== false
       document.getElementById('ab-dos').checked = cats.dos !== false
@@ -655,25 +656,30 @@
     }
 
     async function saveAutoBlock() {
-      const res = await fetch('/api/suricata/settings', { headers: h.headers })
+      // Get fresh settings, patch only autoBlock, preserve everything else
+      const res = await fetch('/api/suricata/settings?t=' + Date.now(), { headers: h.headers })
       const current = await res.json()
-      current.autoBlock = {
-        enabled: document.getElementById('autoblock-enabled').checked,
-        categories: {
-          scan: document.getElementById('ab-scan').checked,
-          dos: document.getElementById('ab-dos').checked,
-          malware: document.getElementById('ab-malware').checked,
-          botcc: document.getElementById('ab-botcc').checked,
-          exploit: document.getElementById('ab-exploit').checked,
-          trojan: document.getElementById('ab-trojan').checked,
-          policy: document.getElementById('ab-policy').checked,
-          web: document.getElementById('ab-web').checked
+      const merged = Object.assign({}, current, {
+        autoBlock: {
+          enabled: document.getElementById('autoblock-enabled').checked,
+          categories: {
+            scan: document.getElementById('ab-scan').checked,
+            dos: document.getElementById('ab-dos').checked,
+            malware: document.getElementById('ab-malware').checked,
+            botcc: document.getElementById('ab-botcc').checked,
+            exploit: document.getElementById('ab-exploit').checked,
+            trojan: document.getElementById('ab-trojan').checked,
+            policy: document.getElementById('ab-policy').checked,
+            web: document.getElementById('ab-web').checked
+          }
         }
-      }
-      const saveRes = await fetch('/api/suricata/settings', { method: 'POST', ...h, body: JSON.stringify(current) })
+      })
+      const saveRes = await fetch('/api/suricata/settings', { method: 'POST', ...h, body: JSON.stringify(merged) })
       const data = await saveRes.json()
-      if (data.success) showAlert('Auto-Block guardado')
-      else showAlert(data.error || 'Error', true)
+      if (data.success) {
+        showAlert('Auto-Block guardado')
+        await loadAutoBlock()
+      } else showAlert(data.error || 'Error', true)
     }
 
     async function saveSuricataConfig() {
@@ -687,22 +693,26 @@
         dos: document.getElementById('rule-dos').checked,
         web: document.getElementById('rule-web').checked
       }
-      const res = await fetch('/api/suricata/settings', { headers: h.headers })
+      const res = await fetch('/api/suricata/settings?t=' + Date.now(), { headers: h.headers })
       const current = await res.json()
-      const saveRes = await fetch('/api/suricata/settings', { method: 'POST', ...h, body: JSON.stringify({ ...current, rules }) })
+      const merged = Object.assign({}, current, { rules })
+      const saveRes = await fetch('/api/suricata/settings', { method: 'POST', ...h, body: JSON.stringify(merged) })
       const data = await saveRes.json()
       if (data.success) showAlert('Configuración de Suricata guardada')
       else showAlert(data.error || 'Error al guardar', true)
     }
 
     async function showStartModal() {
-      const res = await fetch('/api/suricata/interfaces', { headers: h.headers })
-      const data = await res.json()
-      document.getElementById('start-interface').innerHTML = (data.interfaces || []).map(i =>
-        `<option value="${i.name}" ${i.role === 'WAN' ? 'selected' : ''}>${i.name} (${i.role})</option>`
-      ).join('')
-      const settingsRes = await fetch('/api/suricata/settings', { headers: h.headers })
+      const [ifacesRes, settingsRes] = await Promise.all([
+        fetch('/api/suricata/interfaces', { headers: h.headers }),
+        fetch('/api/suricata/settings', { headers: h.headers })
+      ])
+      const ifacesData = await ifacesRes.json()
       const settings = await settingsRes.json()
+      const savedIfaces = settings.interfaces || [settings.interface || '']
+      document.getElementById('start-interface').innerHTML = (ifacesData.interfaces || []).map(i =>
+        `<option value="${i.name}" ${savedIfaces.includes(i.name) || i.role === 'WAN' ? 'selected' : ''}>${i.name} (${i.role})</option>`
+      ).join('')
       if (settings.mode) document.getElementById('start-mode').value = settings.mode
       new bootstrap.Modal(document.getElementById('startModal')).show()
     }
@@ -712,7 +722,8 @@
       btn.disabled = true
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Iniciando...'
       const body = {
-        interface: document.getElementById('start-interface').value,
+        interface: Array.from(document.getElementById('start-interface').selectedOptions).map(o => o.value)[0] || 're0',
+        interfaces: Array.from(document.getElementById('start-interface').selectedOptions).map(o => o.value),
         mode: document.getElementById('start-mode').value,
         rules: {
           malware: document.getElementById('rule-malware').checked,

@@ -1,27 +1,21 @@
 'use strict'
-
 const fastify = require('fastify')({ logger: true })
 const path = require('path')
 const config = require('./config')
 const { initDefaultAdmin } = require('./services/auth.service')
-
 // Plugins
 fastify.register(require('@fastify/formbody'))
-
 // Handle empty JSON body gracefully
 fastify.addHook('preValidation', async (request, reply) => {
   if (!request.body && (request.method === 'DELETE' || request.method === 'POST' || request.method === 'PUT')) {
     request.body = {}
   }
 })
-
-
 // JWT plugin
 fastify.register(require('@fastify/jwt'), {
   secret: config.JWT_SECRET,
   sign: { expiresIn: config.JWT_EXPIRES }
 })
-
 // Authenticate decorator
 fastify.decorate('authenticate', async function(request, reply) {
   try {
@@ -30,13 +24,11 @@ fastify.decorate('authenticate', async function(request, reply) {
     reply.code(401).send({ error: 'Unauthorized' })
   }
 })
-
 // Serve frontend
 fastify.register(require('@fastify/static'), {
   root: path.join(__dirname, '../../frontend/public'),
   prefix: '/'
 })
-
 // Public routes
 fastify.register(require('./routes/auth.routes'))
 fastify.register(require('./routes/metrics.routes'))
@@ -54,12 +46,10 @@ fastify.register(require('./routes/openvpn.routes'))
 fastify.register(require('./routes/sites.routes'))
 fastify.register(require('./routes/security.routes'))
 fastify.register(require('./routes/suricata.routes'))
-
 // WebSockets
 fastify.register(require('@fastify/websocket'))
 fastify.register(require('./routes/ws.routes'))
 fastify.register(require('./routes/console.routes'))
-
 // Public health
 fastify.get('/api/health', async (request, reply) => {
   return {
@@ -68,11 +58,9 @@ fastify.get('/api/health', async (request, reply) => {
     timestamp: new Date().toISOString()
   }
 })
-
 // Protected routes
 fastify.register(async function(fastify) {
   fastify.addHook('onRequest', fastify.authenticate)
-
   fastify.get('/api/status', async (request, reply) => {
     return {
       name: 'Coltan OS',
@@ -82,17 +70,18 @@ fastify.register(async function(fastify) {
     }
   })
 })
-
 // Start
 const start = async () => {
   try {
     await initDefaultAdmin()
     await fastify.listen({ port: config.PORT, host: config.HOST })
     console.log(`Coltan OS running on port ${config.PORT}`)
+    // Start Suricata auto-block watcher
+    const { startWatcher } = require('./services/suricata-autoblock')
+    startWatcher()
   } catch (err) {
     fastify.log.error(err)
     process.exit(1)
   }
 }
-
 start()

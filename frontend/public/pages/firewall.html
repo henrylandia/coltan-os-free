@@ -502,10 +502,18 @@
     }
 
     async function unblockIP(ip) {
-      if (!confirm(`Unblock ${ip}?`)) return
-      await fetch(`/api/firewall/blocked-ips/${encodeURIComponent(ip)}`, { method: 'DELETE', ...h })
-      showAlert(`${ip} unblocked`)
-      loadBlockedIPs()
+      if (!confirm('Unblock ' + ip + '?')) return
+      const res = await fetch('/api/firewall/blocked-ips/' + encodeURIComponent(ip), {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      })
+      const data = await res.json()
+      if (data.success) {
+        showAlert(ip + ' unblocked')
+        await loadBlockedIPs()
+      } else {
+        showAlert(data.error || 'Error unblocking IP', true)
+      }
     }
 
     async function addPortForward() {

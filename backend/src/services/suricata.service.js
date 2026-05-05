@@ -54,6 +54,7 @@ async function getSettings() {
 async function saveSettings(settings) {
   await ensureDir()
   await fs.writeFile(SETTINGS_FILE, JSON.stringify(settings, null, 2))
+  return { success: true }
 }
 
 async function getInterfaces() {
@@ -65,6 +66,7 @@ async function getInterfaces() {
 
 async function generateConfig(settings) {
   const iface = settings.interface || 're0'
+  const ifaces = settings.interfaces || [iface]
 
   const ruleFiles = []
   if (settings.rules.malware) ruleFiles.push(`  - ${SURICATA_RULES}/emerging-malware.rules`)
@@ -118,10 +120,7 @@ outputs:
             extended: yes
 
 af-packet:
-  - interface: ${iface}
-    cluster-id: 99
-    cluster-type: cluster_flow
-    defrag: yes
+${ifaces.map((i, idx) => `  - interface: ${i}\n    cluster-id: ${99 + idx}\n    cluster-type: cluster_flow\n    defrag: yes`).join('\n')}
 
 logging:
   default-log-level: notice
