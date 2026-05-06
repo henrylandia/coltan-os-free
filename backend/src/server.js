@@ -76,6 +76,15 @@ const start = async () => {
     await initDefaultAdmin()
     await fastify.listen({ port: config.PORT, host: config.HOST })
     console.log(`Coltan OS running on port ${config.PORT}`)
+    // Site blocking DNS refresh every hour
+    const { refreshDNS } = require('./services/sites.service')
+    setInterval(async () => {
+      try {
+        const result = await refreshDNS()
+        console.log('[Sites] DNS refresh:', result.updated, 'domains updated')
+      } catch(e) {}
+    }, 60 * 60 * 1000) // Every hour
+
     // Start Suricata auto-block watcher
     const { startWatcher } = require('./services/suricata-autoblock')
     startWatcher()
