@@ -1,6 +1,6 @@
 'use strict'
 
-const {
+const { getDNSStats,
   getStatus, getSettings, saveSettings,
   enableDNSBlocker, disableDNSBlocker,
   updateBlocklists, getUpdateLog,
@@ -65,6 +65,9 @@ async function securityRoutes(fastify, options) {
     return await removeFromBlacklist(req.params.domain)
   })
 
+  fastify.get('/api/security/dns/stats', { onRequest: [fastify.authenticate] }, async (req, reply) => {
+    return await getDNSStats()
+  })
 }
 
 module.exports = securityRoutes

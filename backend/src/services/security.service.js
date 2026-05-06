@@ -246,3 +246,47 @@ module.exports = {
   addToBlacklist, removeFromBlacklist,
   testDomain
 }
+
+// ─── DNS STATS (Pi-hole style) ────────────────────────────────────────────────
+
+async function getDNSStats() {
+  try {
+    const UNBOUND_LOG = '/usr/local/etc/unbound/var/log/unbound/unbound.log'
+    const { stdout } = await execAsync(`tail -5000 ${UNBOUND_LOG} 2>/dev/null || echo ""`)
+    if (!stdout.trim()) return { total: 0, blocked: 0, percent: 0, topDomains: [], topBlocked: [] }
+
+    const lines = stdout.trim().split('\n').filter(l => l.includes(' info: '))
+    const domainCount = {}
+    const blockedDomains = {}
+    let blocked = 0
+
+    // Get blocked domains from blocklist
+    let blocklistDomains = new Set()
+    try {
+      const { stdout: bl } = await execAsync(`grep "local-zone" ${BLOCKLIST_FILE} 2>/dev/null | awk '{print $2}' | tr -d '"' | head -200000`)
+      bl.trim().split('\n').forEach(d => blocklistDomains.add(d.replace(/\.$/, '')))
+    } catch(e) {}
+
+    for (const line of lines) {
+      const match = line.match(/info: [\d\.:a-f]+ (.+?)\. [A-Z]+ IN/)
+      if (!match) continue
+      const domain = match[1].toLowerCase()
+      if (domain === 'localhost' || domain === '') continue
+      domainCount[domain] = (domainCount[domain] || 0) + 1
+      // Check if blocked (resolved to 0.0.0.0)
+      if (blocklistDomains.has(domain)) {
+        blocked++
+        blockedDomains[domain] = (blockedDomains[domain] || 0) + 1
+      }
+    }
+
+    const total = lines.length
+    const percent = total > 0 ? ((blocked / total) * 100).toFixed(1) : 0
+    const topDomains = Object.entries(domainCount).sort((a,b) => b[1]-a[1]).slice(0,10).map(([domain, count]) => ({ domain, count }))
+    const topBlocked = Object.entries(blockedDomains).sort((a,b) => b[1]-a[1]).slice(0,10).map(([domain, count]) => ({ domain, count }))
+
+    return { total, blocked, percent: parseFloat(percent), topDomains, topBlocked }
+  } catch(e) { return { total: 0, blocked: 0, percent: 0, topDomains: [], topBlocked: [] } }
+}
+
+module.exports.getDNSStats = getDNSStats
