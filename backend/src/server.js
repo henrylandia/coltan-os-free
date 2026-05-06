@@ -46,6 +46,7 @@ fastify.register(require('./routes/openvpn.routes'))
 fastify.register(require('./routes/sites.routes'))
 fastify.register(require('./routes/security.routes'))
 fastify.register(require('./routes/suricata.routes'))
+fastify.register(require('./routes/vlans.routes'))
 // WebSockets
 fastify.register(require('@fastify/websocket'))
 fastify.register(require('./routes/ws.routes'))
@@ -76,6 +77,10 @@ const start = async () => {
     await initDefaultAdmin()
     await fastify.listen({ port: config.PORT, host: config.HOST })
     console.log(`Coltan OS running on port ${config.PORT}`)
+    // Restore VLANs after reboot
+    const { restoreVLANs } = require('./services/vlans.service')
+    try { const r = await restoreVLANs(); console.log('[VLANs] Restored:', r.restored) } catch(e) {}
+
     // Site blocking DNS refresh every hour
     const { refreshDNS } = require('./services/sites.service')
     setInterval(async () => {

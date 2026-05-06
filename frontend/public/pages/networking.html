@@ -19,6 +19,7 @@
     .badge-wan { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); padding: 3px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
     .badge-lan { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); padding: 3px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
     .badge-opt { background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); padding: 3px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
+    .badge-vlan { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); padding: 3px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
     .badge-unassigned { background: rgba(100,116,139,0.15); color: #64748b; border: 1px solid rgba(100,116,139,0.3); padding: 3px 12px; border-radius: 999px; font-size: 0.75rem; }
     .badge-active { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; }
     .badge-inactive { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; }
@@ -28,6 +29,7 @@
     .btn-accent:hover { opacity: 0.85; color: white; }
     .btn-danger-soft { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
     .btn-success-soft { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .btn-purple-soft { background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); color: #a855f7; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; }
     .modal-content { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); }
     .modal-header, .modal-footer { border-color: var(--border); }
     .form-control, .form-select { background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-primary); }
@@ -44,6 +46,9 @@
     .data-table th { background: var(--bg-sidebar); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; border-color: var(--border); }
     .data-table td { color: var(--text-primary); border-color: var(--border); font-size: 0.85rem; vertical-align: middle; font-family: monospace; }
     .no-lan-msg { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 32px; text-align: center; color: var(--text-muted); }
+    .vlan-card { background: var(--bg-card); border: 1px solid rgba(168,85,247,0.3); border-radius: 12px; padding: 20px; margin-bottom: 16px; transition: border-color 0.2s; }
+    .vlan-card:hover { border-color: #a855f7; }
+    .vlan-empty { background: var(--bg-card); border: 1px dashed var(--border); border-radius: 12px; padding: 40px; text-align: center; color: var(--text-muted); }
   </style>
 </head>
 <body>
@@ -56,18 +61,37 @@
 
       <ul class="nav nav-tabs mb-4">
         <li class="nav-item"><a class="nav-link active" href="#" onclick="showTab('interfaces', this)"><i class="bi bi-ethernet me-2"></i>Interfaces</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('vlans', this)"><i class="bi bi-diagram-2 me-2"></i>VLANs</a></li>
         <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('dhcp', this)"><i class="bi bi-router me-2"></i>DHCP Server</a></li>
         <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('routing', this)"><i class="bi bi-diagram-3 me-2"></i>Routing Table</a></li>
       </ul>
 
+      <!-- Interfaces Tab -->
       <div id="tab-interfaces">
         <div id="interfaces-container"><div class="text-muted">Loading...</div></div>
       </div>
 
+      <!-- VLANs Tab -->
+      <div id="tab-vlans" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div class="section-title mb-0"><i class="bi bi-diagram-2 me-2"></i>VLANs Configuradas</div>
+          <button class="btn btn-accent" onclick="openCreateVLAN()">
+            <i class="bi bi-plus-lg me-1"></i>Nueva VLAN
+          </button>
+        </div>
+        <div style="background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.2);border-radius:8px;padding:12px 16px;font-size:0.82rem;color:var(--text-muted);margin-bottom:20px">
+          <i class="bi bi-info-circle me-2" style="color:#a855f7"></i>
+          Las VLANs se crean como interfaces virtuales sobre una interfaz física (ej: <strong style="color:var(--text-primary)">vlan10</strong> sobre <strong style="color:var(--text-primary)">re1</strong>). Una vez creadas aparecen como interfaces LAN en todo el sistema — DHCP, Firewall, Site Blocking, etc.
+        </div>
+        <div id="vlans-container"><div class="text-muted">Cargando...</div></div>
+      </div>
+
+      <!-- DHCP Tab -->
       <div id="tab-dhcp" style="display:none">
         <div id="dhcp-container"><div class="text-muted">Loading...</div></div>
       </div>
 
+      <!-- Routing Tab -->
       <div id="tab-routing" style="display:none">
         <div class="section-title"><i class="bi bi-diagram-3 me-2"></i>Routing Table</div>
         <div class="route-table">
@@ -136,8 +160,91 @@
     </div>
   </div>
 
+  <!-- Create VLAN Modal -->
+  <div class="modal fade" id="createVLANModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-diagram-2 me-2" style="color:#a855f7"></i>Nueva VLAN</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">VLAN Tag ID <span style="color:#f87171">*</span></label>
+              <input type="number" class="form-control" id="vlan-tag" placeholder="10" min="1" max="4094">
+              <small class="text-muted">Entre 1 y 4094</small>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Interfaz Física (parent) <span style="color:#f87171">*</span></label>
+              <select class="form-select" id="vlan-parent"></select>
+              <small class="text-muted">Interfaz sobre la que se crea la VLAN</small>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">IP Address</label>
+              <input type="text" class="form-control" id="vlan-ip" placeholder="192.168.10.1">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Netmask</label>
+              <input type="text" class="form-control" id="vlan-netmask" placeholder="255.255.255.0" value="255.255.255.0">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Descripción</label>
+              <input type="text" class="form-control" id="vlan-description" placeholder="ej: Red de invitados">
+            </div>
+          </div>
+          <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:10px 14px;font-size:0.82rem;color:#f59e0b;margin-top:16px">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            El switch/switch gestionado debe tener el trunk configurado con el tag VLAN correspondiente.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-accent" id="create-vlan-btn" onclick="createVLAN()" style="background:#a855f7">
+            <i class="bi bi-plus-lg me-1"></i>Crear VLAN
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit VLAN Modal -->
+  <div class="modal fade" id="editVLANModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Editar VLAN</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="edit-vlan-id">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">IP Address</label>
+              <input type="text" class="form-control" id="edit-vlan-ip" placeholder="192.168.10.1">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Netmask</label>
+              <input type="text" class="form-control" id="edit-vlan-netmask" placeholder="255.255.255.0">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Descripción</label>
+              <input type="text" class="form-control" id="edit-vlan-description">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-accent" onclick="saveVLAN()">
+            <i class="bi bi-floppy me-1"></i>Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- DHCP Config Modal -->
-  <div class="modal fade" id="dhcpConfigModal" tabindex="-1" >
+  <div class="modal fade" id="dhcpConfigModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
@@ -229,13 +336,14 @@
     let allSubnets = []
 
     function showTab(tab, el) {
-      ['interfaces','dhcp','routing'].forEach(t => {
+      ['interfaces','vlans','dhcp','routing'].forEach(t => {
         document.getElementById(`tab-${t}`).style.display = t === tab ? 'block' : 'none'
       })
       document.querySelectorAll('.nav-tabs .nav-link').forEach(e => e.classList.remove('active'))
       if (el) el.classList.add('active')
       if (tab === 'routing') loadRoutes()
       if (tab === 'dhcp') loadDHCP()
+      if (tab === 'vlans') loadVLANs()
     }
 
     function showAlert(msg, isError = false) {
@@ -250,11 +358,13 @@
       }
     }
 
-    function roleBadge(role) {
+    function roleBadge(role, isVlan) {
+      if (isVlan) return `<span class="badge-vlan">VLAN</span>`
       const map = { 'WAN':'badge-wan','LAN':'badge-lan','OPT1':'badge-opt','OPT2':'badge-opt','OPT3':'badge-opt','unassigned':'badge-unassigned' }
       return `<span class="${map[role] || 'badge-unassigned'}">${role}</span>`
     }
 
+    // ── INTERFACES ────────────────────────────────────────────────────────────
     async function loadInterfaces() {
       const res = await fetch('/api/interfaces', { headers: h.headers })
       const data = await res.json()
@@ -262,15 +372,16 @@
       document.getElementById('interfaces-container').innerHTML = allInterfaces.map(iface => `
         <div class="iface-card">
           <div class="d-flex justify-content-between align-items-center">
-            <div style="display:flex;align-items:center;gap:12px">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
               <div class="iface-name"><i class="bi bi-ethernet me-2"></i>${iface.name}</div>
-              ${roleBadge(iface.role)}
+              ${roleBadge(iface.role, iface.vlan)}
               ${iface.description ? `<span style="font-size:0.82rem;color:var(--text-muted)">${iface.description}</span>` : ''}
               <span class="${iface.status === 'active' ? 'badge-active' : 'badge-inactive'}">${iface.status}</span>
+              ${iface.vlan ? `<span style="font-size:0.75rem;color:#a855f7">tag ${iface.tag} → ${iface.parent}</span>` : ''}
             </div>
-            <button class="btn btn-accent btn-sm" onclick="openEditInterface('${iface.name}')">
+            ${!iface.vlan ? `<button class="btn btn-accent btn-sm" onclick="openEditInterface('${iface.name}')">
               <i class="bi bi-pencil me-1"></i>Edit
-            </button>
+            </button>` : ''}
           </div>
           <div class="row mt-3">
             <div class="col-md-3"><div class="iface-detail">IP Address<br><span>${iface.ip || '—'}</span></div></div>
@@ -320,6 +431,139 @@
       loadInterfaces()
     }
 
+    // ── VLANs ─────────────────────────────────────────────────────────────────
+    async function loadVLANs() {
+      const res = await fetch('/api/vlans', { headers: h.headers })
+      const data = await res.json()
+      const vlans = data.vlans || []
+      const container = document.getElementById('vlans-container')
+
+      if (vlans.length === 0) {
+        container.innerHTML = `
+          <div class="vlan-empty">
+            <i class="bi bi-diagram-2" style="font-size:2.5rem;color:#a855f7;opacity:0.5;display:block;margin-bottom:12px"></i>
+            <div style="font-size:1rem;font-weight:600;margin-bottom:8px">No hay VLANs configuradas</div>
+            <div style="font-size:0.85rem;margin-bottom:20px">Creá una VLAN para segmentar tu red. Las VLANs aparecerán automáticamente en DHCP, Firewall y Site Blocking.</div>
+            <button class="btn btn-accent" onclick="openCreateVLAN()" style="background:#a855f7">
+              <i class="bi bi-plus-lg me-1"></i>Crear primera VLAN
+            </button>
+          </div>`
+        return
+      }
+
+      container.innerHTML = vlans.map(v => `
+        <div class="vlan-card">
+          <div class="d-flex justify-content-between align-items-center">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+              <div style="font-size:1.1rem;font-weight:700;color:#a855f7"><i class="bi bi-diagram-2 me-2"></i>${v.name}</div>
+              <span class="badge-vlan">TAG ${v.tag}</span>
+              ${v.description ? `<span style="font-size:0.82rem;color:var(--text-muted)">${v.description}</span>` : ''}
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn-purple-soft" onclick="openEditVLAN('${v.id}','${v.ip||''}','${v.netmask||'255.255.255.0'}','${v.description||''}')">
+                <i class="bi bi-pencil me-1"></i>Editar
+              </button>
+              <button class="btn btn-danger-soft" onclick="deleteVLAN('${v.id}','${v.name}')">
+                <i class="bi bi-trash me-1"></i>Eliminar
+              </button>
+            </div>
+          </div>
+          <div class="row mt-3">
+            <div class="col-md-3"><div class="iface-detail">Interfaz<br><span style="color:#a855f7">${v.name}</span></div></div>
+            <div class="col-md-3"><div class="iface-detail">Interfaz física<br><span>${v.parent}</span></div></div>
+            <div class="col-md-3"><div class="iface-detail">IP Address<br><span>${v.ip || '—'}</span></div></div>
+            <div class="col-md-3"><div class="iface-detail">Netmask<br><span>${v.netmask || '—'}</span></div></div>
+          </div>
+          <div style="margin-top:10px;padding:8px 12px;background:var(--bg-dark);border-radius:8px;font-size:0.78rem;color:var(--text-muted)">
+            <i class="bi bi-check-circle me-1" style="color:#22c55e"></i>
+            Disponible en DHCP Server, Firewall, Site Blocking y Security como interfaz <strong style="color:var(--text-primary)">${v.name}</strong>
+          </div>
+        </div>
+      `).join('')
+    }
+
+    async function openCreateVLAN() {
+      // Load parent interfaces
+      const res = await fetch('/api/vlans/parents', { headers: h.headers })
+      const data = await res.json()
+      document.getElementById('vlan-parent').innerHTML = (data.interfaces || []).map(i =>
+        `<option value="${i}">${i}</option>`
+      ).join('')
+      document.getElementById('vlan-tag').value = ''
+      document.getElementById('vlan-ip').value = ''
+      document.getElementById('vlan-netmask').value = '255.255.255.0'
+      document.getElementById('vlan-description').value = ''
+      new bootstrap.Modal(document.getElementById('createVLANModal')).show()
+    }
+
+    async function createVLAN() {
+      const btn = document.getElementById('create-vlan-btn')
+      btn.disabled = true
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creando...'
+
+      const body = {
+        tag: parseInt(document.getElementById('vlan-tag').value),
+        parent: document.getElementById('vlan-parent').value,
+        ip: document.getElementById('vlan-ip').value.trim() || null,
+        netmask: document.getElementById('vlan-netmask').value.trim() || '255.255.255.0',
+        description: document.getElementById('vlan-description').value.trim()
+      }
+
+      if (!body.tag || !body.parent) {
+        btn.disabled = false
+        btn.innerHTML = '<i class="bi bi-plus-lg me-1"></i>Crear VLAN'
+        return showAlert('Tag y interfaz física son requeridos', true)
+      }
+
+      const res = await fetch('/api/vlans', { method: 'POST', ...h, body: JSON.stringify(body) })
+      const data = await res.json()
+
+      btn.disabled = false
+      btn.innerHTML = '<i class="bi bi-plus-lg me-1"></i>Crear VLAN'
+
+      if (data.success) {
+        bootstrap.Modal.getInstance(document.getElementById('createVLANModal')).hide()
+        showAlert(`VLAN ${body.tag} (${data.vlan?.name}) creada exitosamente`)
+        loadVLANs()
+        loadInterfaces()
+      } else {
+        showAlert(data.error || 'Error al crear VLAN', true)
+      }
+    }
+
+    function openEditVLAN(id, ip, netmask, description) {
+      document.getElementById('edit-vlan-id').value = id
+      document.getElementById('edit-vlan-ip').value = ip
+      document.getElementById('edit-vlan-netmask').value = netmask
+      document.getElementById('edit-vlan-description').value = description
+      new bootstrap.Modal(document.getElementById('editVLANModal')).show()
+    }
+
+    async function saveVLAN() {
+      const id = document.getElementById('edit-vlan-id').value
+      const body = {
+        ip: document.getElementById('edit-vlan-ip').value.trim() || null,
+        netmask: document.getElementById('edit-vlan-netmask').value.trim(),
+        description: document.getElementById('edit-vlan-description').value.trim()
+      }
+      const res = await fetch(`/api/vlans/${id}`, { method: 'PUT', ...h, body: JSON.stringify(body) })
+      const data = await res.json()
+      bootstrap.Modal.getInstance(document.getElementById('editVLANModal')).hide()
+      if (data.success) { showAlert('VLAN actualizada'); loadVLANs(); loadInterfaces() }
+      else showAlert(data.error || 'Error', true)
+    }
+
+    async function deleteVLAN(id, name) {
+      if (!confirm(`¿Eliminar VLAN ${name}? Se destruirá la interfaz y se eliminarán todas sus configuraciones.`)) return
+      const res = await fetch(`/api/vlans/${id}`, {
+        method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token }
+      })
+      const data = await res.json()
+      if (data.success) { showAlert(`VLAN ${name} eliminada`); loadVLANs(); loadInterfaces() }
+      else showAlert(data.error || 'Error al eliminar', true)
+    }
+
+    // ── DHCP ──────────────────────────────────────────────────────────────────
     async function loadDHCP() {
       const [ifaceRes, subRes, statusRes] = await Promise.all([
         fetch('/api/interfaces', { headers: h.headers }),
@@ -331,14 +575,14 @@
       const statusData = await statusRes.json()
       allSubnets = subData.subnets || []
 
-      const lanIfaces = ifaceData.interfaces.filter(i => i.role === 'LAN' || i.role?.startsWith('OPT'))
+      const lanIfaces = ifaceData.interfaces.filter(i => i.role === 'LAN' || i.role?.startsWith('OPT') || i.vlan)
 
       if (lanIfaces.length === 0) {
         document.getElementById('dhcp-container').innerHTML = `
           <div class="no-lan-msg">
             <i class="bi bi-exclamation-triangle" style="font-size:2rem;color:#f59e0b;margin-bottom:12px;display:block"></i>
-            <div style="font-size:1rem;font-weight:600;margin-bottom:8px">No LAN interfaces assigned</div>
-            <div style="font-size:0.85rem">Go to the <strong>Interfaces</strong> tab and assign at least one interface as <strong>LAN</strong> to enable DHCP Server.</div>
+            <div style="font-size:1rem;font-weight:600;margin-bottom:8px">No hay interfaces LAN ni VLANs</div>
+            <div style="font-size:0.85rem">Asigná una interfaz como <strong>LAN</strong> o creá una <strong>VLAN</strong> para habilitar el servidor DHCP.</div>
           </div>`
         return
       }
@@ -369,15 +613,16 @@
         const gateway = subnet?.['option-data']?.find(o => o.name === 'routers')?.data || iface.ip || ''
         const dns = subnet?.['option-data']?.find(o => o.name === 'domain-name-servers')?.data || ''
         const leaseH = Math.floor((subnet?.['valid-lifetime'] || 86400) / 3600)
+        const vlanBadge = iface.vlan ? `<span class="badge-vlan ms-1">VLAN ${iface.tag}</span>` : ''
 
         return `
           <div class="iface-card mb-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
-              <div style="display:flex;align-items:center;gap:10px">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
                 <div class="iface-name"><i class="bi bi-router me-2"></i>${iface.name}</div>
-                ${roleBadge(iface.role)}
+                ${roleBadge(iface.role, iface.vlan)}${vlanBadge}
                 ${iface.description ? `<span style="font-size:0.82rem;color:var(--text-muted)">${iface.description}</span>` : ''}
-                <span style="font-size:0.78rem;color:var(--text-muted)">${iface.ip || 'No IP'}</span>
+                <span style="font-size:0.78rem;color:var(--text-muted)">${iface.ip || 'Sin IP'}</span>
               </div>
               <div style="display:flex;gap:6px">
                 ${subnet
@@ -427,7 +672,7 @@
                   </button>
                 </div>
               </div>` : `
-              <div style="font-size:0.85rem;color:var(--text-muted);padding:8px 0">DHCP server not configured for this interface.</div>`}
+              <div style="font-size:0.85rem;color:var(--text-muted);padding:8px 0">DHCP server no configurado para esta interfaz.</div>`}
           </div>`
       }).join('')
 
@@ -497,7 +742,6 @@
           btn.disabled = false
           btn.innerHTML = '<i class="bi bi-router me-1"></i>Enable DHCP Server'
           showAlert(data.error || 'Error enabling DHCP', true)
-          // If subnet exists, close modal and reload
           if (data.error && data.error.includes('already exists')) {
             bootstrap.Modal.getOrCreateInstance(document.getElementById('dhcpConfigModal')).hide()
             setTimeout(() => loadDHCP(), 1000)
@@ -514,19 +758,12 @@
       if (!confirm('Disable DHCP for this interface?')) return
       try {
         const res = await fetch('/api/dhcp/subnets/' + subnetId, {
-          method: 'DELETE',
-          headers: { 'Authorization': 'Bearer ' + token }
+          method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token }
         })
         const data = await res.json()
-        if (data.success) {
-          showAlert('DHCP disabled')
-          setTimeout(() => loadDHCP(), 2000)
-        } else {
-          showAlert(data.error || 'Error disabling DHCP', true)
-        }
-      } catch(e) {
-        showAlert('Connection error', true)
-      }
+        if (data.success) { showAlert('DHCP disabled'); setTimeout(() => loadDHCP(), 2000) }
+        else showAlert(data.error || 'Error disabling DHCP', true)
+      } catch(e) { showAlert('Connection error', true) }
     }
 
     function openAddReservation(subnetId) {
@@ -549,30 +786,21 @@
         })
         const data = await res.json()
         bootstrap.Modal.getInstance(document.getElementById('addReservationModal')).hide()
-        if (data.success) {
-          showAlert('Reservation added')
-          setTimeout(() => loadDHCP(), 2000)
-        } else showAlert(data.error, true)
-      } catch(e) {
-        showAlert('Connection error', true)
-      }
+        if (data.success) { showAlert('Reservation added'); setTimeout(() => loadDHCP(), 2000) }
+        else showAlert(data.error, true)
+      } catch(e) { showAlert('Connection error', true) }
     }
 
     async function deleteReservation(subnetId, mac) {
       if (!confirm('Delete reservation for ' + mac + '?')) return
       try {
         const res = await fetch('/api/dhcp/subnets/' + subnetId + '/reservations/' + encodeURIComponent(mac), {
-          method: 'DELETE',
-          headers: { 'Authorization': 'Bearer ' + token }
+          method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token }
         })
         const data = await res.json()
-        if (data.success) {
-          showAlert('Reservation deleted')
-          setTimeout(() => loadDHCP(), 2000)
-        } else showAlert(data.error || 'Error deleting reservation', true)
-      } catch(e) {
-        showAlert('Connection error', true)
-      }
+        if (data.success) { showAlert('Reservation deleted'); setTimeout(() => loadDHCP(), 2000) }
+        else showAlert(data.error || 'Error deleting reservation', true)
+      } catch(e) { showAlert('Connection error', true) }
     }
 
     async function loadLeases() {
@@ -615,6 +843,7 @@
       setTimeout(() => loadDHCP(), 1500)
     }
 
+    // ── ROUTING ───────────────────────────────────────────────────────────────
     async function loadRoutes() {
       const res = await fetch('/api/network', { headers: h.headers })
       const data = await res.json()
