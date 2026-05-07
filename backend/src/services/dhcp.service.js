@@ -55,6 +55,7 @@ async function addSubnet(data) {
   const subnet = {
     id: newId,
     subnet: data.subnet,
+    interface: data.interface,
     pools: [{ pool: `${data.poolStart} - ${data.poolEnd}` }],
     'option-data': [
       { name: 'routers', data: data.gateway },

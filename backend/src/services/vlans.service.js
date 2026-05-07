@@ -73,6 +73,24 @@ async function createVLAN({ tag, parent, ip, netmask, description }) {
     await fs.writeFile('/usr/local/etc/coltan/interfaces.json', JSON.stringify(ifaces, null, 2))
   } catch(e) {}
 
+  // Add to Unbound access-control if IP provided
+  if (ip) {
+    try {
+      const unboundConf = '/usr/local/etc/unbound/unbound.conf'
+      let unboundContent = require('fs').readFileSync(unboundConf, 'utf8')
+      const parts = ip.split('.')
+      const network = parts[0] + '.' + parts[1] + '.0.0/16'
+      if (!unboundContent.includes(network)) {
+        unboundContent = unboundContent.replace(
+          '    access-control: 0.0.0.0/0 refuse',
+          `    access-control: ${network} allow\n    access-control: 0.0.0.0/0 refuse`
+        )
+        require('fs').writeFileSync(unboundConf, unboundContent)
+        await execAsync('service unbound restart 2>/dev/null || true')
+      }
+    } catch(e) {}
+  }
+
   // Regenerate PF
   try {
     const { generateAndReload } = require('./firewall.service')
