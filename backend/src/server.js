@@ -47,6 +47,7 @@ fastify.register(require('./routes/sites.routes'))
 fastify.register(require('./routes/security.routes'))
 fastify.register(require('./routes/suricata.routes'))
 fastify.register(require('./routes/vlans.routes'))
+fastify.register(require('./routes/qos.routes'))
 // WebSockets
 fastify.register(require('@fastify/websocket'))
 fastify.register(require('./routes/ws.routes'))
@@ -89,6 +90,10 @@ const start = async () => {
         console.log('[Sites] DNS refresh:', result.updated, 'domains updated')
       } catch(e) {}
     }, 60 * 60 * 1000) // Every hour
+
+    // Restore QoS rules after reboot
+    const { restoreQoS } = require('./services/qos.service')
+    try { await restoreQoS(); console.log('[QoS] Rules restored') } catch(e) {}
 
     // Start Suricata auto-block watcher
     const { startWatcher } = require('./services/suricata-autoblock')

@@ -21,6 +21,9 @@ function loadSidebar(activePage) {
         <a href="/pages/security.html" class="nav-item ${activePage === 'security' ? 'active' : ''}">
           <i class="bi bi-shield-fill"></i> Security
         </a>
+        <a href="/pages/qos.html" class="nav-item ${activePage === 'qos' ? 'active' : ''}">
+          <i class="bi bi-speedometer"></i> QoS
+        </a>
         <div class="nav-group">
           <div class="nav-group-title"><i class="bi bi-lock"></i> VPN</div>
           <a href="/pages/wireguard.html" class="nav-item nav-sub ${activePage === 'wireguard' ? 'active' : ''}">
@@ -47,7 +50,6 @@ function loadSidebar(activePage) {
   `
   document.body.insertAdjacentHTML('afterbegin', sidebar)
 }
-
 function loadTopbar(title) {
   const user = JSON.parse(localStorage.getItem('coltan_user') || '{}')
   const topbar = `
@@ -65,13 +67,11 @@ function loadTopbar(title) {
   `
   document.querySelector('.main-content').insertAdjacentHTML('afterbegin', topbar)
 }
-
 function logout() {
   localStorage.removeItem('coltan_token')
   localStorage.removeItem('coltan_user')
   window.location.href = '/login.html'
 }
-
 function startClock() {
   function update() {
     const el = document.getElementById('clock')

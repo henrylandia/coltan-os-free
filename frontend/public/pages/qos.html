@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coltan OS — QoS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="../css/main.css" rel="stylesheet">
+  <style>
+    .nav-tabs { border-color: var(--border); }
+    .nav-tabs .nav-link { color: var(--text-muted); border: none; padding: 10px 20px; }
+    .nav-tabs .nav-link.active { color: var(--accent); border-bottom: 2px solid var(--accent); background: none; }
+    .section-title { font-size: 1rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
+    .data-table { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+    .data-table table { margin: 0; }
+    .data-table th { background: var(--bg-sidebar); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; border-color: var(--border); }
+    .data-table td { color: var(--text-primary); border-color: var(--border); font-size: 0.85rem; vertical-align: middle; }
+    .data-table td.mono { font-family: monospace; }
+    .btn-accent { background: var(--accent); border: none; color: white; padding: 6px 16px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; }
+    .btn-accent:hover { opacity: 0.85; color: white; }
+    .btn-danger-soft { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .btn-success-soft { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .btn-warning-soft { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); color: #f59e0b; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .btn-primary-soft { background: rgba(79,142,247,0.15); border: 1px solid rgba(79,142,247,0.3); color: var(--accent); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .modal-content { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); }
+    .modal-header, .modal-footer { border-color: var(--border); }
+    .form-control, .form-select { background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-primary); }
+    .form-control:focus, .form-select:focus { background: var(--bg-dark); border-color: var(--accent); color: var(--text-primary); box-shadow: none; }
+    .form-label { color: var(--text-muted); font-size: 0.85rem; }
+    .form-check-input { background-color: var(--bg-dark); border-color: var(--border); }
+    .alert-success-custom { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; border-radius: 8px; padding: 12px 16px; display: none; margin-bottom: 16px; }
+    .alert-error-custom { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #f87171; border-radius: 8px; padding: 12px 16px; display: none; margin-bottom: 16px; }
+    .badge-enabled { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
+    .badge-disabled { background: rgba(100,116,139,0.15); color: #64748b; border: 1px solid rgba(100,116,139,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
+    .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; }
+    .stat-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .stat-value { font-size: 1.4rem; font-weight: 700; color: var(--text-primary); font-family: monospace; }
+    .progress-bar-custom { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin-top: 8px; }
+    .progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+    .day-btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-muted); font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+    .day-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+    .target-section { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-top: 8px; }
+    .empty-state { background: var(--bg-card); border: 1px dashed var(--border); border-radius: 12px; padding: 48px; text-align: center; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <div class="main-content">
+    <div class="p-4">
+
+      <div id="alert-success" class="alert-success-custom"><i class="bi bi-check-circle me-2"></i><span id="alert-text"></span></div>
+      <div id="alert-error" class="alert-error-custom"><i class="bi bi-exclamation-triangle me-2"></i><span id="alert-error-text"></span></div>
+
+      <ul class="nav nav-tabs mb-4">
+        <li class="nav-item"><a class="nav-link active" href="#" onclick="showTab('rules',this)"><i class="bi bi-speedometer me-2"></i>Reglas QoS</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('stats',this)"><i class="bi bi-bar-chart me-2"></i>Estadísticas</a></li>
+      </ul>
+
+      <!-- Rules Tab -->
+      <div id="tab-rules">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0"><i class="bi bi-speedometer me-2"></i>Reglas de Ancho de Banda</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary-soft" onclick="applyQoS()"><i class="bi bi-arrow-clockwise me-1"></i>Aplicar</button>
+            <button class="btn btn-accent" onclick="openAddRule()"><i class="bi bi-plus-lg me-1"></i>Nueva Regla</button>
+          </div>
+        </div>
+
+        <div style="background:rgba(79,142,247,0.08);border:1px solid rgba(79,142,247,0.2);border-radius:8px;padding:12px 16px;font-size:0.82rem;color:var(--text-muted);margin-bottom:20px">
+          <i class="bi bi-info-circle me-2" style="color:var(--accent)"></i>
+          Las reglas usan <strong style="color:var(--text-primary)">dummynet</strong> para limitar el ancho de banda. Si especificás una MAC, el límite persiste aunque el cliente cambie de IP. Las reglas con horario se activan/desactivan automáticamente.
+        </div>
+
+        <div id="rules-container"></div>
+      </div>
+
+      <!-- Stats Tab -->
+      <div id="tab-stats" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0"><i class="bi bi-bar-chart me-2"></i>Estadísticas de Tráfico</div>
+          <button class="btn btn-primary-soft" onclick="loadStats()"><i class="bi bi-arrow-clockwise me-1"></i>Actualizar</button>
+        </div>
+        <div id="stats-container"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Add/Edit Rule Modal -->
+  <div class="modal fade" id="ruleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="rule-modal-title"><i class="bi bi-speedometer me-2"></i>Nueva Regla QoS</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="rule-id">
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-12">
+              <label class="form-label">Nombre de la regla</label>
+              <input type="text" class="form-control" id="rule-name" placeholder="ej: Límite invitados, Cámara IP...">
+            </div>
+          </div>
+
+          <!-- Target -->
+          <div class="mb-3">
+            <label class="form-label">Aplicar a</label>
+            <select class="form-select" id="rule-target" onchange="updateTargetUI()">
+              <option value="ip">IP específica</option>
+              <option value="range">Rango de IPs / Subnet</option>
+              <option value="interface">Interfaz completa</option>
+            </select>
+          </div>
+
+          <div class="target-section mb-3" id="target-ip-section">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">IP Address</label>
+                <input type="text" class="form-control" id="rule-target-ip" placeholder="192.168.1.50">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">MAC Address <span style="color:var(--text-muted);font-size:0.78rem">(opcional — persiste si cambia IP)</span></label>
+                <input type="text" class="form-control" id="rule-mac" placeholder="aa:bb:cc:dd:ee:ff">
+              </div>
+            </div>
+          </div>
+
+          <div class="target-section mb-3" id="target-range-section" style="display:none">
+            <label class="form-label">Subnet / Rango</label>
+            <input type="text" class="form-control" id="rule-target-range" placeholder="192.168.1.0/24 o 192.168.1.100-200">
+          </div>
+
+          <div class="target-section mb-3" id="target-iface-section" style="display:none">
+            <label class="form-label">Interfaz</label>
+            <select class="form-select" id="rule-target-iface"></select>
+          </div>
+
+          <!-- Bandwidth -->
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label"><i class="bi bi-arrow-down" style="color:#22c55e"></i> Descarga máxima (Download)</label>
+              <div class="input-group">
+                <input type="number" class="form-control" id="rule-download" placeholder="0 = sin límite" min="0">
+                <span class="input-group-text" style="background:var(--bg-dark);border-color:var(--border);color:var(--text-muted)">Kbps</span>
+              </div>
+              <small class="text-muted">1000 Kbps = 1 Mbps</small>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label"><i class="bi bi-arrow-up" style="color:#f59e0b"></i> Subida máxima (Upload)</label>
+              <div class="input-group">
+                <input type="number" class="form-control" id="rule-upload" placeholder="0 = sin límite" min="0">
+                <span class="input-group-text" style="background:var(--bg-dark);border-color:var(--border);color:var(--text-muted)">Kbps</span>
+              </div>
+              <small class="text-muted">500 Kbps = 0.5 Mbps</small>
+            </div>
+          </div>
+
+          <!-- Schedule -->
+          <div class="mb-2">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="use-schedule" onchange="toggleSchedule()">
+              <label class="form-check-label form-label" for="use-schedule">Aplicar horario</label>
+            </div>
+          </div>
+
+          <div id="schedule-section" style="display:none">
+            <div style="background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;padding:14px">
+              <div class="mb-3">
+                <label class="form-label">Días activos</label>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <button type="button" class="day-btn active" data-day="1">L</button>
+                  <button type="button" class="day-btn active" data-day="2">M</button>
+                  <button type="button" class="day-btn active" data-day="3">X</button>
+                  <button type="button" class="day-btn active" data-day="4">J</button>
+                  <button type="button" class="day-btn active" data-day="5">V</button>
+                  <button type="button" class="day-btn" data-day="6">S</button>
+                  <button type="button" class="day-btn" data-day="0">D</button>
+                </div>
+              </div>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Hora inicio</label>
+                  <input type="time" class="form-control" id="schedule-start" value="08:00">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Hora fin</label>
+                  <input type="time" class="form-control" id="schedule-end" value="22:00">
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-accent" id="save-rule-btn" onclick="saveRule()">
+            <i class="bi bi-floppy me-1"></i>Guardar Regla
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../js/sidebar.js"></script>
+  <script>
+    const token = localStorage.getItem('coltan_token')
+    if (!token) window.location.href = '/login.html'
+    loadSidebar('qos')
+    loadTopbar('<i class="bi bi-speedometer me-2"></i>QoS / Traffic Shaping')
+    startClock()
+
+    const h = { headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } }
+    let allInterfaces = []
+    let currentRules = []
+
+    function showTab(tab, el) {
+      ['rules','stats'].forEach(t => {
+        document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none'
+      })
+      document.querySelectorAll('.nav-tabs .nav-link').forEach(e => e.classList.remove('active'))
+      if (el) el.classList.add('active')
+      if (tab === 'stats') loadStats()
+    }
+
+    function showAlert(msg, isError = false) {
+      if (isError) {
+        document.getElementById('alert-error-text').textContent = msg
+        document.getElementById('alert-error').style.display = 'block'
+        setTimeout(() => document.getElementById('alert-error').style.display = 'none', 4000)
+      } else {
+        document.getElementById('alert-text').textContent = msg
+        document.getElementById('alert-success').style.display = 'block'
+        setTimeout(() => document.getElementById('alert-success').style.display = 'none', 3000)
+      }
+    }
+
+    function formatBps(kbps) {
+      if (!kbps || kbps === 0) return '∞ (sin límite)'
+      if (kbps >= 1000) return (kbps / 1000).toFixed(1) + ' Mbps'
+      return kbps + ' Kbps'
+    }
+
+    function formatBytes(b) {
+      if (b > 1073741824) return (b/1073741824).toFixed(2) + ' GB'
+      if (b > 1048576) return (b/1048576).toFixed(1) + ' MB'
+      if (b > 1024) return (b/1024).toFixed(1) + ' KB'
+      return b + ' B'
+    }
+
+    // ── Load interfaces ──────────────────────────────────────────────────────
+    async function loadInterfaces() {
+      const res = await fetch('/api/interfaces', { headers: h.headers })
+      const data = await res.json()
+      allInterfaces = data.interfaces || []
+      const select = document.getElementById('rule-target-iface')
+      select.innerHTML = allInterfaces.map(i =>
+        `<option value="${i.name}">${i.name} (${i.role}) ${i.ip ? '— ' + i.ip : ''}</option>`
+      ).join('')
+    }
+
+    // ── Load rules ───────────────────────────────────────────────────────────
+    async function loadRules() {
+      const res = await fetch('/api/qos/rules', { headers: h.headers })
+      const data = await res.json()
+      currentRules = data.rules || []
+      const container = document.getElementById('rules-container')
+
+      if (currentRules.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="bi bi-speedometer" style="font-size:2.5rem;opacity:0.3;display:block;margin-bottom:12px"></i>
+            <div style="font-size:1rem;font-weight:600;margin-bottom:8px">No hay reglas QoS</div>
+            <div style="font-size:0.85rem;margin-bottom:20px">Creá una regla para limitar el ancho de banda por IP, rango o interfaz.</div>
+            <button class="btn btn-accent" onclick="openAddRule()"><i class="bi bi-plus-lg me-1"></i>Crear primera regla</button>
+          </div>`
+        return
+      }
+
+      container.innerHTML = `
+        <div class="data-table">
+          <table class="table table-dark table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Estado</th>
+                <th>Nombre</th>
+                <th>Target</th>
+                <th>MAC</th>
+                <th>↓ Download</th>
+                <th>↑ Upload</th>
+                <th>Horario</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${currentRules.map(r => `
+                <tr style="opacity:${r.enabled ? '1' : '0.5'}">
+                  <td><span class="${r.enabled ? 'badge-enabled' : 'badge-disabled'}">${r.enabled ? 'ON' : 'OFF'}</span></td>
+                  <td style="font-weight:600">${r.name}</td>
+                  <td class="mono">
+                    <span style="font-size:0.72rem;color:var(--text-muted)">${r.target}</span><br>
+                    ${r.targetValue}
+                  </td>
+                  <td class="mono" style="font-size:0.78rem;color:var(--text-muted)">${r.mac || '—'}</td>
+                  <td class="mono" style="color:#22c55e">${formatBps(r.downloadKbps)}</td>
+                  <td class="mono" style="color:#f59e0b">${formatBps(r.uploadKbps)}</td>
+                  <td style="font-size:0.78rem;color:var(--text-muted)">
+                    ${r.schedule ? formatSchedule(r.schedule) : '<span style="color:#22c55e">24/7</span>'}
+                  </td>
+                  <td>
+                    <div style="display:flex;gap:4px">
+                      <button class="btn btn-primary-soft" onclick="openEditRule('${r.id}')" title="Editar"><i class="bi bi-pencil"></i></button>
+                      <button class="btn btn-warning-soft" onclick="toggleRule('${r.id}')" title="${r.enabled ? 'Desactivar' : 'Activar'}">
+                        <i class="bi bi-${r.enabled ? 'pause' : 'play'}-fill"></i>
+                      </button>
+                      <button class="btn btn-danger-soft" onclick="deleteRule('${r.id}')" title="Eliminar"><i class="bi bi-trash"></i></button>
+                    </div>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`
+    }
+
+    function formatSchedule(s) {
+      if (!s) return '24/7'
+      const days = ['D','L','M','X','J','V','S']
+      const activeDays = (s.days || []).map(d => days[d]).join(',')
+      const time = s.startTime && s.endTime ? `${s.startTime}–${s.endTime}` : ''
+      return `${activeDays} ${time}`
+    }
+
+    // ── Modal helpers ────────────────────────────────────────────────────────
+    function updateTargetUI() {
+      const target = document.getElementById('rule-target').value
+      document.getElementById('target-ip-section').style.display = target === 'ip' ? 'block' : 'none'
+      document.getElementById('target-range-section').style.display = target === 'range' ? 'block' : 'none'
+      document.getElementById('target-iface-section').style.display = target === 'interface' ? 'block' : 'none'
+    }
+
+    function toggleSchedule() {
+      const use = document.getElementById('use-schedule').checked
+      document.getElementById('schedule-section').style.display = use ? 'block' : 'none'
+    }
+
+    function openAddRule() {
+      document.getElementById('rule-id').value = ''
+      document.getElementById('rule-modal-title').innerHTML = '<i class="bi bi-speedometer me-2"></i>Nueva Regla QoS'
+      document.getElementById('rule-name').value = ''
+      document.getElementById('rule-target').value = 'ip'
+      document.getElementById('rule-target-ip').value = ''
+      document.getElementById('rule-mac').value = ''
+      document.getElementById('rule-target-range').value = ''
+      document.getElementById('rule-download').value = ''
+      document.getElementById('rule-upload').value = ''
+      document.getElementById('use-schedule').checked = false
+      document.getElementById('schedule-section').style.display = 'none'
+      document.getElementById('schedule-start').value = '08:00'
+      document.getElementById('schedule-end').value = '22:00'
+      document.querySelectorAll('.day-btn').forEach(b => {
+        const day = parseInt(b.dataset.day)
+        b.classList.toggle('active', day >= 1 && day <= 5)
+      })
+      updateTargetUI()
+      new bootstrap.Modal(document.getElementById('ruleModal')).show()
+    }
+
+    function openEditRule(id) {
+      const rule = currentRules.find(r => r.id === id)
+      if (!rule) return
+      document.getElementById('rule-id').value = id
+      document.getElementById('rule-modal-title').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Regla QoS'
+      document.getElementById('rule-name').value = rule.name
+      document.getElementById('rule-target').value = rule.target
+      document.getElementById('rule-target-ip').value = rule.target === 'ip' ? rule.targetValue : ''
+      document.getElementById('rule-mac').value = rule.mac || ''
+      document.getElementById('rule-target-range').value = rule.target === 'range' ? rule.targetValue : ''
+      if (rule.target === 'interface') document.getElementById('rule-target-iface').value = rule.targetValue
+      document.getElementById('rule-download').value = rule.downloadKbps || ''
+      document.getElementById('rule-upload').value = rule.uploadKbps || ''
+
+      const hasSchedule = !!rule.schedule
+      document.getElementById('use-schedule').checked = hasSchedule
+      document.getElementById('schedule-section').style.display = hasSchedule ? 'block' : 'none'
+
+      if (hasSchedule && rule.schedule) {
+        document.getElementById('schedule-start').value = rule.schedule.startTime || '08:00'
+        document.getElementById('schedule-end').value = rule.schedule.endTime || '22:00'
+        document.querySelectorAll('.day-btn').forEach(b => {
+          b.classList.toggle('active', (rule.schedule.days || []).includes(parseInt(b.dataset.day)))
+        })
+      }
+
+      updateTargetUI()
+      new bootstrap.Modal(document.getElementById('ruleModal')).show()
+    }
+
+    // Day buttons toggle
+    document.querySelectorAll('.day-btn').forEach(btn => {
+      btn.addEventListener('click', () => btn.classList.toggle('active'))
+    })
+
+    async function saveRule() {
+      const id = document.getElementById('rule-id').value
+      const target = document.getElementById('rule-target').value
+
+      let targetValue = ''
+      if (target === 'ip') targetValue = document.getElementById('rule-target-ip').value.trim()
+      else if (target === 'range') targetValue = document.getElementById('rule-target-range').value.trim()
+      else if (target === 'interface') targetValue = document.getElementById('rule-target-iface').value
+
+      if (!targetValue) return showAlert('Especificá el target (IP, rango o interfaz)', true)
+
+      const downloadKbps = parseInt(document.getElementById('rule-download').value) || 0
+      const uploadKbps = parseInt(document.getElementById('rule-upload').value) || 0
+
+      if (downloadKbps === 0 && uploadKbps === 0) {
+        return showAlert('Especificá al menos un límite de download o upload', true)
+      }
+
+      const useSchedule = document.getElementById('use-schedule').checked
+      let schedule = null
+      if (useSchedule) {
+        const activeDays = [...document.querySelectorAll('.day-btn.active')].map(b => parseInt(b.dataset.day))
+        schedule = {
+          days: activeDays,
+          startTime: document.getElementById('schedule-start').value,
+          endTime: document.getElementById('schedule-end').value
+        }
+      }
+
+      const body = {
+        name: document.getElementById('rule-name').value.trim() || 'QoS Rule',
+        target,
+        targetValue,
+        mac: target === 'ip' ? (document.getElementById('rule-mac').value.trim() || null) : null,
+        downloadKbps,
+        uploadKbps,
+        schedule
+      }
+
+      const btn = document.getElementById('save-rule-btn')
+      btn.disabled = true
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...'
+
+      const res = id
+        ? await fetch('/api/qos/rules/' + id, { method: 'PUT', ...h, body: JSON.stringify(body) })
+        : await fetch('/api/qos/rules', { method: 'POST', ...h, body: JSON.stringify(body) })
+
+      const data = await res.json()
+      btn.disabled = false
+      btn.innerHTML = '<i class="bi bi-floppy me-1"></i>Guardar Regla'
+
+      bootstrap.Modal.getInstance(document.getElementById('ruleModal')).hide()
+
+      if (data.success || data.rule) {
+        showAlert(id ? 'Regla actualizada' : 'Regla creada y aplicada')
+        loadRules()
+      } else {
+        showAlert(data.error || 'Error al guardar', true)
+      }
+    }
+
+    async function deleteRule(id) {
+      if (!confirm('¿Eliminar esta regla QoS?')) return
+      const res = await fetch('/api/qos/rules/' + id, {
+        method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token }
+      })
+      const data = await res.json()
+      if (data.success) { showAlert('Regla eliminada'); loadRules() }
+      else showAlert(data.error || 'Error', true)
+    }
+
+    async function toggleRule(id) {
+      const res = await fetch('/api/qos/rules/' + id + '/toggle', { method: 'POST', ...h, body: '{}' })
+      const data = await res.json()
+      if (data.success !== undefined) { showAlert('Regla ' + (data.enabled ? 'activada' : 'desactivada')); loadRules() }
+      else showAlert(data.error || 'Error', true)
+    }
+
+    async function applyQoS() {
+      const res = await fetch('/api/qos/apply', { method: 'POST', ...h, body: '{}' })
+      const data = await res.json()
+      if (data.success) showAlert('QoS aplicado — ' + (data.applied || 0) + ' reglas activas')
+      else showAlert(data.error || 'Error al aplicar', true)
+    }
+
+    // ── Stats ────────────────────────────────────────────────────────────────
+    async function loadStats() {
+      const res = await fetch('/api/qos/stats', { headers: h.headers })
+      const data = await res.json()
+      const interfaces = data.interfaces || []
+      const container = document.getElementById('stats-container')
+
+      if (interfaces.length === 0) {
+        container.innerHTML = '<div class="empty-state"><i class="bi bi-bar-chart" style="font-size:2rem;opacity:0.3;display:block;margin-bottom:8px"></i>Sin datos de tráfico</div>'
+        return
+      }
+
+      // Sort by total traffic
+      const sorted = [...interfaces].sort((a, b) => (b.rxBytes + b.txBytes) - (a.rxBytes + a.txBytes))
+      const maxTotal = Math.max(...sorted.map(i => i.rxBytes + i.txBytes))
+
+      container.innerHTML = `
+        <div class="row g-3 mb-4">
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-label">Total RX</div>
+              <div class="stat-value" style="color:#22c55e">${formatBytes(sorted.reduce((a,i) => a+i.rxBytes, 0))}</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-label">Total TX</div>
+              <div class="stat-value" style="color:#f59e0b">${formatBytes(sorted.reduce((a,i) => a+i.txBytes, 0))}</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-label">Interfaces activas</div>
+              <div class="stat-value">${interfaces.length}</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-label">Reglas QoS activas</div>
+              <div class="stat-value">${currentRules.filter(r => r.enabled).length}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title">Tráfico por Interfaz</div>
+        <div class="data-table">
+          <table class="table table-dark table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Interfaz</th>
+                <th>↓ Recibido (RX)</th>
+                <th>↑ Enviado (TX)</th>
+                <th>Total</th>
+                <th>Uso relativo</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sorted.map(iface => {
+                const total = iface.rxBytes + iface.txBytes
+                const pct = maxTotal > 0 ? Math.round((total / maxTotal) * 100) : 0
+                return `<tr>
+                  <td style="font-weight:700;color:var(--accent)">${iface.name}</td>
+                  <td class="mono" style="color:#22c55e">${formatBytes(iface.rxBytes)}</td>
+                  <td class="mono" style="color:#f59e0b">${formatBytes(iface.txBytes)}</td>
+                  <td class="mono">${formatBytes(total)}</td>
+                  <td style="min-width:150px">
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <div style="flex:1">
+                        <div class="progress-bar-custom">
+                          <div class="progress-fill" style="width:${pct}%;background:var(--accent)"></div>
+                        </div>
+                      </div>
+                      <span style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap">${pct}%</span>
+                    </div>
+                  </td>
+                </tr>`
+              }).join('')}
+            </tbody>
+          </table>
+        </div>`
+    }
+
+    loadInterfaces()
+    loadRules()
+  </script>
+</body>
+</html>
