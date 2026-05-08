@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coltan OS — Portal Cautivo</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="../css/main.css" rel="stylesheet">
+  <style>
+    .nav-tabs { border-color: var(--border); }
+    .nav-tabs .nav-link { color: var(--text-muted); border: none; padding: 10px 20px; }
+    .nav-tabs .nav-link.active { color: var(--accent); border-bottom: 2px solid var(--accent); background: none; }
+    .section-title { font-size: 1rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
+    .data-table { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+    .data-table table { margin: 0; }
+    .data-table th { background: var(--bg-sidebar); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; border-color: var(--border); }
+    .data-table td { color: var(--text-primary); border-color: var(--border); font-size: 0.85rem; vertical-align: middle; }
+    .btn-accent { background: var(--accent); border: none; color: white; padding: 6px 16px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; }
+    .btn-accent:hover { opacity: 0.85; color: white; }
+    .btn-danger-soft { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .btn-success-soft { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .btn-warning-soft { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); color: #f59e0b; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .btn-primary-soft { background: rgba(79,142,247,0.15); border: 1px solid rgba(79,142,247,0.3); color: var(--accent); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+    .modal-content { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); }
+    .modal-header, .modal-footer { border-color: var(--border); }
+    .form-control, .form-select, .form-control-color { background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-primary); }
+    .form-control:focus, .form-select:focus { background: var(--bg-dark); border-color: var(--accent); color: var(--text-primary); box-shadow: none; }
+    .form-label { color: var(--text-muted); font-size: 0.85rem; }
+    .alert-success-custom { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; border-radius: 8px; padding: 12px 16px; display: none; margin-bottom: 16px; }
+    .alert-error-custom { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #f87171; border-radius: 8px; padding: 12px 16px; display: none; margin-bottom: 16px; }
+    .badge-enabled { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
+    .badge-disabled { background: rgba(100,116,139,0.15); color: #64748b; border: 1px solid rgba(100,116,139,0.3); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
+    .portal-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; transition: border-color 0.2s; }
+    .portal-card.active { border-color: var(--accent); }
+    .portal-card:hover { border-color: rgba(79,142,247,0.4); }
+    .preview-box { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: 4px; }
+    .empty-state { background: var(--bg-card); border: 1px dashed var(--border); border-radius: 12px; padding: 48px; text-align: center; color: var(--text-muted); }
+    textarea.form-control { font-family: monospace; font-size: 0.82rem; min-height: 200px; }
+  </style>
+</head>
+<body>
+  <div class="main-content">
+    <div class="p-4">
+
+      <div id="alert-success" class="alert-success-custom"><i class="bi bi-check-circle me-2"></i><span id="alert-text"></span></div>
+      <div id="alert-error" class="alert-error-custom"><i class="bi bi-exclamation-triangle me-2"></i><span id="alert-error-text"></span></div>
+
+      <ul class="nav nav-tabs mb-4" id="main-tabs">
+        <li class="nav-item"><a class="nav-link active" href="#" onclick="showTab('portals',this)"><i class="bi bi-wifi me-2"></i>Portales</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('groups',this)"><i class="bi bi-people me-2"></i>Grupos</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('users',this)"><i class="bi bi-person me-2"></i>Usuarios</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('sessions',this)"><i class="bi bi-clock-history me-2"></i>Sesiones</a></li>
+      </ul>
+
+      <!-- Portals Tab -->
+      <div id="tab-portals">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0"><i class="bi bi-wifi me-2"></i>Portales Cautivos</div>
+          <button class="btn btn-accent" onclick="openCreatePortal()"><i class="bi bi-plus-lg me-1"></i>Nuevo Portal</button>
+        </div>
+        <div style="background:rgba(79,142,247,0.08);border:1px solid rgba(79,142,247,0.2);border-radius:8px;padding:12px 16px;font-size:0.82rem;color:var(--text-muted);margin-bottom:20px">
+          <i class="bi bi-info-circle me-2" style="color:var(--accent)"></i>
+          Cada portal se asocia a una interfaz LAN o VLAN. Los clientes no autenticados son redirigidos al portal. Podés tener múltiples portales en diferentes interfaces.
+        </div>
+        <div id="portals-container"></div>
+      </div>
+
+      <!-- Groups Tab -->
+      <div id="tab-groups" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0"><i class="bi bi-people me-2"></i>Grupos de Usuarios</div>
+          <button class="btn btn-accent" onclick="openCreateGroup()"><i class="bi bi-plus-lg me-1"></i>Nuevo Grupo</button>
+        </div>
+        <div id="groups-container"></div>
+      </div>
+
+      <!-- Users Tab -->
+      <div id="tab-users" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0"><i class="bi bi-person me-2"></i>Usuarios del Portal</div>
+          <button class="btn btn-accent" onclick="openCreateUser()"><i class="bi bi-plus-lg me-1"></i>Nuevo Usuario</button>
+        </div>
+        <div id="users-container"></div>
+      </div>
+
+      <!-- Sessions Tab -->
+      <div id="tab-sessions" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0"><i class="bi bi-clock-history me-2"></i>Sesiones Activas</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-primary-soft" onclick="loadSessions()"><i class="bi bi-arrow-clockwise me-1"></i>Actualizar</button>
+            <button class="btn btn-warning-soft" onclick="cleanSessions()"><i class="bi bi-trash me-1"></i>Limpiar expiradas</button>
+            <button class="btn btn-danger-soft" onclick="killAllSessions()"><i class="bi bi-x-circle me-1"></i>Desconectar todos</button>
+          </div>
+        </div>
+        <div id="sessions-container"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Portal Modal -->
+  <div class="modal fade" id="portalModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="portal-modal-title"><i class="bi bi-wifi me-2"></i>Nuevo Portal Cautivo</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="portal-id">
+          <div class="row g-4">
+            <div class="col-md-6">
+              <div class="section-title">Configuración General</div>
+              <div class="row g-3 mb-3">
+                <div class="col-12">
+                  <label class="form-label">Nombre del portal</label>
+                  <input type="text" class="form-control" id="portal-name" placeholder="ej: Portal WiFi Clientes">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Interfaz <span style="color:#f87171">*</span></label>
+                  <select class="form-select" id="portal-interface"></select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Modo de acceso</label>
+                  <select class="form-select" id="portal-mode" onchange="updatePortalModeUI();updatePreview()">
+                    <option value="public">Público — sin login</option>
+                    <option value="users">Usuarios — login con usuario/clave</option>
+                    <option value="groups">Grupos — login por grupo</option>
+                  </select>
+                </div>
+                <div class="col-md-6" id="portal-group-section" style="display:none">
+                  <label class="form-label">Grupo de usuarios</label>
+                  <select class="form-select" id="portal-group"></select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Duración sesión (minutos)</label>
+                  <input type="number" class="form-control" id="portal-session" value="60" min="1">
+                </div>
+              </div>
+              <div class="section-title">Control de Ancho de Banda</div>
+              <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                  <label class="form-label"><i class="bi bi-arrow-down" style="color:#22c55e"></i> Download máx (Kbps)</label>
+                  <input type="number" class="form-control" id="portal-download" placeholder="0 = sin límite" min="0">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label"><i class="bi bi-arrow-up" style="color:#f59e0b"></i> Upload máx (Kbps)</label>
+                  <input type="number" class="form-control" id="portal-upload" placeholder="0 = sin límite" min="0">
+                </div>
+              </div>
+              <div class="section-title">Plantilla del Portal</div>
+              <div class="mb-3">
+                <select class="form-select" id="portal-template" onchange="updateTemplateUI()">
+                  <option value="default">Por defecto — botón de inicio</option>
+                  <option value="custom">HTML personalizado</option>
+                  <option value="embed">Código embebido</option>
+                </select>
+              </div>
+              <div id="template-default-section">
+                <div class="row g-3">
+                  <div class="col-12">
+                    <label class="form-label">Título</label>
+                    <input type="text" class="form-control" id="portal-title" value="Bienvenido">
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label">Subtítulo</label>
+                    <input type="text" class="form-control" id="portal-subtitle" value="Hacé clic para navegar">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Texto del botón</label>
+                    <input type="text" class="form-control" id="portal-button" value="Comenzar">
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Color fondo</label>
+                    <input type="color" class="form-control form-control-color w-100" id="portal-bg" value="#0f1117">
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Color acento</label>
+                    <input type="color" class="form-control form-control-color w-100" id="portal-accent" value="#4f8ef7">
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label">URL del logo (opcional)</label>
+                    <input type="text" class="form-control" id="portal-logo" placeholder="https://...">
+                  </div>
+                </div>
+              </div>
+              <div id="template-custom-section" style="display:none">
+                <label class="form-label">HTML personalizado completo</label>
+                <textarea class="form-control" id="portal-custom-html" placeholder="<!DOCTYPE html><html>...</html>"></textarea>
+                <small class="text-muted">Usá <code>fetch('/captive/auth')</code> con <code>portalId</code> en el body.</small>
+              </div>
+              <div id="template-embed-section" style="display:none">
+                <label class="form-label">Código embebido (HTML/iframe)</label>
+                <textarea class="form-control" id="portal-embed" placeholder="<iframe src='...'></iframe>"></textarea>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="section-title">Vista Previa</div>
+              <div class="preview-box">
+                <iframe id="portal-preview" style="width:100%;height:420px;border:none;border-radius:6px;background:#0f1117"></iframe>
+              </div>
+              <div class="mt-2 text-end">
+                <button class="btn btn-primary-soft btn-sm" onclick="updatePreview()"><i class="bi bi-eye me-1"></i>Actualizar vista previa</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-accent" id="save-portal-btn" onclick="savePortal()">
+            <i class="bi bi-floppy me-1"></i>Guardar Portal
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Group Modal -->
+  <div class="modal fade" id="groupModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="group-modal-title"><i class="bi bi-people me-2"></i>Grupo</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="group-id">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Nombre <span style="color:#f87171">*</span></label>
+              <input type="text" class="form-control" id="group-name" placeholder="ej: Clientes, Empleados, VIP">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Descripción</label>
+              <input type="text" class="form-control" id="group-description" placeholder="Descripción opcional">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Sesión (minutos)</label>
+              <input type="number" class="form-control" id="group-session" value="60" min="1">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Download (Kbps)</label>
+              <input type="number" class="form-control" id="group-download" placeholder="0=∞" min="0">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Upload (Kbps)</label>
+              <input type="number" class="form-control" id="group-upload" placeholder="0=∞" min="0">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-accent" onclick="saveGroup()"><i class="bi bi-floppy me-1"></i>Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Modal -->
+  <div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="user-modal-title"><i class="bi bi-person me-2"></i>Usuario</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="user-id">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Usuario <span style="color:#f87171">*</span></label>
+              <input type="text" class="form-control" id="user-username" placeholder="ej: juan123">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Contraseña <span id="user-pass-hint" style="color:var(--text-muted);font-size:0.75rem">(requerida)</span></label>
+              <input type="password" class="form-control" id="user-password" placeholder="••••••••">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Grupo (opcional)</label>
+              <select class="form-select" id="user-group">
+                <option value="">Sin grupo</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="user-enabled" checked>
+                <label class="form-check-label form-label" for="user-enabled">Usuario activo</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-accent" onclick="saveUser()"><i class="bi bi-floppy me-1"></i>Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../js/sidebar.js"></script>
+  <script>
+    const token = localStorage.getItem('coltan_token')
+    if (!token) window.location.href = '/login.html'
+    loadSidebar('captive')
+    loadTopbar('<i class="bi bi-wifi me-2"></i>Portal Cautivo')
+    startClock()
+
+    const h = { headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } }
+    let allGroups = [], allPortals = [], allUsers = []
+
+    function showTab(tab, el) {
+      ['portals','groups','users','sessions'].forEach(t => {
+        document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none'
+      })
+      document.querySelectorAll('#main-tabs .nav-link').forEach(e => e.classList.remove('active'))
+      if (el) el.classList.add('active')
+      if (tab === 'groups') loadGroups()
+      if (tab === 'users') loadUsers()
+      if (tab === 'sessions') loadSessions()
+    }
+
+    function showAlert(msg, isError = false) {
+      if (isError) {
+        document.getElementById('alert-error-text').textContent = msg
+        document.getElementById('alert-error').style.display = 'block'
+        setTimeout(() => document.getElementById('alert-error').style.display = 'none', 4000)
+      } else {
+        document.getElementById('alert-text').textContent = msg
+        document.getElementById('alert-success').style.display = 'block'
+        setTimeout(() => document.getElementById('alert-success').style.display = 'none', 3000)
+      }
+    }
+
+    function formatKbps(kbps) {
+      if (!kbps || kbps === 0) return '∞'
+      if (kbps >= 1000) return (kbps/1000).toFixed(1) + ' Mbps'
+      return kbps + ' Kbps'
+    }
+
+    // ── PORTALS ───────────────────────────────────────────────────────────────
+    async function loadPortals() {
+      const res = await fetch('/api/captive/portals', { headers: h.headers })
+      allPortals = (await res.json()).portals || []
+      const container = document.getElementById('portals-container')
+      if (allPortals.length === 0) {
+        container.innerHTML = `<div class="empty-state">
+          <i class="bi bi-wifi" style="font-size:2.5rem;opacity:0.3;display:block;margin-bottom:12px"></i>
+          <div style="font-size:1rem;font-weight:600;margin-bottom:8px">No hay portales configurados</div>
+          <div style="font-size:0.85rem;margin-bottom:20px">Creá un portal cautivo para controlar el acceso a internet por interfaz.</div>
+          <button class="btn btn-accent" onclick="openCreatePortal()"><i class="bi bi-plus-lg me-1"></i>Crear primer portal</button>
+        </div>`
+        return
+      }
+      container.innerHTML = allPortals.map(p => `
+        <div class="portal-card ${p.enabled ? 'active' : ''}">
+          <div class="d-flex justify-content-between align-items-start">
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+                <div style="font-size:1rem;font-weight:700;color:var(--text-primary)">${p.name}</div>
+                <span class="${p.enabled ? 'badge-enabled' : 'badge-disabled'}">${p.enabled ? 'ACTIVO' : 'INACTIVO'}</span>
+                <span style="background:rgba(79,142,247,0.15);color:var(--accent);padding:2px 8px;border-radius:999px;font-size:0.75rem">${p.interface}</span>
+                <span style="background:rgba(168,85,247,0.15);color:#a855f7;padding:2px 8px;border-radius:999px;font-size:0.75rem">${p.mode}</span>
+              </div>
+              <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:0.82rem;color:var(--text-muted)">
+                <span><i class="bi bi-clock me-1"></i>Sesión: ${p.sessionMinutes} min</span>
+                <span><i class="bi bi-arrow-down me-1" style="color:#22c55e"></i>${formatKbps(p.downloadKbps)}</span>
+                <span><i class="bi bi-arrow-up me-1" style="color:#f59e0b"></i>${formatKbps(p.uploadKbps)}</span>
+                <span><i class="bi bi-layout-text-window me-1"></i>${p.template}</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              ${p.enabled
+                ? `<button class="btn btn-danger-soft" onclick="disablePortal('${p.id}')"><i class="bi bi-stop-fill me-1"></i>Desactivar</button>`
+                : `<button class="btn btn-success-soft" onclick="enablePortal('${p.id}')"><i class="bi bi-play-fill me-1"></i>Activar</button>`}
+              <button class="btn btn-primary-soft" onclick="openEditPortal('${p.id}')"><i class="bi bi-pencil me-1"></i>Editar</button>
+              <button class="btn btn-danger-soft" onclick="deletePortal('${p.id}')"><i class="bi bi-trash"></i></button>
+            </div>
+          </div>
+        </div>`).join('')
+    }
+
+    async function openCreatePortal() {
+      document.getElementById('portal-id').value = ''
+      document.getElementById('portal-modal-title').innerHTML = '<i class="bi bi-wifi me-2"></i>Nuevo Portal Cautivo'
+      document.getElementById('portal-name').value = ''
+      document.getElementById('portal-mode').value = 'public'
+      document.getElementById('portal-session').value = '60'
+      document.getElementById('portal-download').value = ''
+      document.getElementById('portal-upload').value = ''
+      document.getElementById('portal-template').value = 'default'
+      document.getElementById('portal-title').value = 'Bienvenido'
+      document.getElementById('portal-subtitle').value = 'Hacé clic para navegar'
+      document.getElementById('portal-button').value = 'Comenzar'
+      document.getElementById('portal-bg').value = '#0f1117'
+      document.getElementById('portal-accent').value = '#4f8ef7'
+      document.getElementById('portal-logo').value = ''
+      document.getElementById('portal-custom-html').value = ''
+      document.getElementById('portal-embed').value = ''
+      await loadPortalModalData()
+      updatePortalModeUI(); updateTemplateUI(); updatePreview()
+      new bootstrap.Modal(document.getElementById('portalModal')).show()
+    }
+
+    async function openEditPortal(id) {
+      const p = allPortals.find(p => p.id === id)
+      if (!p) return
+      document.getElementById('portal-id').value = id
+      document.getElementById('portal-modal-title').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Portal'
+      document.getElementById('portal-name').value = p.name
+      document.getElementById('portal-mode').value = p.mode
+      document.getElementById('portal-session').value = p.sessionMinutes
+      document.getElementById('portal-download').value = p.downloadKbps || ''
+      document.getElementById('portal-upload').value = p.uploadKbps || ''
+      document.getElementById('portal-template').value = p.template
+      document.getElementById('portal-title').value = p.title || 'Bienvenido'
+      document.getElementById('portal-subtitle').value = p.subtitle || ''
+      document.getElementById('portal-button').value = p.buttonText || 'Comenzar'
+      document.getElementById('portal-bg').value = p.bgColor || '#0f1117'
+      document.getElementById('portal-accent').value = p.accentColor || '#4f8ef7'
+      document.getElementById('portal-logo').value = p.logoUrl || ''
+      document.getElementById('portal-custom-html').value = p.customHtml || ''
+      document.getElementById('portal-embed').value = p.embedCode || ''
+      await loadPortalModalData()
+      document.getElementById('portal-interface').value = p.interface
+      if (p.groupId) document.getElementById('portal-group').value = p.groupId
+      updatePortalModeUI(); updateTemplateUI(); updatePreview()
+      new bootstrap.Modal(document.getElementById('portalModal')).show()
+    }
+
+    async function loadPortalModalData() {
+      const [ifRes, grRes] = await Promise.all([
+        fetch('/api/captive/interfaces', { headers: h.headers }),
+        fetch('/api/captive/groups', { headers: h.headers })
+      ])
+      allGroups = (await grRes.json()).groups || []
+      document.getElementById('portal-interface').innerHTML = ((await ifRes.json()).interfaces || []).map(i =>
+        `<option value="${i.name}">${i.name} — ${i.description || i.role}</option>`).join('')
+      document.getElementById('portal-group').innerHTML = '<option value="">Sin grupo específico</option>' +
+        allGroups.map(g => `<option value="${g.id}">${g.name}</option>`).join('')
+    }
+
+    function updatePortalModeUI() {
+      document.getElementById('portal-group-section').style.display =
+        document.getElementById('portal-mode').value === 'groups' ? 'block' : 'none'
+    }
+
+    function updateTemplateUI() {
+      const tmpl = document.getElementById('portal-template').value
+      document.getElementById('template-default-section').style.display = tmpl === 'default' ? 'block' : 'none'
+      document.getElementById('template-custom-section').style.display = tmpl === 'custom' ? 'block' : 'none'
+      document.getElementById('template-embed-section').style.display = tmpl === 'embed' ? 'block' : 'none'
+    }
+
+    function updatePreview() {
+      const tmpl = document.getElementById('portal-template').value
+      const title = document.getElementById('portal-title').value || 'Bienvenido'
+      const subtitle = document.getElementById('portal-subtitle').value || ''
+      const btnText = document.getElementById('portal-button').value || 'Comenzar'
+      const bg = document.getElementById('portal-bg').value || '#0f1117'
+      const accent = document.getElementById('portal-accent').value || '#4f8ef7'
+      const logo = document.getElementById('portal-logo').value || ''
+      const mode = document.getElementById('portal-mode').value
+      let html = ''
+      if (tmpl === 'custom') {
+        html = document.getElementById('portal-custom-html').value
+      } else if (tmpl === 'embed') {
+        html = `<html><body style="margin:0">${document.getElementById('portal-embed').value}</body></html>`
+      } else {
+        const authFields = (mode === 'users' || mode === 'groups') ? `
+          <input type="text" placeholder="Usuario" style="width:100%;padding:10px;border-radius:8px;border:1px solid #2d3148;background:#1a1f35;color:#e2e8f0;font-size:0.9rem;box-sizing:border-box;margin-bottom:6px">
+          <input type="password" placeholder="Contraseña" style="width:100%;padding:10px;border-radius:8px;border:1px solid #2d3148;background:#1a1f35;color:#e2e8f0;font-size:0.9rem;box-sizing:border-box;margin-bottom:16px">` : ''
+        html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,sans-serif;background:${bg};min-height:100vh;display:flex;align-items:center;justify-content:center}.card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:32px;max-width:380px;width:90%;text-align:center}.logo{width:64px;height:64px;border-radius:50%;background:${accent};display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:1.6rem}h1{color:#e2e8f0;font-size:1.4rem;margin-bottom:6px}p{color:#94a3b8;margin-bottom:24px;font-size:0.88rem}button{background:${accent};color:white;border:none;padding:12px 28px;border-radius:10px;font-size:0.95rem;font-weight:600;cursor:pointer;width:100%}</style></head><body><div class="card"><div class="logo">${logo?`<img src="${logo}" style="width:48px;height:48px;border-radius:50%;object-fit:cover">`:'🌐'}</div><h1>${title}</h1><p>${subtitle}</p>${authFields}<button>${btnText}</button></div></body></html>`
+      }
+      document.getElementById('portal-preview').srcdoc = html
+    }
+
+    async function savePortal() {
+      const id = document.getElementById('portal-id').value
+      const body = {
+        name: document.getElementById('portal-name').value.trim() || 'Portal',
+        interface: document.getElementById('portal-interface').value,
+        mode: document.getElementById('portal-mode').value,
+        groupId: document.getElementById('portal-group').value || null,
+        sessionMinutes: parseInt(document.getElementById('portal-session').value) || 60,
+        downloadKbps: parseInt(document.getElementById('portal-download').value) || 0,
+        uploadKbps: parseInt(document.getElementById('portal-upload').value) || 0,
+        template: document.getElementById('portal-template').value,
+        title: document.getElementById('portal-title').value,
+        subtitle: document.getElementById('portal-subtitle').value,
+        buttonText: document.getElementById('portal-button').value,
+        bgColor: document.getElementById('portal-bg').value,
+        accentColor: document.getElementById('portal-accent').value,
+        logoUrl: document.getElementById('portal-logo').value,
+        customHtml: document.getElementById('portal-custom-html').value,
+        embedCode: document.getElementById('portal-embed').value
+      }
+      if (!body.interface) return showAlert('Seleccioná una interfaz', true)
+      const btn = document.getElementById('save-portal-btn')
+      btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...'
+      const res = id
+        ? await fetch('/api/captive/portals/' + id, { method: 'PUT', ...h, body: JSON.stringify(body) })
+        : await fetch('/api/captive/portals', { method: 'POST', ...h, body: JSON.stringify(body) })
+      const data = await res.json()
+      btn.disabled = false; btn.innerHTML = '<i class="bi bi-floppy me-1"></i>Guardar Portal'
+      bootstrap.Modal.getInstance(document.getElementById('portalModal')).hide()
+      if (data.success || data.portal) { showAlert(id ? 'Portal actualizado' : 'Portal creado'); loadPortals() }
+      else showAlert(data.error || 'Error', true)
+    }
+
+    async function enablePortal(id) {
+      const res = await fetch('/api/captive/portals/' + id + '/enable', { method: 'POST', ...h, body: '{}' })
+      const data = await res.json()
+      if (data.success) { showAlert('Portal activado'); loadPortals() }
+      else showAlert(data.error || 'Error', true)
+    }
+
+    async function disablePortal(id) {
+      if (!confirm('¿Desactivar este portal? Los clientes podrán navegar libremente.')) return
+      const res = await fetch('/api/captive/portals/' + id + '/disable', { method: 'POST', ...h, body: '{}' })
+      const data = await res.json()
+      if (data.success) { showAlert('Portal desactivado'); loadPortals() }
+      else showAlert(data.error || 'Error', true)
+    }
+
+    async function deletePortal(id) {
+      if (!confirm('¿Eliminar este portal?')) return
+      const res = await fetch('/api/captive/portals/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } })
+      const data = await res.json()
+      if (data.success) { showAlert('Portal eliminado'); loadPortals() }
+      else showAlert(data.error || 'Error', true)
+    }
+
+    // ── GROUPS ────────────────────────────────────────────────────────────────
+    async function loadGroups() {
+      const res = await fetch('/api/captive/groups', { headers: h.headers })
+      allGroups = (await res.json()).groups || []
+      const container = document.getElementById('groups-container')
+      if (allGroups.length === 0) {
+        container.innerHTML = `<div class="empty-state"><i class="bi bi-people" style="font-size:2rem;opacity:0.3;display:block;margin-bottom:8px"></i>No hay grupos</div>`
+        return
+      }
+      container.innerHTML = `<div class="data-table"><table class="table table-dark table-hover mb-0">
+        <thead><tr><th>Nombre</th><th>Descripción</th><th>Sesión</th><th>↓ DL</th><th>↑ UL</th><th>Acciones</th></tr></thead>
+        <tbody>${allGroups.map(g => `<tr>
+          <td style="font-weight:600">${g.name}</td>
+          <td style="color:var(--text-muted)">${g.description || '—'}</td>
+          <td>${g.sessionMinutes} min</td>
+          <td style="color:#22c55e">${formatKbps(g.downloadKbps)}</td>
+          <td style="color:#f59e0b">${formatKbps(g.uploadKbps)}</td>
+          <td><div style="display:flex;gap:4px">
+            <button class="btn btn-primary-soft" onclick="openEditGroup('${g.id}')"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-danger-soft" onclick="deleteGroup('${g.id}')"><i class="bi bi-trash"></i></button>
+          </div></td>
+        </tr>`).join('')}</tbody>
+      </table></div>`
+    }
+
+    function openCreateGroup() {
+      document.getElementById('group-id').value = ''
+      document.getElementById('group-modal-title').innerHTML = '<i class="bi bi-people me-2"></i>Nuevo Grupo'
+      document.getElementById('group-name').value = ''
+      document.getElementById('group-description').value = ''
+      document.getElementById('group-session').value = '60'
+      document.getElementById('group-download').value = ''
+      document.getElementById('group-upload').value = ''
+      new bootstrap.Modal(document.getElementById('groupModal')).show()
+    }
+
+    function openEditGroup(id) {
+      const g = allGroups.find(g => g.id === id)
+      if (!g) return
+      document.getElementById('group-id').value = id
+      document.getElementById('group-modal-title').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Grupo'
+      document.getElementById('group-name').value = g.name
+      document.getElementById('group-description').value = g.description || ''
+      document.getElementById('group-session').value = g.sessionMinutes
+      document.getElementById('group-download').value = g.downloadKbps || ''
+      document.getElementById('group-upload').value = g.uploadKbps || ''
+      new bootstrap.Modal(document.getElementById('groupModal')).show()
+    }
+
+    async function saveGroup() {
+      const id = document.getElementById('group-id').value
+      const body = {
+        name: document.getElementById('group-name').value.trim(),
+        description: document.getElementById('group-description').value.trim(),
+        sessionMinutes: parseInt(document.getElementById('group-session').value) || 60,
+        downloadKbps: parseInt(document.getElementById('group-download').value) || 0,
+        uploadKbps: parseInt(document.getElementById('group-upload').value) || 0
+      }
+      if (!body.name) return showAlert('El nombre es requerido', true)
+      const res = await fetch(id ? '/api/captive/groups/' + id : '/api/captive/groups', {
+        method: id ? 'PUT' : 'POST', ...h, body: JSON.stringify(body)
+      })
+      const data = await res.json()
+      bootstrap.Modal.getInstance(document.getElementById('groupModal')).hide()
+      if (data.success) { showAlert(id ? 'Grupo actualizado' : 'Grupo creado'); loadGroups() }
+      else showAlert(data.error || 'Error', true)
+    }
+
+    async function deleteGroup(id) {
+      if (!confirm('¿Eliminar este grupo?')) return
+      const res = await fetch('/api/captive/groups/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } })
+      const data = await res.json()
+      if (data.success) { showAlert('Grupo eliminado'); loadGroups() }
+      else showAlert(data.error || 'Error', true)
+    }
+
+    // ── USERS ─────────────────────────────────────────────────────────────────
+    async function loadUsers() {
+      const [usersRes, groupsRes] = await Promise.all([
+        fetch('/api/captive/users', { headers: h.headers }),
+        fetch('/api/captive/groups', { headers: h.headers })
+      ])
+      allGroups = (await groupsRes.json()).groups || []
+      allUsers = (await usersRes.json()).users || []
+      const container = document.getElementById('users-container')
+      if (allUsers.length === 0) {
+        container.innerHTML = `<div class="empty-state"><i class="bi bi-person" style="font-size:2rem;opacity:0.3;display:block;margin-bottom:8px"></i>No hay usuarios</div>`
+        return
+      }
+      container.innerHTML = `<div class="data-table"><table class="table table-dark table-hover mb-0">
+        <thead><tr><th>Usuario</th><th>Grupo</th><th>Estado</th><th>Creado</th><th>Acciones</th></tr></thead>
+        <tbody>${allUsers.map(u => {
+          const group = allGroups.find(g => g.id === u.groupId)
+          return `<tr>
+            <td style="font-weight:600;color:var(--accent)">${u.username}</td>
+            <td style="color:var(--text-muted)">${group ? group.name : '—'}</td>
+            <td><span class="${u.enabled !== false ? 'badge-enabled' : 'badge-disabled'}">${u.enabled !== false ? 'Activo' : 'Inactivo'}</span></td>
+            <td style="color:var(--text-muted);font-size:0.78rem">${new Date(u.createdAt).toLocaleDateString()}</td>
+            <td><div style="display:flex;gap:4px">
+              <button class="btn btn-primary-soft" onclick="openEditUser('${u.id}')"><i class="bi bi-pencil"></i></button>
+              <button class="btn btn-danger-soft" onclick="deleteUser('${u.id}')"><i class="bi bi-trash"></i></button>
+            </div></td>
+          </tr>`
+        }).join('')}</tbody>
+      </table></div>`
+    }
+
+    async function openCreateUser() {
+      const res = await fetch('/api/captive/groups', { headers: h.headers })
+      allGroups = (await res.json()).groups || []
+      document.getElementById('user-id').value = ''
+      document.getElementById('user-modal-title').innerHTML = '<i class="bi bi-person me-2"></i>Nuevo Usuario'
+      document.getElementById('user-username').value = ''
+      document.getElementById('user-password').value = ''
+      document.getElementById('user-enabled').checked = true
+      document.getElementById('user-pass-hint').textContent = '(requerida)'
+      document.getElementById('user-group').innerHTML = '<option value="">Sin grupo</option>' +
+        allGroups.map(g => `<option value="${g.id}">${g.name}</option>`).join('')
+      new bootstrap.Modal(document.getElementById('userModal')).show()
+    }
+
+    async function openEditUser(id) {
+      const u = allUsers.find(u => u.id === id)
+      if (!u) return
+      const res = await fetch('/api/captive/groups', { headers: h.headers })
+      allGroups = (await res.json()).groups || []
+      document.getElementById('user-id').value = id
+      document.getElementById('user-modal-title').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Usuario'
+      document.getElementById('user-username').value = u.username
+      document.getElementById('user-password').value = ''
+      document.getElementById('user-enabled').checked = u.enabled !== false
+      document.getElementById('user-pass-hint').textContent = '(dejala vacía para no cambiar)'
+      document.getElementById('user-group').innerHTML = '<option value="">Sin grupo</option>' +
+        allGroups.map(g => `<option value="${g.id}" ${g.id === u.groupId ? 'selected' : ''}>${g.name}</option>`).join('')
+      new bootstrap.Modal(document.getElementById('userModal')).show()
+    }
+
+    async function saveUser() {
+      const id = document.getElementById('user-id').value
+      const pw = document.getElementById('user-password').value
+      if (!id && !pw) return showAlert('La contraseña es requerida', true)
+      const username = document.getElementById('user-username').value.trim()
+      if (!username) return showAlert('El usuario es requerido', true)
+      const body = {
+        username,
+        groupId: document.getElementById('user-group').value || null,
+        enabled: document.getElementById('user-enabled').checked
+      }
+      if (pw) body.password = pw
+      const res = await fetch(id ? '/api/captive/users/' + id : '/api/captive/users', {
+        method: id ? 'PUT' : 'POST', ...h, body: JSON.stringify(body)
+      })
+      const data = await res.json()
+      bootstrap.Modal.getInstance(document.getElementById('userModal')).hide()
+      if (data.success) { showAlert(id ? 'Usuario actualizado' : 'Usuario creado'); loadUsers() }
+      else showAlert(data.error || 'Error', true)
+    }
+
+    async function deleteUser(id) {
+      if (!confirm('¿Eliminar este usuario?')) return
+      const res = await fetch('/api/captive/users/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } })
+      const data = await res.json()
+      if (data.success) { showAlert('Usuario eliminado'); loadUsers() }
+      else showAlert(data.error || 'Error', true)
+    }
+
+    // ── SESSIONS ──────────────────────────────────────────────────────────────
+    async function loadSessions() {
+      const res = await fetch('/api/captive/sessions', { headers: h.headers })
+      const sessions = (await res.json()).sessions || []
+      const container = document.getElementById('sessions-container')
+      if (sessions.length === 0) {
+        container.innerHTML = `<div class="empty-state"><i class="bi bi-clock-history" style="font-size:2rem;opacity:0.3;display:block;margin-bottom:8px"></i>No hay sesiones activas</div>`
+        return
+      }
+      container.innerHTML = `<div class="data-table"><table class="table table-dark table-hover mb-0">
+        <thead><tr><th>IP</th><th>Usuario</th><th>Portal</th><th>Inicio</th><th>Vence</th><th>Restante</th><th>Acción</th></tr></thead>
+        <tbody>${sessions.map(s => {
+          const portal = allPortals.find(p => p.id === s.portalId)
+          const expires = new Date(s.expiresAt)
+          const remaining = Math.max(0, Math.round((expires - new Date()) / 60000))
+          return `<tr>
+            <td style="font-family:monospace;color:var(--accent)">${s.ip}</td>
+            <td>${s.username || 'guest'}</td>
+            <td style="color:var(--text-muted)">${portal ? portal.name : '—'}</td>
+            <td style="color:var(--text-muted);font-size:0.78rem">${new Date(s.createdAt).toLocaleString()}</td>
+            <td style="color:var(--text-muted);font-size:0.78rem">${expires.toLocaleString()}</td>
+            <td style="color:${remaining < 10 ? '#f87171' : '#22c55e'};font-weight:600">${remaining} min</td>
+            <td><button class="btn btn-danger-soft" onclick="killSession('${s.id}','${s.ip}')"><i class="bi bi-x-circle me-1"></i>Desconectar</button></td>
+          </tr>`
+        }).join('')}</tbody>
+      </table></div>`
+    }
+
+    async function killSession(sessionId, ip) {
+      if (!confirm('¿Desconectar ' + ip + '? Tendrá que loguearse de nuevo.')) return
+      const res = await fetch('/api/captive/sessions/' + sessionId, {
+        method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token }
+      })
+      const data = await res.json()
+      if (data.success) { showAlert('Sesión de ' + ip + ' terminada'); loadSessions() }
+      else showAlert(data.error || 'Error', true)
+    }
+
+    async function cleanSessions() {
+      const res = await fetch('/api/captive/sessions/clean', { method: 'POST', ...h, body: '{}' })
+      const data = await res.json()
+      showAlert((data.expired || 0) + ' sesiones expiradas eliminadas')
+      loadSessions()
+    }
+
+    async function killAllSessions() {
+      if (!confirm('¿Desconectar TODAS las sesiones activas?')) return
+      const res = await fetch('/api/captive/sessions/killall', { method: 'POST', ...h, body: '{}' })
+      const data = await res.json()
+      showAlert('Todas las sesiones terminadas (' + (data.killed || 0) + ')')
+      loadSessions()
+    }
+
+    // Live preview
+    ['portal-title','portal-subtitle','portal-button','portal-logo'].forEach(id => {
+      const el = document.getElementById(id)
+      if (el) el.addEventListener('input', updatePreview)
+    })
+    ;['portal-bg','portal-accent'].forEach(id => {
+      const el = document.getElementById(id)
+      if (el) el.addEventListener('change', updatePreview)
+    })
+
+    loadPortals()
+    setInterval(async () => {
+      try { await fetch('/api/captive/sessions/clean', { method: 'POST', ...h, body: '{}' }) } catch(e) {}
+    }, 5 * 60 * 1000)
+  </script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bienvenido a KEKO</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 40px; max-width: 420px; width: 90%; text-align: center; backdrop-filter: blur(10px); }
+    .logo { width: 80px; height: 80px; border-radius: 50%; background: #4f8ef7; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 2rem; }
+    h1 { color: #e2e8f0; font-size: 1.6rem; margin-bottom: 8px; }
+    p { color: #94a3b8; margin-bottom: 28px; font-size: 0.95rem; line-height: 1.5; }
+    button { background: #4f8ef7; color: white; border: none; padding: 14px 32px; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; transition: opacity 0.2s; }
+    button:hover { opacity: 0.85; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 0.85rem; display: none; }
+    .success { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 0.85rem; display: none; }
+    input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #2d3148; background: #1a1f35; color: #e2e8f0; font-size: 1rem; margin-bottom: 8px; }
+    input:focus { outline: none; border-color: #4f8ef7; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">🌐</div>
+    <h1>Bienvenido a KEKO</h1>
+    <p>Logueate y navegá</p>
+    <div class="error" id="error-msg"></div>
+    <div class="success" id="success-msg"></div>
+    
+    <div style="margin-bottom:16px">
+      <input type="text" id="username" placeholder="Usuario" style="width:100%;padding:12px;border-radius:8px;border:1px solid #2d3148;background:#1a1f35;color:#e2e8f0;font-size:1rem;box-sizing:border-box;margin-bottom:8px">
+      <input type="password" id="password" placeholder="Contraseña" style="width:100%;padding:12px;border-radius:8px;border:1px solid #2d3148;background:#1a1f35;color:#e2e8f0;font-size:1rem;box-sizing:border-box">
+    </div>
+    <button id="btn" onclick="connect()">Navegar</button>
+  </div>
+  <script>
+    const PORTAL_ID = '1778176901933'
+    async function connect() {
+      const btn = document.getElementById('btn')
+      const errorEl = document.getElementById('error-msg')
+      const successEl = document.getElementById('success-msg')
+      errorEl.style.display = 'none'
+      btn.disabled = true
+      btn.textContent = 'Conectando...'
+      const body = { portalId: PORTAL_ID }
+      const unField = document.getElementById('username')
+      const pwField = document.getElementById('password')
+      if (unField) body.username = unField.value
+      if (pwField) body.password = pwField.value
+      try {
+        const res = await fetch('/captive/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        })
+        const data = await res.json()
+        if (data.success) {
+          successEl.textContent = '✓ Conectado — redirigiendo...'
+          successEl.style.display = 'block'
+          setTimeout(() => window.location.href = 'http://detectportal.firefox.com/', 2000)
+        } else {
+          errorEl.textContent = data.error || 'Error de autenticación'
+          errorEl.style.display = 'block'
+          btn.disabled = false
+          btn.textContent = 'Navegar'
+        }
+      } catch(e) {
+        errorEl.textContent = 'Error de conexión'
+        errorEl.style.display = 'block'
+        btn.disabled = false
+        btn.textContent = 'Navegar'
+      }
+    }
+  </script>
+</body>
+</html>
