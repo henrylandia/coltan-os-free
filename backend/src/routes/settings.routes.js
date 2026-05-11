@@ -72,6 +72,43 @@ async function settingsRoutes(fastify, options) {
     return await updatePackages()
   })
 
+  fastify.get('/api/settings/coltan/version', { onRequest: [fastify.authenticate] }, async (req, reply) => {
+    const { exec } = require('child_process')
+    const { promisify } = require('util')
+    const execAsync = promisify(exec)
+    try {
+      const { stdout: local } = await execAsync('cd /opt/coltanos && git rev-parse --short HEAD 2>/dev/null')
+      const { stdout: branch } = await execAsync('cd /opt/coltanos && git rev-parse --abbrev-ref HEAD 2>/dev/null')
+      const { stdout: lastCommit } = await execAsync('cd /opt/coltanos && git log -1 --format="%s|%ar" 2>/dev/null')
+      const { stdout: remote } = await execAsync('cd /opt/coltanos && git fetch origin 2>/dev/null; git rev-parse --short origin/main 2>/dev/null || echo ""')
+      const localHash = local.trim()
+      const remoteHash = remote.trim()
+      const [message, date] = lastCommit.trim().split('|')
+      return {
+        localHash,
+        remoteHash,
+        branch: branch.trim(),
+        upToDate: localHash === remoteHash || !remoteHash,
+        lastCommit: message || '',
+        lastCommitDate: date || '',
+        version: 'v0.1.0'
+      }
+    } catch(e) { return { error: e.message } }
+  })
+
+  fastify.post('/api/settings/coltan/update', { onRequest: [fastify.authenticate] }, async (req, reply) => {
+    const { exec } = require('child_process')
+    const { promisify } = require('util')
+    const execAsync = promisify(exec)
+    try {
+      const { stdout: pull } = await execAsync('cd /opt/coltanos && git pull origin main 2>&1')
+      const { stdout: hash } = await execAsync('cd /opt/coltanos && git rev-parse --short HEAD 2>/dev/null')
+      // Restart backend after update
+      setTimeout(() => execAsync('pm2 restart coltanos-backend 2>/dev/null'), 2000)
+      return { success: true, output: pull.trim(), hash: hash.trim() }
+    } catch(e) { return { success: false, error: e.message } }
+  })
+
   fastify.get('/api/settings/update/log', { onRequest: [fastify.authenticate] }, async (request, reply) => {
     return { log: await getUpdateLog() }
   })

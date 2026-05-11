@@ -76,9 +76,27 @@
           </button>
         </div>
 
+        <!-- Coltan OS Updates -->
         <div class="settings-card">
-          <h6><i class="bi bi-arrow-up-circle me-2"></i>System Updates</h6>
-          <p style="color:var(--text-muted);font-size:0.85rem">Update all system packages. Runs in background.</p>
+          <h6><i class="bi bi-cloud-download me-2"></i>Coltan OS Updates</h6>
+          <div id="coltan-version-container">
+            <div class="text-muted" style="font-size:0.85rem">Verificando versión...</div>
+          </div>
+          <div class="d-flex gap-2 mt-3">
+            <button class="btn btn-primary-soft" onclick="checkColtanVersion()" id="check-update-btn">
+              <i class="bi bi-search me-1"></i>Verificar actualizaciones
+            </button>
+            <button class="btn btn-accent" onclick="updateColtan()" id="coltan-update-btn" style="display:none">
+              <i class="bi bi-cloud-download me-1"></i>Actualizar Coltan OS
+            </button>
+          </div>
+          <div class="log-container" id="coltan-update-log"></div>
+        </div>
+
+        <!-- System Package Updates -->
+        <div class="settings-card">
+          <h6><i class="bi bi-arrow-up-circle me-2"></i>System Package Updates</h6>
+          <p style="color:var(--text-muted);font-size:0.85rem">Actualizar paquetes del sistema FreeBSD. Corre en background.</p>
           <div class="d-flex gap-2">
             <button class="btn btn-warning-soft" onclick="runUpdate()" id="update-btn">
               <i class="bi bi-arrow-up-circle me-2"></i>Update Packages
@@ -404,6 +422,91 @@
     }
 
     loadSysInfo()
+    checkColtanVersion()
+
+    async function checkColtanVersion() {
+      const btn = document.getElementById('check-update-btn')
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Verificando...'
+      btn.disabled = true
+      try {
+        const res = await fetch('/api/settings/coltan/version', { headers: h.headers })
+        const data = await res.json()
+        const container = document.getElementById('coltan-version-container')
+        const updateBtn = document.getElementById('coltan-update-btn')
+
+        if (data.error) {
+          container.innerHTML = `<div style="color:#f87171;font-size:0.85rem"><i class="bi bi-exclamation-triangle me-1"></i>${data.error}</div>`
+        } else if (data.upToDate) {
+          container.innerHTML = `
+            <div style="display:flex;gap:16px;flex-wrap:wrap">
+              <div><div style="font-size:0.75rem;color:var(--text-muted)">Versión actual</div><div style="font-family:monospace;color:#22c55e">${data.localHash}</div></div>
+              <div><div style="font-size:0.75rem;color:var(--text-muted)">Branch</div><div style="font-family:monospace;color:var(--accent)">${data.branch}</div></div>
+              <div><div style="font-size:0.75rem;color:var(--text-muted)">Último commit</div><div style="font-size:0.82rem;color:var(--text-primary)">${data.lastCommit} <span style="color:var(--text-muted)">(${data.lastCommitDate})</span></div></div>
+            </div>
+            <div style="margin-top:10px;padding:8px 12px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);border-radius:8px;font-size:0.82rem;color:#22c55e">
+              <i class="bi bi-check-circle me-1"></i>Coltan OS está actualizado
+            </div>`
+          updateBtn.style.display = 'none'
+        } else {
+          container.innerHTML = `
+            <div style="display:flex;gap:16px;flex-wrap:wrap">
+              <div><div style="font-size:0.75rem;color:var(--text-muted)">Versión actual</div><div style="font-family:monospace;color:#f59e0b">${data.localHash}</div></div>
+              <div><div style="font-size:0.75rem;color:var(--text-muted)">Versión disponible</div><div style="font-family:monospace;color:#22c55e">${data.remoteHash}</div></div>
+              <div><div style="font-size:0.75rem;color:var(--text-muted)">Branch</div><div style="font-family:monospace;color:var(--accent)">${data.branch}</div></div>
+            </div>
+            <div style="margin-top:10px;padding:8px 12px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:8px;font-size:0.82rem;color:#f59e0b">
+              <i class="bi bi-cloud-download me-1"></i>Hay una actualización disponible — hacé clic en "Actualizar Coltan OS"
+            </div>`
+          updateBtn.style.display = 'inline-flex'
+        }
+      } catch(e) {
+        document.getElementById('coltan-version-container').innerHTML = `<div style="color:#f87171;font-size:0.85rem">Error verificando versión</div>`
+      }
+      btn.innerHTML = '<i class="bi bi-search me-1"></i>Verificar actualizaciones'
+      btn.disabled = false
+    }
+
+    async function updateColtan() {
+      if (!confirm('¿Actualizar Coltan OS? El backend se reiniciará automáticamente. El panel no estará disponible por ~30 segundos.')) return
+      const btn = document.getElementById('coltan-update-btn')
+      const log = document.getElementById('coltan-update-log')
+      btn.disabled = true
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Actualizando...'
+      log.style.display = 'block'
+      log.textContent = 'Descargando actualización...'
+      try {
+        const res = await fetch('/api/settings/coltan/update', { method: 'POST', ...h, body: '{}' })
+        const data = await res.json()
+        if (data.success) {
+          log.textContent = data.output + '\n\nReiniciando backend...'
+          showAlert('Coltan OS actualizado — reconectando...')
+          setTimeout(() => {
+            let attempts = 0
+            function tryReconnect() {
+              attempts++
+              log.textContent += '\nIntento ' + attempts + ' de reconexión...'
+              fetch('/api/health').then(r => {
+                if (r.ok) {
+                  log.textContent += '\n✓ Backend online'
+                  checkColtanVersion()
+                  btn.disabled = false
+                  btn.innerHTML = '<i class="bi bi-cloud-download me-1"></i>Actualizar Coltan OS'
+                }
+              }).catch(() => setTimeout(tryReconnect, 3000))
+            }
+            setTimeout(tryReconnect, 5000)
+          }, 2000)
+        } else {
+          log.textContent = 'Error: ' + (data.error || 'desconocido')
+          btn.disabled = false
+          btn.innerHTML = '<i class="bi bi-cloud-download me-1"></i>Actualizar Coltan OS'
+        }
+      } catch(e) {
+        log.textContent = 'Error de conexión'
+        btn.disabled = false
+        btn.innerHTML = '<i class="bi bi-cloud-download me-1"></i>Actualizar Coltan OS'
+      }
+    }
   </script>
 </body>
 </html>
