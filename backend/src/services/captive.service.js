@@ -388,7 +388,7 @@ async function generatePortalHTML(portal) {
         if (data.success) {
           successEl.textContent = '✓ Conectado — redirigiendo...'
           successEl.style.display = 'block'
-          setTimeout(() => window.location.href = 'http://detectportal.firefox.com/', 2000)
+          setTimeout(() => window.location.href = 'http://google.com', 2000)
         } else {
           errorEl.textContent = data.error || 'Error de autenticación'
           errorEl.style.display = 'block'

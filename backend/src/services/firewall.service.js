@@ -58,8 +58,20 @@ async function getDefaultRules(wan, lans) {
     makeRule('sys-openvpn', 'pass', 'in', 'udp', wan, 'any', '', 'any', '1194', 'Allow OpenVPN', true),
     makeRule('sys-ssh', 'pass', 'in', 'tcp', wan, 'any', '', 'any', '22', 'Allow SSH', true),
   ]
+
+  // Check which LAN interfaces have an active captive portal
+  let captiveIfaces = []
+  try {
+    const portals = JSON.parse(require('fs').readFileSync('/usr/local/etc/coltan/captive/portals.json', 'utf8'))
+    captiveIfaces = portals.filter(p => p.enabled).map(p => p.interface)
+  } catch(e) {}
+
   lans.forEach(lan => {
-    rules.push(makeRule(`sys-lan-${lan}`, 'pass', 'in', 'any', lan, 'any', '', 'any', '', `Allow all LAN traffic (${lan})`, true))
+    if (!captiveIfaces.includes(lan)) {
+      // No captive portal on this interface — allow all LAN traffic
+      rules.push(makeRule(`sys-lan-${lan}`, 'pass', 'in', 'any', lan, 'any', '', 'any', '', `Allow all LAN traffic (${lan})`, true))
+    }
+    // Always allow WebUI access from LAN
     rules.push(makeRule(`sys-webui-lan-${lan}`, 'pass', 'in', 'tcp', lan, 'any', '', 'any', '3000', `Allow WebUI from LAN (${lan})`, true))
   })
   return rules
@@ -260,7 +272,19 @@ scrub in all
     conf += `pass out on wg0 all keep state\n`
   }
 
-  // ── 2. Port Forwards (rdr - translation, before filtering) ───────────────
+  // ── 2. Captive Portal rdr (must be in main pf.conf, not anchor) ───────────
+  try {
+    const portals = JSON.parse(require('fs').readFileSync('/usr/local/etc/coltan/captive/portals.json', 'utf8'))
+    const enabledPortals = portals.filter(p => p.enabled)
+    if (enabledPortals.length > 0) {
+      conf += `\n# Captive Portal\ntable <captive_allowed> persist\n`
+      for (const portal of enabledPortals) {
+        conf += `rdr pass on ${portal.interface} proto tcp from any to any port 80 -> 127.0.0.1 port 4080\n`
+      }
+    }
+  } catch(e) {}
+
+  // ── 3. Port Forwards (rdr - translation, before filtering) ───────────────
   const enabledForwards = portForwards.filter(p => p.enabled)
   if (enabledForwards.length > 0) {
     conf += `\n# Port Forwarding\n`
@@ -273,19 +297,37 @@ scrub in all
   conf += `\n# Default: pass out, block only what's explicitly blocked\npass out all keep state\n`
   conf += `\n# WireGuard interface - allow all traffic\npass quick on wg0 all keep state\n`
 
-  // ── 3. Blocked IPs (filtering - after NAT) ────────────────────────────────
+  // ── 4. Blocked IPs (filtering - after NAT) ────────────────────────────────
   if (blockedIPs.length > 0) {
     conf += `\n# Blocked IPs\ntable <blocked> { ${blockedIPs.map(i => i.ip).join(', ')} }\nblock in quick from <blocked> to any\nblock out quick from any to <blocked>\n`
   }
 
-  // ── 4. Port forward pass rules ────────────────────────────────────────────
+  // ── 5. Port forward pass rules ────────────────────────────────────────────
   if (enabledForwards.length > 0) {
     enabledForwards.forEach(p => {
       conf += `pass in on $ext_if proto ${p.protocol} from any to ${p.intIP} port ${p.intPort} keep state\n`
     })
   }
 
-  // ── 5. Firewall rules (system + custom) ───────────────────────────────────
+  // ── 6. Captive portal filtering rules (allow authenticated, block rest) ───
+  try {
+    const portals = JSON.parse(require('fs').readFileSync('/usr/local/etc/coltan/captive/portals.json', 'utf8'))
+    const enabledPortals = portals.filter(p => p.enabled)
+    if (enabledPortals.length > 0) {
+      conf += `\n# Captive Portal filtering\n`
+      for (const portal of enabledPortals) {
+        const iface = portal.interface
+        conf += `pass quick on ${iface} from <captive_allowed> to any keep state\n`
+        conf += `pass quick on ${iface} from any to <captive_allowed> keep state\n`
+        conf += `pass quick on ${iface} proto udp from any to any port 53 keep state\n`
+        conf += `pass quick on ${iface} proto udp from any to any port 67 keep state\n`
+        conf += `pass quick on ${iface} to 127.0.0.1 port 4080 keep state\n`
+        conf += `block in quick on ${iface} from any to any\n`
+      }
+    }
+  } catch(e) {}
+
+  // ── 7. Firewall rules (system + custom) ───────────────────────────────────
   const enabledRules = rules.filter(r => r.enabled)
   if (enabledRules.length > 0) {
     conf += `\n# Firewall Rules\n`

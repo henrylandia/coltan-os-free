@@ -24,9 +24,6 @@ function loadSidebar(activePage) {
         <a href="/pages/qos.html" class="nav-item ${activePage === 'qos' ? 'active' : ''}">
           <i class="bi bi-speedometer"></i> QoS
         </a>
-        <a href="/pages/captive.html" class="nav-item ${activePage === 'captive' ? 'active' : ''}">
-          <i class="bi bi-wifi"></i> Portal Cautivo
-        </a>
         <div class="nav-group">
           <div class="nav-group-title"><i class="bi bi-lock"></i> VPN</div>
           <a href="/pages/wireguard.html" class="nav-item nav-sub ${activePage === 'wireguard' ? 'active' : ''}">

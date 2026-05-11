@@ -48,7 +48,6 @@ fastify.register(require('./routes/security.routes'))
 fastify.register(require('./routes/suricata.routes'))
 fastify.register(require('./routes/vlans.routes'))
 fastify.register(require('./routes/qos.routes'))
-fastify.register(require('./routes/captive.routes'))
 // WebSockets
 fastify.register(require('@fastify/websocket'))
 fastify.register(require('./routes/ws.routes'))
@@ -96,9 +95,11 @@ const start = async () => {
     const { restoreQoS } = require('./services/qos.service')
     try { await restoreQoS(); console.log('[QoS] Rules restored') } catch(e) {}
 
-    // Restore captive portals after reboot
-    const { restoreCaptive } = require('./services/captive.service')
-    try { const r = await restoreCaptive(); console.log('[Captive] Restored:', r.restored) } catch(e) {}
+// Captive portal session cleanup every minute
+    const { cleanExpiredSessions } = require('./services/captive.service')
+    setInterval(async () => {
+      try { await cleanExpiredSessions() } catch(e) {}
+    }, 60 * 1000) // Every minute
 
     // Start Suricata auto-block watcher
     const { startWatcher } = require('./services/suricata-autoblock')
