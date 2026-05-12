@@ -1,3 +1,17 @@
+
+// Interceptor global — detecta 401 y redirige al login
+const _originalFetch = window.fetch
+window.fetch = async function(...args) {
+  const res = await _originalFetch(...args)
+  if (res.status === 401) {
+    localStorage.removeItem('coltan_token')
+    localStorage.removeItem('coltan_user')
+    window.location.href = '/login.html'
+    return res
+  }
+  return res
+}
+
 function loadSidebar(activePage) {
   const sidebar = `
     <div class="sidebar">
