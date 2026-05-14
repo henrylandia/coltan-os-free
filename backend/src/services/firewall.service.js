@@ -135,7 +135,8 @@ async function updateRule(id, data) {
 
 async function deleteRule(id) {
   const rules = await getRules()
-  const filtered = rules.filter(r => r.id !== id)
+  const filtered = rules.filter(r => String(r.id) !== String(id))
+  if (filtered.length === rules.length) return { success: false, error: 'Rule not found' }
   await saveRules(filtered)
   await generateAndReload()
   return { success: true }
