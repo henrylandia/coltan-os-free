@@ -476,7 +476,7 @@
 
     async function deleteRule(id) {
       if (!confirm('Delete this rule?')) return
-      const res = await fetch(`/api/firewall/rules/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } })
+      const res = await fetch(`/api/firewall/rules/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
       const data = await res.json()
       if (data.success) {
         showAlert('Rule deleted')

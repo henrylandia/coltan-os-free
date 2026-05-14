@@ -135,6 +135,7 @@ async function updateRule(id, data) {
 
 async function deleteRule(id) {
   const rules = await getRules()
+  console.log('deleteRule id:', id, 'type:', typeof id, 'rules ids:', rules.map(r => r.id))
   const filtered = rules.filter(r => String(r.id) !== String(id))
   if (filtered.length === rules.length) return { success: false, error: 'Rule not found' }
   await saveRules(filtered)
