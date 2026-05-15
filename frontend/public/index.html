@@ -173,7 +173,7 @@
           </div>
         </div>
         <div class="col-6 col-md-3">
-          <div class="stat-card">
+          <div class="stat-card" onclick="openModal('disk-modal')">
             <div class="stat-label"><i class="bi bi-hdd me-1"></i>Disk</div>
             <div class="stat-value" id="disk-val">--</div>
             <div class="stat-sub" id="disk-sub">—</div>
@@ -188,30 +188,6 @@
           </div>
         </div>
       </div>
-
-      <!-- Hardware Info -->
-      <div id="hardware-info" style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:16px;display:none">
-        <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px">
-          <i class="bi bi-cpu me-2"></i>Hardware
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
-          <div style="background:var(--bg-dark);border-radius:8px;padding:12px">
-            <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px">CPU</div>
-            <div style="font-size:0.82rem;color:var(--text-primary);font-weight:600" id="hw-cpu">—</div>
-            <div style="font-size:0.72rem;color:var(--text-muted)" id="hw-cores">—</div>
-          </div>
-          <div style="background:var(--bg-dark);border-radius:8px;padding:12px">
-            <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px">Memoria RAM</div>
-            <div style="font-size:0.82rem;color:var(--text-primary);font-weight:600" id="hw-mem">—</div>
-            <div style="font-size:0.72rem;color:var(--text-muted)" id="hw-mem-speed">—</div>
-          </div>
-          <div style="background:var(--bg-dark);border-radius:8px;padding:12px">
-            <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px">Discos</div>
-            <div id="hw-disks" style="font-size:0.82rem;color:var(--text-primary)">—</div>
-          </div>
-        </div>
-      </div>
-
       <!-- Draggable panels -->
       <div id="panels-grid">
 
@@ -262,15 +238,6 @@
           </div>
           <div id="sites-summary"></div>
         </div>
-
-        <div class="panel" id="panel-users" draggable="true" ondragstart="dragStart(event,'panel-users')" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
-          <div class="panel-header">
-            <i class="bi bi-people"></i>Usuarios Logueados
-            <i class="bi bi-grip-vertical drag-icon"></i>
-          </div>
-          <div id="users-container"><div style="color:var(--text-muted);font-size:0.82rem">—</div></div>
-        </div>
-
         <div class="panel" id="panel-speedtest" draggable="true" ondragstart="dragStart(event,'panel-speedtest')" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
           <div class="panel-header">
             <i class="bi bi-speedometer2"></i>Red & Velocidad
@@ -303,6 +270,19 @@
         <span class="float-modal-close" onclick="closeModal('cpu-modal')">✕</span>
       </div>
       <canvas id="cpuChart" height="140"></canvas>
+      <div id="hw-cpu-info" style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.82rem"></div>
+    </div>
+  </div>
+
+  <!-- Disk Modal -->
+  <div class="float-modal" id="disk-modal" onclick="closeModalOutside(event,'disk-modal')">
+    <div class="float-modal-inner">
+      <div class="float-modal-title">
+        <span><i class="bi bi-hdd me-2"></i>Disk Usage</span>
+        <span class="float-modal-close" onclick="closeModal('disk-modal')">✕</span>
+      </div>
+      <canvas id="diskChart" height="200"></canvas>
+      <div id="hw-disk-info" style="margin-top:16px;font-size:0.82rem"></div>
     </div>
   </div>
 
@@ -400,6 +380,7 @@
     })
 
     let ifaceChart = null
+    let diskChart = null
 
     // ── Modals ───────────────────────────────────────────────────────────────
     function openModal(id) { document.getElementById(id).classList.add('open') }
@@ -428,9 +409,9 @@
     // ── Public IP ────────────────────────────────────────────────────────────
     async function loadPublicIP() {
       try {
-        const res = await fetch('https://api.ipify.org?format=json')
+        const res = await fetch('/api/metrics/public-ip', { headers: h.headers })
         const data = await res.json()
-        document.getElementById('public-ip').textContent = data.ip
+        document.getElementById('public-ip').textContent = data.ip || '—'
       } catch(e) { document.getElementById('public-ip').textContent = '—' }
     }
 
@@ -616,20 +597,62 @@
         document.getElementById('uptime-val').textContent = m.uptime || '--'
         document.getElementById('hostname-val').textContent = m.hostname || 'coltanos'
 
-        // Hardware info
+        // Hardware info en modales
         if (m.hardware) {
           const hw = m.hardware
-          const hwEl = document.getElementById('hardware-info')
-          if (hwEl) hwEl.style.display = 'block'
-          if (hw.cpuModel) document.getElementById('hw-cpu').textContent = hw.cpuModel
-          if (hw.cpuCores) document.getElementById('hw-cores').textContent = hw.cpuCores + ' cores'
-          if (hw.memTotal) document.getElementById('hw-mem').textContent = hw.memTotal
-          if (hw.memSpeed) document.getElementById('hw-mem-speed').textContent = hw.memSpeed
-          if (hw.disks && hw.disks.length > 0) {
-            document.getElementById('hw-disks').innerHTML = hw.disks.map(d =>
-              `<div style="margin-bottom:2px">${d.model||d.name} <span style="color:var(--text-muted)">${d.size||''}</span></div>`
-            ).join('')
+          // CPU modal
+          const cpuInfo = document.getElementById('hw-cpu-info')
+          if (cpuInfo) cpuInfo.innerHTML = `
+            <div style="background:var(--bg-dark);border-radius:8px;padding:10px">
+              <div style="color:var(--text-muted);font-size:0.72rem">Modelo</div>
+              <div style="color:var(--text-primary);font-weight:600">${hw.cpuModel||'—'}</div>
+            </div>
+            <div style="background:var(--bg-dark);border-radius:8px;padding:10px">
+              <div style="color:var(--text-muted);font-size:0.72rem">Cores</div>
+              <div style="color:var(--text-primary);font-weight:600">${hw.cpuCores||'—'} cores</div>
+            </div>
+            <div style="background:var(--bg-dark);border-radius:8px;padding:10px">
+              <div style="color:var(--text-muted);font-size:0.72rem">RAM Total</div>
+              <div style="color:var(--text-primary);font-weight:600">${hw.memTotal||'—'}</div>
+            </div>
+            <div style="background:var(--bg-dark);border-radius:8px;padding:10px">
+              <div style="color:var(--text-muted);font-size:0.72rem">RAM Speed</div>
+              <div style="color:var(--text-primary);font-weight:600">${hw.memSpeed||'—'}</div>
+            </div>`
+
+          // Disk modal - grafico torta
+          const disk = m.disk
+          if (disk && document.getElementById('diskChart')) {
+            if (diskChart) diskChart.destroy()
+            diskChart = new Chart(document.getElementById('diskChart'), {
+              type: 'doughnut',
+              data: {
+                labels: ['Usado', 'Libre'],
+                datasets: [{
+                  data: [disk.percent, 100 - disk.percent],
+                  backgroundColor: [disk.percent > 80 ? '#ef4444' : '#f59e0b', 'rgba(100,116,139,0.2)'],
+                  borderWidth: 0
+                }]
+              },
+              options: {
+                responsive: true, animation: false,
+                plugins: {
+                  legend: { display: true, labels: { color: '#94a3b8', font: { size: 11 } } }
+                },
+                cutout: '70%'
+              }
+            })
           }
+          const diskInfo = document.getElementById('hw-disk-info')
+          if (diskInfo && hw.disks) diskInfo.innerHTML = `
+            <div style="text-align:center;margin-bottom:12px">
+              <span style="font-size:1.4rem;font-weight:700;color:var(--text-primary)">${disk.used} / ${disk.total}</span>
+              <span style="color:var(--text-muted);font-size:0.82rem;margin-left:8px">(${disk.percent}% usado)</span>
+            </div>
+            ${hw.disks.map(d => `<div style="background:var(--bg-dark);border-radius:8px;padding:10px;margin-bottom:6px;display:flex;justify-content:space-between">
+              <span style="color:var(--text-primary)">${d.model||d.name}</span>
+              <span style="color:var(--text-muted)">${d.size||''}</span>
+            </div>`).join('')}`
         }
 
         // Interfaces
