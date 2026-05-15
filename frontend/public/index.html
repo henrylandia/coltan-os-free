@@ -189,6 +189,29 @@
         </div>
       </div>
 
+      <!-- Hardware Info -->
+      <div id="hardware-info" style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:16px;display:none">
+        <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px">
+          <i class="bi bi-cpu me-2"></i>Hardware
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+          <div style="background:var(--bg-dark);border-radius:8px;padding:12px">
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px">CPU</div>
+            <div style="font-size:0.82rem;color:var(--text-primary);font-weight:600" id="hw-cpu">—</div>
+            <div style="font-size:0.72rem;color:var(--text-muted)" id="hw-cores">—</div>
+          </div>
+          <div style="background:var(--bg-dark);border-radius:8px;padding:12px">
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px">Memoria RAM</div>
+            <div style="font-size:0.82rem;color:var(--text-primary);font-weight:600" id="hw-mem">—</div>
+            <div style="font-size:0.72rem;color:var(--text-muted)" id="hw-mem-speed">—</div>
+          </div>
+          <div style="background:var(--bg-dark);border-radius:8px;padding:12px">
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px">Discos</div>
+            <div id="hw-disks" style="font-size:0.82rem;color:var(--text-primary)">—</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Draggable panels -->
       <div id="panels-grid">
 
@@ -416,14 +439,29 @@
       const el = document.getElementById('speedtest-result')
       const dataEl = document.getElementById('speedtest-data')
       el.style.display = 'block'
-      dataEl.innerHTML = '<span style="color:var(--text-muted)">Midiendo...</span>'
+      dataEl.innerHTML = '<span style="color:var(--text-muted)">Midiendo bajada...</span>'
       try {
-        const t = Date.now()
-        const res = await fetch('https://speed.cloudflare.com/__down?bytes=10000000', { cache: 'no-cache' })
+        // Download test - 50MB para más precisión
+        const t1 = Date.now()
+        const res = await fetch('https://speed.cloudflare.com/__down?bytes=50000000', { cache: 'no-cache' })
         const blob = await res.blob()
-        const mbps = ((blob.size * 8) / ((Date.now() - t) / 1000) / 1000000).toFixed(1)
-        dataEl.innerHTML = `<span style="color:#22c55e;font-size:1.1rem;font-weight:700">↓ ${mbps} Mbps</span>`
-      } catch(e) { dataEl.innerHTML = '<span style="color:#f87171">Error</span>' }
+        const dlMbps = ((blob.size * 8) / ((Date.now() - t1) / 1000) / 1000000).toFixed(1)
+        dataEl.innerHTML = `<span style="color:#22c55e;font-weight:700">↓ ${dlMbps} Mbps</span> <span style="color:var(--text-muted)">Midiendo subida...</span>`
+
+        // Upload test - subir 20MB
+        const uploadData = new Uint8Array(20000000)
+        const t2 = Date.now()
+        await fetch('https://speed.cloudflare.com/__up', {
+          method: 'POST', cache: 'no-cache',
+          body: uploadData
+        }).catch(() => {})
+        const ulMbps = ((uploadData.length * 8) / ((Date.now() - t2) / 1000) / 1000000).toFixed(1)
+
+        dataEl.innerHTML = `
+          <span style="color:#22c55e;font-weight:700">↓ ${dlMbps} Mbps</span>
+          <span style="color:var(--text-muted);margin:0 6px">|</span>
+          <span style="color:#f59e0b;font-weight:700">↑ ${ulMbps} Mbps</span>`
+      } catch(e) { dataEl.innerHTML = '<span style="color:#f87171">Error midiendo velocidad</span>' }
     }
 
     // ── Interface modal ──────────────────────────────────────────────────────
@@ -577,6 +615,22 @@
 
         document.getElementById('uptime-val').textContent = m.uptime || '--'
         document.getElementById('hostname-val').textContent = m.hostname || 'coltanos'
+
+        // Hardware info
+        if (m.hardware) {
+          const hw = m.hardware
+          const hwEl = document.getElementById('hardware-info')
+          if (hwEl) hwEl.style.display = 'block'
+          if (hw.cpuModel) document.getElementById('hw-cpu').textContent = hw.cpuModel
+          if (hw.cpuCores) document.getElementById('hw-cores').textContent = hw.cpuCores + ' cores'
+          if (hw.memTotal) document.getElementById('hw-mem').textContent = hw.memTotal
+          if (hw.memSpeed) document.getElementById('hw-mem-speed').textContent = hw.memSpeed
+          if (hw.disks && hw.disks.length > 0) {
+            document.getElementById('hw-disks').innerHTML = hw.disks.map(d =>
+              `<div style="margin-bottom:2px">${d.model||d.name} <span style="color:var(--text-muted)">${d.size||''}</span></div>`
+            ).join('')
+          }
+        }
 
         // Interfaces
         if (m.traffic && m.traffic.length > 0) {

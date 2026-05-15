@@ -129,12 +129,42 @@ async function getTopBlockedIPs() {
   } catch(e) { return [] }
 }
 
-async function getAllMetrics() {
-  const [cpu, memory, disk, uptime, traffic, services, vpn] = await Promise.all([
-    getCPU(), getMemory(), getDisk(), getUptime(),
-    getNetworkTraffic(), getServices(), getVPNStatus()
-  ])
-  return { cpu, memory, disk, uptime, traffic, services, vpn, timestamp: Date.now() }
+async function getHardwareInfo() {
+  try {
+    const [cpuModel, cpuCores, memTotal, memSpeed] = await Promise.all([
+      execAsync('sysctl -n hw.model 2>/dev/null').then(r => r.stdout.trim()).catch(() => 'N/A'),
+      execAsync('sysctl -n hw.ncpu 2>/dev/null').then(r => r.stdout.trim()).catch(() => 'N/A'),
+      execAsync('sysctl -n hw.physmem 2>/dev/null').then(r => (parseInt(r.stdout.trim())/1073741824).toFixed(1)+'GB').catch(() => 'N/A'),
+      execAsync('dmidecode -t memory 2>/dev/null | grep -i speed | head -1').then(r => r.stdout.trim()).catch(() => '')
+    ])
+
+    // Discos
+    let disks = []
+    try {
+      const { stdout } = await execAsync('geom disk list 2>/dev/null | grep -E "Geom name:|descr:|Mediasize:"')
+      const lines = stdout.trim().split('\n')
+      let current = {}
+      lines.forEach(line => {
+        if (line.includes('Geom name:')) { if(current.name) disks.push(current); current = { name: line.split(':')[1].trim() } }
+        else if (line.includes('descr:')) current.model = line.split(':').slice(1).join(':').trim()
+        else if (line.includes('Mediasize:')) {
+          const m = line.match(/(\d+)/)
+          if (m) current.size = (parseInt(m[1])/1073741824).toFixed(0)+'GB'
+        }
+      })
+      if (current.name) disks.push(current)
+    } catch(e) {}
+
+    return { cpuModel, cpuCores, memTotal, memSpeed, disks }
+  } catch(e) { return {} }
 }
 
-module.exports = { getAllMetrics, getCPU, getMemory, getDisk, getUptime, getNetworkTraffic, getServices, getVPNStatus }
+async function getAllMetrics() {
+  const [cpu, memory, disk, uptime, traffic, services, vpn, hardware] = await Promise.all([
+    getCPU(), getMemory(), getDisk(), getUptime(),
+    getNetworkTraffic(), getServices(), getVPNStatus(), getHardwareInfo()
+  ])
+  return { cpu, memory, disk, uptime, traffic, services, vpn, hardware, timestamp: Date.now() }
+}
+
+module.exports = { getAllMetrics, getCPU, getMemory, getDisk, getUptime, getNetworkTraffic, getServices, getVPNStatus, getHardwareInfo }
