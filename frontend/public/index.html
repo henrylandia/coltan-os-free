@@ -601,22 +601,27 @@
         if (m.hardware) {
           const hw = m.hardware
           // CPU modal
+          // CPU modal - modelo y cores
           const cpuInfo = document.getElementById('hw-cpu-info')
           if (cpuInfo) cpuInfo.innerHTML = `
             <div style="background:var(--bg-dark);border-radius:8px;padding:10px">
-              <div style="color:var(--text-muted);font-size:0.72rem">Modelo</div>
+              <div style="color:var(--text-muted);font-size:0.72rem">Modelo CPU</div>
               <div style="color:var(--text-primary);font-weight:600">${hw.cpuModel||'—'}</div>
             </div>
             <div style="background:var(--bg-dark);border-radius:8px;padding:10px">
               <div style="color:var(--text-muted);font-size:0.72rem">Cores</div>
               <div style="color:var(--text-primary);font-weight:600">${hw.cpuCores||'—'} cores</div>
-            </div>
+            </div>`
+
+          // Memory modal - RAM total y speed
+          const memInfo = document.getElementById('hw-mem-info')
+          if (memInfo) memInfo.innerHTML = `
             <div style="background:var(--bg-dark);border-radius:8px;padding:10px">
               <div style="color:var(--text-muted);font-size:0.72rem">RAM Total</div>
               <div style="color:var(--text-primary);font-weight:600">${hw.memTotal||'—'}</div>
             </div>
             <div style="background:var(--bg-dark);border-radius:8px;padding:10px">
-              <div style="color:var(--text-muted);font-size:0.72rem">RAM Speed</div>
+              <div style="color:var(--text-muted);font-size:0.72rem">Velocidad</div>
               <div style="color:var(--text-primary);font-weight:600">${hw.memSpeed||'—'}</div>
             </div>`
 
