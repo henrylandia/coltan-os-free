@@ -2,7 +2,7 @@
 
 const {
   getStatus, getConfig, saveConfig, enablePF, disablePF, getPFRules,
-  getRules, addRule, updateRule, deleteRule, toggleRule,
+  getRules, addRule, updateRule, deleteRule, toggleRule, reorderRules,
   getBlockedIPs, blockIP, unblockIP,
   getPortForwards, addPortForward, deletePortForward,
   generateAndReload
@@ -60,7 +60,7 @@ async function firewallRoutes(fastify, options) {
     return await reorderRules(req.body.ids)
   })
 
-  fastify.delete('/api/firewall/rules/:id', { onRequest: [fastify.authenticate], config: { rawBody: true } }, async (req, reply) => {
+  fastify.delete('/api/firewall/rules/:id', { onRequest: [fastify.authenticate] }, async (req, reply) => {
     return await deleteRule(req.params.id)
   })
 
@@ -79,7 +79,7 @@ async function firewallRoutes(fastify, options) {
     return await blockIP(ip, description)
   })
 
-  fastify.delete('/api/firewall/blocked-ips/:ip', { onRequest: [fastify.authenticate], config: { rawBody: true } }, async (req, reply) => {
+  fastify.delete('/api/firewall/blocked-ips/:ip', { onRequest: [fastify.authenticate] }, async (req, reply) => {
     return await unblockIP(req.params.ip)
   })
 
@@ -100,7 +100,7 @@ async function firewallRoutes(fastify, options) {
     return await addPortForward({ protocol, extPort, intIP, intPort, description })
   })
 
-  fastify.delete('/api/firewall/port-forwards/:id', { onRequest: [fastify.authenticate], config: { rawBody: true } }, async (req, reply) => {
+  fastify.delete('/api/firewall/port-forwards/:id', { onRequest: [fastify.authenticate] }, async (req, reply) => {
     return await deletePortForward(req.params.id)
   })
 

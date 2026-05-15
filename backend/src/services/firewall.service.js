@@ -4,11 +4,13 @@ const { exec } = require('child_process')
 const { promisify } = require('util')
 const execAsync = promisify(exec)
 const fs = require('fs').promises
+const fsSync = require('fs')
 
 const PF_CONF = '/etc/pf.conf'
 const RULES_FILE = '/usr/local/etc/coltan/firewall-rules.json'
 const BLOCKED_IPS_FILE = '/usr/local/etc/coltan/blocked-ips.json'
 const PORT_FORWARD_FILE = '/usr/local/etc/coltan/port-forwards.json'
+const RDR_TMP = '/tmp/coltan-rdr.conf'
 
 async function ensureDir() {
   await execAsync('mkdir -p /usr/local/etc/coltan')
@@ -47,31 +49,28 @@ function makeRule(id, action, direction, protocol, iface, srcAddr, srcPort, dstA
 
 async function getDefaultRules(wan, lans) {
   const rules = [
-    makeRule('sys-icmp', 'pass', 'in', 'icmp', wan, 'any', '', 'any', '', 'Allow ICMP (ping)', true),
-    makeRule('sys-webui-wan', 'pass', 'in', 'tcp', wan, 'any', '', 'any', '3000', 'Allow Coltan OS WebUI (WAN)', true),
-    makeRule('sys-http', 'pass', 'in', 'tcp', wan, 'any', '', 'any', '80', 'Allow HTTP', true),
-    makeRule('sys-https', 'pass', 'in', 'tcp', wan, 'any', '', 'any', '443', 'Allow HTTPS', true),
-    makeRule('sys-samba-tcp', 'pass', 'in', 'tcp', wan, 'any', '', 'any', '{ 139, 445 }', 'Allow Samba TCP', true),
-    makeRule('sys-samba-udp', 'pass', 'in', 'udp', wan, 'any', '', 'any', '{ 137, 138 }', 'Allow Samba UDP', true),
-    makeRule('sys-dhcp', 'pass', 'in', 'udp', wan, 'any', '', 'any', '67', 'Allow DHCP', true),
-    makeRule('sys-wireguard', 'pass', 'in', 'udp', wan, 'any', '', 'any', '51820', 'Allow WireGuard VPN', true),
-    makeRule('sys-openvpn', 'pass', 'in', 'udp', wan, 'any', '', 'any', '1194', 'Allow OpenVPN', true),
-    makeRule('sys-ssh', 'pass', 'in', 'tcp', wan, 'any', '', 'any', '22', 'Allow SSH', true),
+    makeRule('sys-icmp',       'pass', 'in', 'icmp', wan, 'any', '', 'any', '',       'Allow ICMP (ping)', true),
+    makeRule('sys-webui-wan',  'pass', 'in', 'tcp',  wan, 'any', '', 'any', '3000',   'Allow Coltan OS WebUI (WAN)', true),
+    makeRule('sys-http',       'pass', 'in', 'tcp',  wan, 'any', '', 'any', '80',     'Allow HTTP', true),
+    makeRule('sys-https',      'pass', 'in', 'tcp',  wan, 'any', '', 'any', '443',    'Allow HTTPS', true),
+    makeRule('sys-samba-tcp',  'pass', 'in', 'tcp',  wan, 'any', '', 'any', '{ 139, 445 }', 'Allow Samba TCP', true),
+    makeRule('sys-samba-udp',  'pass', 'in', 'udp',  wan, 'any', '', 'any', '{ 137, 138 }', 'Allow Samba UDP', true),
+    makeRule('sys-dhcp',       'pass', 'in', 'udp',  wan, 'any', '', 'any', '67',     'Allow DHCP', true),
+    makeRule('sys-wireguard',  'pass', 'in', 'udp',  wan, 'any', '', 'any', '51820',  'Allow WireGuard VPN', true),
+    makeRule('sys-openvpn',    'pass', 'in', 'udp',  wan, 'any', '', 'any', '1194',   'Allow OpenVPN', true),
+    makeRule('sys-ssh',        'pass', 'in', 'tcp',  wan, 'any', '', 'any', '22',     'Allow SSH', true),
   ]
 
-  // Check which LAN interfaces have an active captive portal
   let captiveIfaces = []
   try {
-    const portals = JSON.parse(require('fs').readFileSync('/usr/local/etc/coltan/captive/portals.json', 'utf8'))
+    const portals = JSON.parse(fsSync.readFileSync('/usr/local/etc/coltan/captive/portals.json', 'utf8'))
     captiveIfaces = portals.filter(p => p.enabled).map(p => p.interface)
   } catch(e) {}
 
   lans.forEach(lan => {
     if (!captiveIfaces.includes(lan)) {
-      // No captive portal on this interface — allow all LAN traffic
       rules.push(makeRule(`sys-lan-${lan}`, 'pass', 'in', 'any', lan, 'any', '', 'any', '', `Allow all LAN traffic (${lan})`, true))
     }
-    // Always allow WebUI access from LAN
     rules.push(makeRule(`sys-webui-lan-${lan}`, 'pass', 'in', 'tcp', lan, 'any', '', 'any', '3000', `Allow WebUI from LAN (${lan})`, true))
   })
   return rules
@@ -91,14 +90,6 @@ async function getRules() {
   const systemRules = await getDefaultRules(wan, lans)
   const customRules = saved.filter(r => !r.system)
   return [...systemRules, ...customRules]
-}
-
-async function getRulesRaw() {
-  try {
-    await ensureDir()
-    const content = await fs.readFile(RULES_FILE, 'utf8')
-    return JSON.parse(content)
-  } catch(e) { return [] }
 }
 
 async function saveRules(rules) {
@@ -135,7 +126,6 @@ async function updateRule(id, data) {
 
 async function deleteRule(id) {
   const rules = await getRules()
-  console.log('deleteRule id:', id, 'type:', typeof id, 'rules ids:', rules.map(r => r.id))
   const filtered = rules.filter(r => String(r.id) !== String(id))
   if (filtered.length === rules.length) return { success: false, error: 'Rule not found' }
   await saveRules(filtered)
@@ -212,10 +202,31 @@ async function addPortForward(pf) {
 
 async function deletePortForward(id) {
   const list = await getPortForwards()
-  const filtered = list.filter(p => p.id !== id)
+  const filtered = list.filter(p => String(p.id) !== String(id))
   await fs.writeFile(PORT_FORWARD_FILE, JSON.stringify(filtered, null, 2))
   await generateAndReload()
   return { success: true }
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+
+async function loadRdrAnchor(wan, forwards) {
+  const fwds = forwards.filter(p => p.enabled)
+  if (fwds.length === 0) {
+    // Vaciar el anchor si no hay forwards
+    fsSync.writeFileSync(RDR_TMP, '')
+    await execAsync(`pfctl -a coltan/rdr -f ${RDR_TMP}`).catch(() => {})
+    return
+  }
+  const lines = []
+  fwds.forEach(p => {
+    const protos = p.protocol === 'tcp/udp' ? ['tcp', 'udp'] : [p.protocol]
+    protos.forEach(proto => {
+      lines.push(`rdr on ${wan} proto ${proto} from any to any port ${p.extPort} -> ${p.intIP} port ${p.intPort}`)
+    })
+  })
+  fsSync.writeFileSync(RDR_TMP, lines.join('\n') + '\n')
+  await execAsync(`pfctl -a coltan/rdr -f ${RDR_TMP}`).catch(() => {})
 }
 
 // ─── PF CONFIG GENERATOR ──────────────────────────────────────────────────────
@@ -226,6 +237,7 @@ async function generatePFConf() {
   const rules = await getRules()
   const blockedIPs = await getBlockedIPs()
   const portForwards = await getPortForwards()
+  const enabledForwards = portForwards.filter(p => p.enabled)
 
   let conf = `# Coltan OS — PF Firewall (auto-generated)
 # DO NOT EDIT MANUALLY — use the Coltan OS dashboard
@@ -246,16 +258,19 @@ set skip on wg0
 # Scrub
 scrub in all
 
+# RDR anchor — MUST be before nat
+rdr-anchor "coltan/rdr"
+
 `
 
-  // ── 1. NAT (must come before filtering) ──────────────────────────────────
+  // ── 1. NAT ────────────────────────────────────────────────────────────────
   for (const lan of lans) {
     conf += `nat on $ext_if from ${lan}:network to any -> ($ext_if)\n`
   }
 
   // NAT for WireGuard
   try {
-    const wgConfigRaw = require('fs').readFileSync('/usr/local/etc/coltan/wg-config.json', 'utf8')
+    const wgConfigRaw = fsSync.readFileSync('/usr/local/etc/coltan/wg-config.json', 'utf8')
     const wgConfig = JSON.parse(wgConfigRaw)
     const wgNet = wgConfig.serverIP ? wgConfig.serverIP.replace(/\.\d+\/\d+$/, '.0/24') : '10.0.0.0/24'
     conf += `nat on $ext_if from ${wgNet} to any -> ($ext_if)\n`
@@ -274,9 +289,9 @@ scrub in all
     conf += `pass out on wg0 all keep state\n`
   }
 
-  // ── 2. Captive Portal rdr (must be in main pf.conf, not anchor) ───────────
+  // ── 2. Captive Portal rdr ─────────────────────────────────────────────────
   try {
-    const portals = JSON.parse(require('fs').readFileSync('/usr/local/etc/coltan/captive/portals.json', 'utf8'))
+    const portals = JSON.parse(fsSync.readFileSync('/usr/local/etc/coltan/captive/portals.json', 'utf8'))
     const enabledPortals = portals.filter(p => p.enabled)
     if (enabledPortals.length > 0) {
       conf += `\n# Captive Portal\ntable <captive_allowed> persist\n`
@@ -286,34 +301,30 @@ scrub in all
     }
   } catch(e) {}
 
-  // ── 3. Port Forwards (rdr - translation, before filtering) ───────────────
-  const enabledForwards = portForwards.filter(p => p.enabled)
-  if (enabledForwards.length > 0) {
-    conf += `\n# Port Forwarding\n`
-    enabledForwards.forEach(p => {
-      conf += `rdr on $ext_if proto ${p.protocol} from any to any port ${p.extPort} -> ${p.intIP} port ${p.intPort}\n`
-    })
-  }
-
   conf += `\n# Sites blocking anchor\nanchor "coltan/sites"\n`
-  conf += `\n# Default: pass out, block only what's explicitly blocked\npass out all keep state\n`
-  conf += `\n# WireGuard interface - allow all traffic\npass quick on wg0 all keep state\n`
+  conf += `\n# Default: pass out\npass out all keep state\n`
+  conf += `\n# WireGuard interface\npass quick on wg0 all keep state\n`
 
-  // ── 4. Blocked IPs (filtering - after NAT) ────────────────────────────────
+  // ── 3. Blocked IPs ────────────────────────────────────────────────────────
   if (blockedIPs.length > 0) {
     conf += `\n# Blocked IPs\ntable <blocked> { ${blockedIPs.map(i => i.ip).join(', ')} }\nblock in quick from <blocked> to any\nblock out quick from any to <blocked>\n`
   }
 
-  // ── 5. Port forward pass rules ────────────────────────────────────────────
+  // ── 4. Port forward pass rules ────────────────────────────────────────────
   if (enabledForwards.length > 0) {
+    conf += `\n# Port Forwarding pass rules\n`
     enabledForwards.forEach(p => {
-      conf += `pass in on $ext_if proto ${p.protocol} from any to ${p.intIP} port ${p.intPort} keep state\n`
+      const protos = p.protocol === 'tcp/udp' ? ['tcp', 'udp'] : [p.protocol]
+      protos.forEach(proto => {
+        conf += `pass in on $ext_if proto ${proto} from any to any port ${p.extPort} keep state\n`
+        conf += `pass out on $ext_if proto ${proto} from ${p.intIP} to any keep state\n`
+      })
     })
   }
 
-  // ── 6. Captive portal filtering rules (allow authenticated, block rest) ───
+  // ── 5. Captive portal filtering ───────────────────────────────────────────
   try {
-    const portals = JSON.parse(require('fs').readFileSync('/usr/local/etc/coltan/captive/portals.json', 'utf8'))
+    const portals = JSON.parse(fsSync.readFileSync('/usr/local/etc/coltan/captive/portals.json', 'utf8'))
     const enabledPortals = portals.filter(p => p.enabled)
     if (enabledPortals.length > 0) {
       conf += `\n# Captive Portal filtering\n`
@@ -329,7 +340,7 @@ scrub in all
     }
   } catch(e) {}
 
-  // ── 7. Firewall rules (system + custom) ───────────────────────────────────
+  // ── 6. Firewall rules ─────────────────────────────────────────────────────
   const enabledRules = rules.filter(r => r.enabled)
   if (enabledRules.length > 0) {
     conf += `\n# Firewall Rules\n`
@@ -358,13 +369,21 @@ scrub in all
 }
 
 async function generateAndReload() {
+  const wan = await getWanIface()
+  const portForwards = await getPortForwards()
+
+  // 1. Generar y escribir pf.conf
   const conf = await generatePFConf()
   await fs.writeFile(PF_CONF, conf)
-  try {
-    await execAsync('sysctl net.inet.ip.forwarding=1 2>/dev/null')
-    await execAsync('pfctl -f /etc/pf.conf 2>/dev/null')
-    await execAsync('pfctl -e 2>/dev/null')
-  } catch(e) {}
+
+  // 2. Cargar pf.conf
+  await execAsync('sysctl net.inet.ip.forwarding=1 2>/dev/null').catch(() => {})
+  await execAsync('pfctl -f /etc/pf.conf 2>/dev/null').catch(() => {})
+  await execAsync('pfctl -e 2>/dev/null').catch(() => {})
+
+  // 3. Cargar rdr anchor DESPUES de pfctl -f
+  await loadRdrAnchor(wan, portForwards)
+
   return { success: true }
 }
 
