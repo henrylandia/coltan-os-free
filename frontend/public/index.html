@@ -294,6 +294,7 @@
         <span class="float-modal-close" onclick="closeModal('mem-modal')">✕</span>
       </div>
       <canvas id="memChart" height="140"></canvas>
+      <div id="hw-mem-info" style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.82rem"></div>
     </div>
   </div>
 
@@ -600,7 +601,6 @@
         // Hardware info en modales
         if (m.hardware) {
           const hw = m.hardware
-          // CPU modal
           // CPU modal - modelo y cores
           const cpuInfo = document.getElementById('hw-cpu-info')
           if (cpuInfo) cpuInfo.innerHTML = `
@@ -762,22 +762,7 @@
           document.getElementById('sites-summary').innerHTML = '<div style="color:var(--text-muted);font-size:0.82rem">Sin datos</div>'
         }
 
-        // Users
-        try {
-          const uRes = await fetch('/api/auth/sessions', { headers: h.headers })
-          if (uRes.ok) {
-            const uData = await uRes.json()
-            const sessions = uData.sessions || []
-            document.getElementById('users-container').innerHTML = sessions.length > 0
-              ? sessions.map(s=>`<div class="user-item"><span class="user-name"><i class="bi bi-person-fill me-1"></i>${s.username}</span><span class="user-ip">${s.ip||'—'}</span></div>`).join('')
-              : '<div style="color:var(--text-muted);font-size:0.82rem">No hay sesiones activas</div>'
-          }
-        } catch(e) {
-          const u = localStorage.getItem('coltan_user') || 'admin'
-          document.getElementById('users-container').innerHTML = `<div class="user-item"><span class="user-name"><i class="bi bi-person-fill me-1"></i>${u}</span><span class="user-ip">Esta sesión</span></div>`
-        }
-
-      } catch(e) { console.error('Dashboard error:', e) }
+            } catch(e) { console.error('Dashboard error:', e) }
     }
 
     // ── Drag & Drop individual panels ────────────────────────────────────────
