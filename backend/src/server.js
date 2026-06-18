@@ -103,6 +103,9 @@ const start = async () => {
     // Start Suricata auto-block watcher
     const { startWatcher } = require('./services/suricata-autoblock')
     startWatcher()
+    // Heartbeat hacia sistema.coltanos.com
+    const { startHeartbeat } = require('./services/heartbeat.service')
+    startHeartbeat()
   } catch (err) {
     fastify.log.error(err)
     process.exit(1)
