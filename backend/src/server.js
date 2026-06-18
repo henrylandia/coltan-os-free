@@ -66,7 +66,6 @@ fastify.register(require('./routes/qos.routes'))
 // WebSockets
 fastify.register(require('@fastify/websocket'))
 fastify.register(require('./routes/ws.routes'))
-fastify.register(require('./routes/console.routes'))
 fastify.register(require('./routes/reports.routes'))
 // Public health
 fastify.get('/api/health', async (request, reply) => {

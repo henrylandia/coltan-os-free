@@ -77,9 +77,6 @@ function loadSidebar(activePage) {
         <a href="/pages/backup.html" class="nav-item ${activePage === 'backup' ? 'active' : ''}">
           <i class="bi bi-cloud-arrow-up"></i> Backup
         </a>
-        <a href="/pages/console.html" class="nav-item ${activePage === 'console' ? 'active' : ''}">
-          <i class="bi bi-terminal"></i> Console
-        </a>
         <a href="/pages/reports.html" class="nav-item ${activePage === 'reports' ? 'active' : ''}">
           <i class="bi bi-file-bar-graph"></i> Reportes
         </a>
