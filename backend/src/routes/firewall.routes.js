@@ -3,7 +3,7 @@
 const {
   getStatus, getConfig, saveConfig, enablePF, disablePF, getPFRules,
   getRules, addRule, updateRule, deleteRule, toggleRule, reorderRules,
-  getBlockedIPs, blockIP, unblockIP,
+  getBlockedIPs, blockIP, unblockIP, unblockMultiple, getIPGeo,
   getPortForwards, addPortForward, deletePortForward,
   generateAndReload
 } = require('../services/firewall.service')
@@ -81,6 +81,16 @@ async function firewallRoutes(fastify, options) {
 
   fastify.delete('/api/firewall/blocked-ips/:ip', { onRequest: [fastify.authenticate] }, async (req, reply) => {
     return await unblockIP(req.params.ip)
+  })
+
+  fastify.post('/api/firewall/blocked-ips/bulk-delete', { onRequest: [fastify.authenticate] }, async (req, reply) => {
+    const { ips } = req.body
+    if (!ips || !Array.isArray(ips) || ips.length === 0) return reply.code(400).send({ error: 'ips array required' })
+    return await unblockMultiple(ips)
+  })
+
+  fastify.get('/api/firewall/blocked-ips/:ip/geo', { onRequest: [fastify.authenticate] }, async (req, reply) => {
+    return await getIPGeo(req.params.ip)
   })
 
   // Port forwarding

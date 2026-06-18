@@ -106,15 +106,39 @@
       <div id="tab-blocked" style="display:none">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <div class="section-title mb-0"><i class="bi bi-ban me-2"></i>Blocked IPs</div>
-          <button class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#blockIPModal">
-            <i class="bi bi-plus-lg me-1"></i>Block IP
-          </button>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-danger-soft" id="bulk-unblock-btn" style="display:none" onclick="bulkUnblock()">
+              <i class="bi bi-unlock me-1"></i>Unblock Selected (<span id="bulk-count">0</span>)
+            </button>
+            <button class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#blockIPModal">
+              <i class="bi bi-plus-lg me-1"></i>Block IP
+            </button>
+          </div>
         </div>
         <div class="data-table">
           <table class="table table-dark table-hover mb-0">
-            <thead><tr><th>IP Address</th><th>Description</th><th>Added</th><th>Actions</th></tr></thead>
-            <tbody id="blocked-body"><tr><td colspan="4" class="text-muted">No blocked IPs</td></tr></tbody>
+            <thead><tr>
+              <th style="width:36px"><input type="checkbox" id="blocked-select-all" onchange="toggleSelectAllBlocked(this)"></th>
+              <th>IP Address</th><th>Description</th><th>Added</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="blocked-body"><tr><td colspan="5" class="text-muted">No blocked IPs</td></tr></tbody>
           </table>
+        </div>
+        <div id="blocked-pagination" style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:16px"></div>
+      </div>
+
+      <!-- IP Geo Detail Modal -->
+      <div class="modal fade" id="ipGeoModal" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border)">
+            <div class="modal-header" style="border-color:var(--border)">
+              <h6 class="modal-title" id="ipGeoModalTitle"><i class="bi bi-geo-alt me-2"></i>IP Detail</h6>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="ipGeoModalBody">
+              <div class="text-muted">Cargando...</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -365,21 +389,138 @@
 
     // loadRules moved to edit section
 
+    let _blockedIPsAll = []
+    let _blockedPage = 1
+    const _blockedPageSize = 15
+    let _selectedBlockedIPs = new Set()
+
     async function loadBlockedIPs() {
       const res = await fetch('/api/firewall/blocked-ips', { headers: h.headers })
       const data = await res.json()
+      _blockedIPsAll = data.ips.sort((a,b) => new Date(b.addedAt) - new Date(a.addedAt))
+      _blockedPage = 1
+      _selectedBlockedIPs.clear()
+      renderBlockedIPs()
+    }
+
+    function renderBlockedIPs() {
       const tbody = document.getElementById('blocked-body')
-      if (data.ips.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-muted">No blocked IPs</td></tr>'
+      const total = _blockedIPsAll.length
+      if (total === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-muted">No blocked IPs</td></tr>'
+        document.getElementById('blocked-pagination').innerHTML = ''
+        updateBulkBar()
         return
       }
-      tbody.innerHTML = data.ips.map(ip => `
+      const totalPages = Math.ceil(total / _blockedPageSize)
+      if (_blockedPage > totalPages) _blockedPage = totalPages
+      const start = (_blockedPage - 1) * _blockedPageSize
+      const pageItems = _blockedIPsAll.slice(start, start + _blockedPageSize)
+
+      tbody.innerHTML = pageItems.map(ip => `
         <tr>
-          <td class="mono" style="color:#f87171">${ip.ip}</td>
+          <td><input type="checkbox" class="blocked-row-check" data-ip="${ip.ip}" ${_selectedBlockedIPs.has(ip.ip)?'checked':''} onchange="toggleBlockedRow('${ip.ip}', this.checked)"></td>
+          <td class="mono" style="color:#f87171;cursor:pointer" onclick="openIPGeoModal('${ip.ip}', '${(ip.description||'').replace(/'/g,"\\'")}', '${ip.addedAt}')">${ip.ip} <i class="bi bi-info-circle" style="font-size:0.7rem;opacity:0.6"></i></td>
           <td style="color:var(--text-muted)">${ip.description || '—'}</td>
           <td style="color:var(--text-muted);font-size:0.78rem">${new Date(ip.addedAt).toLocaleString()}</td>
           <td><button class="btn btn-success-soft" onclick="unblockIP('${ip.ip}')"><i class="bi bi-unlock me-1"></i>Unblock</button></td>
         </tr>`).join('')
+
+      renderBlockedPagination(totalPages, total)
+      document.getElementById('blocked-select-all').checked = pageItems.length > 0 && pageItems.every(ip => _selectedBlockedIPs.has(ip.ip))
+      updateBulkBar()
+    }
+
+    function renderBlockedPagination(totalPages, total) {
+      const el = document.getElementById('blocked-pagination')
+      if (totalPages <= 1) { el.innerHTML = `<span style="color:var(--text-muted);font-size:0.8rem">${total} IP${total!==1?'s':''}</span>`; return }
+      let html = `<span style="color:var(--text-muted);font-size:0.8rem;margin-right:12px">${total} IPs total</span>`
+      html += `<button class="btn btn-primary-soft" ${_blockedPage===1?'disabled':''} onclick="goBlockedPage(${_blockedPage-1})"><i class="bi bi-chevron-left"></i></button>`
+      html += `<span style="color:var(--text-primary);font-size:0.85rem;margin:0 8px">Página ${_blockedPage} de ${totalPages}</span>`
+      html += `<button class="btn btn-primary-soft" ${_blockedPage===totalPages?'disabled':''} onclick="goBlockedPage(${_blockedPage+1})"><i class="bi bi-chevron-right"></i></button>`
+      el.innerHTML = html
+    }
+
+    function goBlockedPage(p) { _blockedPage = p; renderBlockedIPs() }
+
+    function toggleBlockedRow(ip, checked) {
+      if (checked) _selectedBlockedIPs.add(ip)
+      else _selectedBlockedIPs.delete(ip)
+      updateBulkBar()
+    }
+
+    function toggleSelectAllBlocked(checkbox) {
+      const rows = document.querySelectorAll('.blocked-row-check')
+      rows.forEach(r => {
+        r.checked = checkbox.checked
+        if (checkbox.checked) _selectedBlockedIPs.add(r.dataset.ip)
+        else _selectedBlockedIPs.delete(r.dataset.ip)
+      })
+      updateBulkBar()
+    }
+
+    function updateBulkBar() {
+      const btn = document.getElementById('bulk-unblock-btn')
+      const count = _selectedBlockedIPs.size
+      document.getElementById('bulk-count').textContent = count
+      btn.style.display = count > 0 ? 'inline-flex' : 'none'
+    }
+
+    async function bulkUnblock() {
+      const ips = Array.from(_selectedBlockedIPs)
+      if (ips.length === 0) return
+      if (!confirm(`¿Desbloquear ${ips.length} IP(s) seleccionadas?`)) return
+      const res = await fetch('/api/firewall/blocked-ips/bulk-delete', {
+        method: 'POST', ...h, body: JSON.stringify({ ips })
+      })
+      const data = await res.json()
+      if (data.success) {
+        showAlert(`${data.removed} IP(s) desbloqueadas`)
+        await loadBlockedIPs()
+      } else {
+        showAlert('Error al desbloquear', true)
+      }
+    }
+
+    async function openIPGeoModal(ip, description, addedAt) {
+      document.getElementById('ipGeoModalTitle').innerHTML = `<i class="bi bi-geo-alt me-2"></i>${ip}`
+      const body = document.getElementById('ipGeoModalBody')
+      body.innerHTML = '<div class="text-muted">Buscando información geográfica...</div>'
+      const modal = new bootstrap.Modal(document.getElementById('ipGeoModal'))
+      modal.show()
+      try {
+        const res = await fetch(`/api/firewall/blocked-ips/${encodeURIComponent(ip)}/geo`, { headers: h.headers })
+        const geo = await res.json()
+        body.innerHTML = `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div style="background:var(--bg-dark);border-radius:8px;padding:10px">
+              <div style="color:var(--text-muted);font-size:0.72rem">País</div>
+              <div style="color:var(--text-primary);font-weight:600">${geo.country || '—'} ${geo.countryCode?'('+geo.countryCode+')':''}</div>
+            </div>
+            <div style="background:var(--bg-dark);border-radius:8px;padding:10px">
+              <div style="color:var(--text-muted);font-size:0.72rem">Ciudad / Región</div>
+              <div style="color:var(--text-primary);font-weight:600">${geo.city || '—'} ${geo.region?', '+geo.region:''}</div>
+            </div>
+            <div style="background:var(--bg-dark);border-radius:8px;padding:10px;grid-column:1/-1">
+              <div style="color:var(--text-muted);font-size:0.72rem">ISP / Organización</div>
+              <div style="color:var(--text-primary);font-weight:600">${geo.isp || '—'}</div>
+            </div>
+            <div style="background:var(--bg-dark);border-radius:8px;padding:10px;grid-column:1/-1">
+              <div style="color:var(--text-muted);font-size:0.72rem">AS</div>
+              <div style="color:var(--text-primary);font-size:0.82rem">${geo.as || '—'}</div>
+            </div>
+            <div style="background:var(--bg-dark);border-radius:8px;padding:10px;grid-column:1/-1">
+              <div style="color:var(--text-muted);font-size:0.72rem">Motivo del bloqueo</div>
+              <div style="color:var(--text-primary)">${description || '—'}</div>
+            </div>
+            <div style="background:var(--bg-dark);border-radius:8px;padding:10px;grid-column:1/-1">
+              <div style="color:var(--text-muted);font-size:0.72rem">Bloqueada el</div>
+              <div style="color:var(--text-primary);font-family:monospace">${new Date(addedAt).toLocaleString()}</div>
+            </div>
+          </div>`
+      } catch(e) {
+        body.innerHTML = '<div style="color:#f87171">Error obteniendo información geográfica</div>'
+      }
     }
 
     async function loadPortForwards() {

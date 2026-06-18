@@ -175,6 +175,31 @@ async function unblockIP(ip) {
   return { success: true }
 }
 
+async function unblockMultiple(ips) {
+  const list = await getBlockedIPs()
+  const ipSet = new Set(ips)
+  const filtered = list.filter(i => !ipSet.has(i.ip))
+  await fs.writeFile(BLOCKED_IPS_FILE, JSON.stringify(filtered, null, 2))
+  await generateAndReload()
+  return { success: true, removed: list.length - filtered.length }
+}
+
+async function getIPGeo(ip) {
+  const http = require('http')
+  return new Promise((resolve) => {
+    http.get(`http://ip-api.com/json/${ip}?fields=status,country,countryCode,region,city,isp,org,as`, (res) => {
+      let data = ''
+      res.on('data', chunk => data += chunk)
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data)
+          resolve(parsed.status === 'success' ? parsed : { country: 'Unknown', city: 'Unknown' })
+        } catch(e) { resolve({ country: 'Unknown', city: 'Unknown' }) }
+      })
+    }).on('error', () => resolve({ country: 'Unknown', city: 'Unknown' }))
+  })
+}
+
 // ─── PORT FORWARDING ──────────────────────────────────────────────────────────
 
 async function getPortForwards() {
@@ -427,7 +452,7 @@ async function getPFRules() {
 module.exports = {
   getStatus, getConfig, saveConfig, enablePF, disablePF, getPFRules,
   getRules, addRule, updateRule, deleteRule, toggleRule, reorderRules,
-  getBlockedIPs, blockIP, unblockIP,
+  getBlockedIPs, blockIP, unblockIP, unblockMultiple, getIPGeo,
   getPortForwards, addPortForward, deletePortForward,
   generateAndReload, generatePFConf
 }
