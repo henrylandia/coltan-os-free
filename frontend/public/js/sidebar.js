@@ -1,5 +1,5 @@
 
-// Interceptor global — detecta 401 y redirige al login
+// Interceptor global — detecta 401 y redirige al login, detecta 403 de licencia
 const _originalFetch = window.fetch
 window.fetch = async function(...args) {
   const res = await _originalFetch(...args)
@@ -9,7 +9,34 @@ window.fetch = async function(...args) {
     window.location.href = '/login.html'
     return res
   }
+  if (res.status === 403) {
+    const clone = res.clone()
+    try {
+      const data = await clone.json()
+      if (data.feature === 'premium') {
+        showPremiumModal(data.message)
+      }
+    } catch(e) {}
+  }
   return res
+}
+
+function showPremiumModal(message) {
+  if (document.getElementById('coltan-premium-modal')) return
+  const modal = document.createElement('div')
+  modal.id = 'coltan-premium-modal'
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center'
+  modal.innerHTML = `
+    <div style="background:var(--bg-card,#1a1d2e);border:1px solid var(--border,#2d3148);border-radius:16px;padding:32px;max-width:420px;text-align:center">
+      <div style="font-size:2.5rem;color:#f59e0b;margin-bottom:12px"><i class="bi bi-star-fill"></i></div>
+      <div style="font-size:1.1rem;font-weight:700;color:#e2e8f0;margin-bottom:8px">Función Premium</div>
+      <div style="font-size:0.85rem;color:#94a3b8;margin-bottom:24px">${message || 'Esta función requiere una licencia activa de Coltan OS Premium.'}</div>
+      <div style="display:flex;gap:8px;justify-content:center">
+        <button onclick="document.getElementById('coltan-premium-modal').remove()" style="background:rgba(100,116,139,0.15);border:1px solid #2d3148;color:#94a3b8;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:0.85rem">Cerrar</button>
+        <a href="/pages/settings.html" style="background:#4f8ef7;color:white;padding:8px 18px;border-radius:8px;text-decoration:none;font-size:0.85rem;font-weight:600">Activar Licencia</a>
+      </div>
+    </div>`
+  document.body.appendChild(modal)
 }
 
 function loadSidebar(activePage) {

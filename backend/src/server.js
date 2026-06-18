@@ -24,6 +24,10 @@ fastify.decorate('authenticate', async function(request, reply) {
     reply.code(401).send({ error: 'Unauthorized' })
   }
 })
+// License middleware - bloquea endpoints premium sin licencia
+const { licenseMiddleware } = require('./middleware/license')
+fastify.addHook('onRequest', licenseMiddleware)
+
 // Panel access log hook
 fastify.addHook('onResponse', async (request, reply) => {
   try {

@@ -185,6 +185,7 @@
             <div class="stat-label"><i class="bi bi-clock me-1"></i>Uptime</div>
             <div class="stat-value" style="font-size:1.2rem" id="uptime-val">--</div>
             <div class="stat-sub" id="hostname-val">coltanos</div>
+            <div style="margin-top:6px" id="license-badge"></div>
           </div>
         </div>
       </div>
@@ -832,9 +833,24 @@
     }
 
     applyLayout()
+    async function loadLicenseBadge() {
+      try {
+        const res = await fetch('/api/settings/license/status', { headers: h.headers })
+        const data = await res.json()
+        const badge = document.getElementById('license-badge')
+        if (data.active) {
+          badge.innerHTML = '<span style="background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid rgba(34,197,94,0.3);padding:2px 8px;border-radius:999px;font-size:0.68rem;font-weight:700"><i class="bi bi-star-fill me-1"></i>PREMIUM</span>'
+        } else {
+          badge.innerHTML = '<span style="background:rgba(100,116,139,0.15);color:#64748b;border:1px solid rgba(100,116,139,0.3);padding:2px 8px;border-radius:999px;font-size:0.68rem;font-weight:700">FREE</span>'
+        }
+      } catch(e) {}
+    }
+
     loadDashboard()
     loadPublicIP()
+    loadLicenseBadge()
     setInterval(loadDashboard, 3000)
+    setInterval(loadLicenseBadge, 30000)
   </script>
 </body>
 </html>
