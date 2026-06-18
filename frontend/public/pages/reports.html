@@ -192,7 +192,10 @@
 
     async function loadAll() {
       const f = getFilters()
-      const params = new URLSearchParams(f)
+      // Agregar hora final del dia al "to" para incluir todo el dia
+      const toWithTime = f.to + 'T23:59:59'
+      const fromWithTime = f.from + 'T00:00:00'
+      const params = new URLSearchParams({ from: fromWithTime, to: toWithTime, groupBy: f.groupBy })
       const [summary, traffic, topIfaces, attacksCountry, attacksType, attacksTimeline, topIPs, dns, panelLog] = await Promise.all([
         fetch('/api/reports/summary?' + params, h).then(r => r.json()),
         fetch('/api/reports/traffic?' + params, h).then(r => r.json()),
