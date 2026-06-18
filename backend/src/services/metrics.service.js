@@ -87,7 +87,6 @@ async function getServices() {
   const checks = [
     { name: 'PF Firewall', cmd: 'pfctl -s info 2>/dev/null | grep -c Enabled', ok: v => v.trim() === '1' },
     { name: 'Kea DHCP', cmd: 'pgrep kea-dhcp4', ok: v => v.trim().length > 0 },
-    { name: 'Samba', cmd: 'pgrep smbd', ok: v => v.trim().length > 0 },
     { name: 'WireGuard', cmd: 'ifconfig wg0 2>/dev/null | grep -c UP', ok: v => v.trim() === '1' },
     { name: 'OpenVPN', cmd: 'pgrep openvpn', ok: v => v.trim().length > 0 },
     { name: 'SSH', cmd: 'pgrep sshd', ok: v => v.trim().length > 0 },

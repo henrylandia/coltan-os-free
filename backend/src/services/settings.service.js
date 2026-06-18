@@ -33,7 +33,7 @@ async function saveSettings(settings) {
 
 async function getSystemInfo() {
   try {
-    const [hostname, timezone, freebsdVersion, nodeVersion, uptime, sambaVersion] = await Promise.all([
+    const [hostname, timezone, freebsdVersion, nodeVersion, uptime] = await Promise.all([
       execAsync('hostname').then(r => r.stdout.trim()),
       execAsync('date +%Z').then(r => r.stdout.trim()),
       execAsync('uname -r').then(r => r.stdout.trim()),
@@ -47,9 +47,8 @@ async function getSystemInfo() {
         }
         return 'N/A'
       }),
-      execAsync('samba --version 2>/dev/null || echo N/A').then(r => r.stdout.trim())
     ])
-    return { hostname, timezone, freebsdVersion, nodeVersion, sambaVersion, uptime, coltanVersion: '0.1.0' }
+    return { hostname, timezone, freebsdVersion, nodeVersion, uptime, coltanVersion: '0.1.0' }
   } catch(e) { return {} }
 }
 

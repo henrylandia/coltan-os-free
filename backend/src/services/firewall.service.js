@@ -53,8 +53,6 @@ async function getDefaultRules(wan, lans) {
     makeRule('sys-webui-wan',  'pass', 'in', 'tcp',  wan, 'any', '', 'any', '3000',   'Allow Coltan OS WebUI (WAN)', true),
     makeRule('sys-http',       'pass', 'in', 'tcp',  wan, 'any', '', 'any', '80',     'Allow HTTP', true),
     makeRule('sys-https',      'pass', 'in', 'tcp',  wan, 'any', '', 'any', '443',    'Allow HTTPS', true),
-    makeRule('sys-samba-tcp',  'pass', 'in', 'tcp',  wan, 'any', '', 'any', '{ 139, 445 }', 'Allow Samba TCP', true),
-    makeRule('sys-samba-udp',  'pass', 'in', 'udp',  wan, 'any', '', 'any', '{ 137, 138 }', 'Allow Samba UDP', true),
     makeRule('sys-dhcp',       'pass', 'in', 'udp',  wan, 'any', '', 'any', '67',     'Allow DHCP', true),
     makeRule('sys-wireguard',  'pass', 'in', 'udp',  wan, 'any', '', 'any', '51820',  'Allow WireGuard VPN', true),
     makeRule('sys-openvpn',    'pass', 'in', 'udp',  wan, 'any', '', 'any', '1194',   'Allow OpenVPN', true),

@@ -47,9 +47,6 @@ function loadSidebar(activePage) {
             <i class="bi bi-lock-fill"></i> OpenVPN
           </a>
         </div>
-        <a href="/pages/fileserver.html" class="nav-item ${activePage === 'fileserver' ? 'active' : ''}">
-          <i class="bi bi-hdd-stack"></i> File Server
-        </a>
         <a href="/pages/backup.html" class="nav-item ${activePage === 'backup' ? 'active' : ''}">
           <i class="bi bi-cloud-arrow-up"></i> Backup
         </a>
