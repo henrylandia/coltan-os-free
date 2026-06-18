@@ -85,13 +85,9 @@ async function settingsRoutes(fastify, options) {
       const remoteHash = remote.trim()
       const [message, date] = lastCommit.trim().split('|')
       return {
-        localHash,
-        remoteHash,
-        branch: branch.trim(),
+        localHash, remoteHash, branch: branch.trim(),
         upToDate: localHash === remoteHash || !remoteHash,
-        lastCommit: message || '',
-        lastCommitDate: date || '',
-        version: 'v0.1.0'
+        lastCommit: message || '', lastCommitDate: date || '', version: 'v0.1.0'
       }
     } catch(e) { return { error: e.message } }
   })
@@ -103,7 +99,6 @@ async function settingsRoutes(fastify, options) {
     try {
       const { stdout: pull } = await execAsync('cd /opt/coltanos && git pull origin main 2>&1')
       const { stdout: hash } = await execAsync('cd /opt/coltanos && git rev-parse --short HEAD 2>/dev/null')
-      // Restart backend after update
       setTimeout(() => execAsync('pm2 restart coltanos-backend 2>/dev/null'), 2000)
       return { success: true, output: pull.trim(), hash: hash.trim() }
     } catch(e) { return { success: false, error: e.message } }
@@ -129,9 +124,7 @@ async function settingsRoutes(fastify, options) {
         text: 'This is a test email from Coltan OS.'
       })
       return { success: true }
-    } catch(e) {
-      return { success: false, error: e.message }
-    }
+    } catch(e) { return { success: false, error: e.message } }
   })
 
   fastify.post('/api/settings/test-webhook', { onRequest: [fastify.authenticate] }, async (request, reply) => {
@@ -144,8 +137,38 @@ async function settingsRoutes(fastify, options) {
         body: JSON.stringify({ text: 'Coltan OS — Test notification' })
       })
       return { success: res.ok }
+    } catch(e) { return { success: false, error: e.message } }
+  })
+
+  // Licencia
+  fastify.get('/api/settings/license/status', { onRequest: [fastify.authenticate] }, async (req, reply) => {
+    try {
+      const statusFile = '/usr/local/etc/coltan/license-status.json'
+      const data = JSON.parse(require('fs').readFileSync(statusFile, 'utf8'))
+      return data
     } catch(e) {
-      return { success: false, error: e.message }
+      return { active: false, licenseStatus: 'no_license' }
+    }
+  })
+
+  fastify.post('/api/settings/license/apply', { onRequest: [fastify.authenticate] }, async (req, reply) => {
+    const { licenseFile } = req.body
+    if (!licenseFile) return reply.code(400).send({ error: 'licenseFile requerido' })
+    const LICENSE_FILE = '/usr/local/etc/coltan/license.json'
+    require('fs').writeFileSync(LICENSE_FILE, licenseFile)
+    try {
+      const { doHeartbeat } = require('../services/heartbeat.service')
+      await doHeartbeat()
+      const statusFile = '/usr/local/etc/coltan/license-status.json'
+      const status = JSON.parse(require('fs').readFileSync(statusFile, 'utf8'))
+      if (status.active) {
+        return { success: true, licenseStatus: status.licenseStatus }
+      } else {
+        require('fs').unlinkSync(LICENSE_FILE)
+        return reply.code(403).send({ error: status.error || 'Licencia inválida o ya activada en otro servidor' })
+      }
+    } catch(e) {
+      return reply.code(500).send({ error: 'Error validando licencia: ' + e.message })
     }
   })
 

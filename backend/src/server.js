@@ -24,6 +24,18 @@ fastify.decorate('authenticate', async function(request, reply) {
     reply.code(401).send({ error: 'Unauthorized' })
   }
 })
+// Panel access log hook
+fastify.addHook('onResponse', async (request, reply) => {
+  try {
+    const { logPanelAccess } = require('./services/collectors.service')
+    const user = request.user?.username || null
+    const ip = request.headers['x-forwarded-for'] || request.ip
+    if (request.url.startsWith('/api/')) {
+      logPanelAccess(user, ip, request.method, request.url, reply.statusCode, reply.elapsedTime)
+    }
+  } catch(e) {}
+})
+
 // Serve frontend
 fastify.register(require('@fastify/static'), {
   root: path.join(__dirname, '../../frontend/public'),
@@ -51,6 +63,7 @@ fastify.register(require('./routes/qos.routes'))
 fastify.register(require('@fastify/websocket'))
 fastify.register(require('./routes/ws.routes'))
 fastify.register(require('./routes/console.routes'))
+fastify.register(require('./routes/reports.routes'))
 // Public health
 fastify.get('/api/health', async (request, reply) => {
   return {
@@ -106,6 +119,9 @@ const start = async () => {
     // Heartbeat hacia sistema.coltanos.com
     const { startHeartbeat } = require('./services/heartbeat.service')
     startHeartbeat()
+    // Analytics collectors
+    const { startCollectors } = require('./services/collectors.service')
+    startCollectors()
   } catch (err) {
     fastify.log.error(err)
     process.exit(1)

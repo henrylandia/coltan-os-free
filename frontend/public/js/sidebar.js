@@ -53,6 +53,9 @@ function loadSidebar(activePage) {
         <a href="/pages/console.html" class="nav-item ${activePage === 'console' ? 'active' : ''}">
           <i class="bi bi-terminal"></i> Console
         </a>
+        <a href="/pages/reports.html" class="nav-item ${activePage === 'reports' ? 'active' : ''}">
+          <i class="bi bi-file-bar-graph"></i> Reportes
+        </a>
         <a href="/pages/settings.html" class="nav-item ${activePage === 'settings' ? 'active' : ''}">
           <i class="bi bi-gear"></i> Settings
         </a>
