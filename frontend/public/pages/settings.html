@@ -207,7 +207,12 @@
       <!-- License Tab -->
       <div id="tab-license" style="display:none">
         <div class="settings-card">
-          <h6><i class="bi bi-key me-2"></i>Licencia de Coltan OS</h6>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h6 style="margin-bottom:0"><i class="bi bi-key me-2"></i>Licencia de Coltan OS</h6>
+            <button class="btn btn-primary-soft" onclick="forceCheckLicense()" id="force-check-btn" style="font-size:0.78rem;padding:5px 14px">
+              <i class="bi bi-arrow-clockwise me-1"></i>Forzar verificación
+            </button>
+          </div>
           <div id="license-status-box" style="margin-bottom:20px">
             <div class="text-muted" style="font-size:0.85rem">Cargando estado de licencia...</div>
           </div>
@@ -479,6 +484,27 @@
       }
     }
 
+    async function forceCheckLicense() {
+      const btn = document.getElementById('force-check-btn')
+      btn.disabled = true
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Verificando...'
+      try {
+        const res = await fetch('/api/settings/license/force-check', { method: 'POST', ...h, body: '{}' })
+        const data = await res.json()
+        if (data.success) {
+          showAlert(data.active ? 'Licencia activa confirmada' : 'Sin licencia activa — los modulos premium se actualizaron automaticamente si correspondia')
+          await loadLicenseStatus()
+        } else {
+          showAlert(data.error || 'Error verificando licencia', true)
+        }
+      } catch(e) {
+        showAlert('Error de conexion al verificar', true)
+      } finally {
+        btn.disabled = false
+        btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Forzar verificación'
+      }
+    }
+
     async function applyLicense() {
       const fileInput = document.getElementById('license-file-input')
       if (!fileInput.files[0]) return showAlert('Seleccioná un archivo de licencia', true)
@@ -494,45 +520,11 @@
       })
       const data = await res.json()
       if (data.success) {
-        if (data.upgrading) {
-          showAlert('Licencia aplicada — actualizando a Premium, esto puede tardar 1-2 minutos...')
-          pollUpgradeProgress()
-        } else {
-          showAlert('Licencia aplicada correctamente')
-          loadLicenseStatus()
-        }
+        showAlert('Licencia aplicada correctamente')
+        loadLicenseStatus()
       } else {
         showAlert(data.error || 'Error aplicando licencia', true)
       }
-    }
-
-    async function pollUpgradeProgress() {
-      const box = document.getElementById('license-status-box')
-      box.innerHTML = `
-        <div style="background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.3);border-radius:8px;padding:16px">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <span class="spinner-border spinner-border-sm" style="color:var(--accent)"></span>
-            <span style="color:var(--accent);font-weight:700;font-size:0.9rem">Actualizando a Coltan OS Premium...</span>
-          </div>
-          <div id="upgrade-log-box" style="font-family:monospace;font-size:0.75rem;color:var(--text-muted);max-height:150px;overflow-y:auto;white-space:pre-wrap"></div>
-        </div>`
-
-      let attempts = 0
-      const interval = setInterval(async () => {
-        attempts++
-        try {
-          const res = await fetch('/api/settings/upgrade/log', { headers: h.headers })
-          const data = await res.json()
-          const logBox = document.getElementById('upgrade-log-box')
-          if (logBox) logBox.textContent = data.log || ''
-          if (data.log && data.log.includes('Completado')) {
-            clearInterval(interval)
-            showAlert('¡Actualización a Premium completada! Recargando panel...')
-            setTimeout(() => window.location.reload(), 2000)
-          }
-        } catch(e) {}
-        if (attempts > 40) clearInterval(interval) // ~2 min timeout
-      }, 3000)
     }
 
     async function checkColtanVersion() {

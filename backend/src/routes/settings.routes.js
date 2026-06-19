@@ -151,6 +151,18 @@ async function settingsRoutes(fastify, options) {
     }
   })
 
+  fastify.post("/api/settings/license/force-check", { onRequest: [fastify.authenticate] }, async (req, reply) => {
+    try {
+      const { doHeartbeat } = require("../services/heartbeat.service")
+      await doHeartbeat()
+      const statusFile = "/usr/local/etc/coltan/license-status.json"
+      const status = JSON.parse(require("fs").readFileSync(statusFile, "utf8"))
+      return { success: true, ...status }
+    } catch(e) {
+      return reply.code(500).send({ error: "Error verificando licencia: " + e.message })
+    }
+  })
+
   fastify.post('/api/settings/license/apply', { onRequest: [fastify.authenticate] }, async (req, reply) => {
     const { licenseFile } = req.body
     if (!licenseFile) return reply.code(400).send({ error: 'licenseFile requerido' })
