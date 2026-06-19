@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+<script>if(!localStorage.getItem("coltan_token")){window.location.replace("/login.html")}</script>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -232,15 +233,12 @@
           <div id="dns-summary"></div>
         </div>
 
-        <div class="panel" id="panel-sites" draggable="true" ondragstart="dragStart(event,'panel-sites')" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)" style="text-align:center;padding:24px 16px">
-          <div class="panel-header" style="justify-content:center">
+        <div class="panel" id="panel-sites" draggable="true" ondragstart="dragStart(event,'panel-sites')" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <div class="panel-header">
             <i class="bi bi-slash-circle"></i>Site Blocking
             <i class="bi bi-grip-vertical drag-icon"></i>
           </div>
-          <i class="bi bi-star-fill" style="font-size:1.8rem;color:#f59e0b;margin-bottom:8px;display:block"></i>
-          <div style="font-size:0.85rem;color:var(--text-primary);font-weight:600;margin-bottom:4px">Función Premium</div>
-          <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px">Bloqueá redes sociales, streaming y categorías de sitios para toda tu red.</div>
-          <a href="/pages/settings.html" style="background:#4f8ef7;color:white;padding:6px 16px;border-radius:8px;text-decoration:none;font-size:0.78rem;font-weight:600">Activar Premium</a>
+          <div id="sites-summary"></div>
         </div>
         <div class="panel" id="panel-speedtest" draggable="true" ondragstart="dragStart(event,'panel-speedtest')" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
           <div class="panel-header">
@@ -404,6 +402,7 @@
     const SERVICE_ROUTES = {
       'PF Firewall': '/pages/firewall.html',
       'Suricata': '/pages/security.html',
+      'Unbound DNS': '/pages/security.html',
       'Kea DHCP': '/pages/networking.html',
       'WireGuard': '/pages/wireguard.html',
       'OpenVPN': '/pages/openvpn.html'
@@ -538,18 +537,29 @@
       } catch(e) { el.innerHTML = '<div style="color:var(--text-muted)">Error cargando datos</div>' }
     }
 
-    // ── DNS modal (Premium feature) ────────────────────────────────────────
+    // ── DNS modal ────────────────────────────────────────────────────────────
     async function loadDNSModal() {
       const el = document.getElementById('dns-modal-content')
-      el.innerHTML = `
-        <div style="text-align:center;padding:20px 10px">
-          <i class="bi bi-star-fill" style="font-size:2.2rem;color:#f59e0b;margin-bottom:12px;display:block"></i>
-          <div style="font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:6px">DNS Blocker — Función Premium</div>
-          <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">
-            Bloqueá ads, tracking, malware y phishing automáticamente para todos los dispositivos de tu red.
+      el.innerHTML = '<div style="color:var(--text-muted)">Cargando...</div>'
+      try {
+        const res = await fetch('/api/security/status', { headers: h.headers })
+        const data = await res.json()
+        const domains = data.unbound?.domains || 0
+        el.innerHTML = `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div style="background:var(--bg-dark);border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:1.5rem;font-weight:700;color:#4f8ef7">${domains.toLocaleString()}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted)">Dominios bloqueados</div>
+            </div>
+            <div style="background:var(--bg-dark);border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:1.5rem;font-weight:700;color:#22c55e">${data.unbound?.running?'Running':'Stopped'}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted)">Estado</div>
+            </div>
           </div>
-          <a href="/pages/settings.html" style="background:#4f8ef7;color:white;padding:8px 20px;border-radius:8px;text-decoration:none;font-size:0.85rem;font-weight:600">Activar Premium</a>
-        </div>`
+          <div style="font-size:0.82rem;color:var(--text-muted)">
+            Bloqueando ads, tracking, malware y phishing para todos los dispositivos de la LAN.
+          </div>`
+      } catch(e) { el.innerHTML = '<div style="color:var(--text-muted)">Error</div>' }
     }
 
     // ── Main load ────────────────────────────────────────────────────────────
@@ -710,15 +720,48 @@
             </div>`
         } catch(e) {}
 
-        // DNS Blocker (Premium)
+        // DNS Blocker
         try {
+          const dRes = await fetch('/api/security/status', { headers: h.headers })
+          const dData = await dRes.json()
           document.getElementById('dns-summary').innerHTML = `
-            <div style="text-align:center;padding:8px 4px">
-              <i class="bi bi-star-fill" style="color:#f59e0b;font-size:1.1rem;margin-bottom:4px;display:block"></i>
-              <div style="font-size:0.75rem;color:var(--text-muted)">Función Premium</div>
+            <div class="sec-item">
+              <div>
+                <div style="font-size:0.82rem;color:var(--text-primary)">${dData.unbound?.running?'Running':'Detenido'}</div>
+                <div class="sec-label">Unbound DNS</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:1.1rem;font-weight:700;color:#4f8ef7">${(dData.unbound?.domains||0).toLocaleString()}</div>
+                <div style="font-size:0.7rem;color:var(--text-muted)">dominios</div>
+              </div>
             </div>`
         } catch(e) {}
 
+        // Site blocking
+        try {
+          const sitesRes = await fetch('/api/sites/groups', { headers: h.headers })
+          const sitesData = await sitesRes.json()
+          const groups = sitesData.groups || []
+          const totalSites = groups.reduce((acc,g) => acc+(g.entries?.length||0), 0)
+          document.getElementById('sites-summary').innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+              <div style="background:var(--bg-dark);border-radius:8px;padding:10px;text-align:center">
+                <div style="font-size:1.4rem;font-weight:700;color:#4f8ef7">${groups.length}</div>
+                <div style="font-size:0.72rem;color:var(--text-muted)">Grupos</div>
+              </div>
+              <div style="background:var(--bg-dark);border-radius:8px;padding:10px;text-align:center">
+                <div style="font-size:1.4rem;font-weight:700;color:#f87171">${totalSites}</div>
+                <div style="font-size:0.72rem;color:var(--text-muted)">Sitios bloqueados</div>
+              </div>
+            </div>
+            ${groups.slice(0,4).map(g=>`
+              <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.78rem;border-bottom:1px solid var(--border)">
+                <span style="color:var(--text-primary)">${g.name}</span>
+                <span style="color:var(--text-muted)">${g.entries?.length||0} sitios</span>
+              </div>`).join('')}`
+        } catch(e) {
+          document.getElementById('sites-summary').innerHTML = '<div style="color:var(--text-muted);font-size:0.82rem">Sin datos</div>'
+        }
 
             } catch(e) { console.error('Dashboard error:', e) }
     }
