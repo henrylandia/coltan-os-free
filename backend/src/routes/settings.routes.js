@@ -162,13 +162,28 @@ async function settingsRoutes(fastify, options) {
       const statusFile = '/usr/local/etc/coltan/license-status.json'
       const status = JSON.parse(require('fs').readFileSync(statusFile, 'utf8'))
       if (status.active) {
-        return { success: true, licenseStatus: status.licenseStatus }
+        const { isUpgradeAvailable, performUpgrade } = require("../services/upgrade.service")
+        let upgradeTriggered = false
+        if (await isUpgradeAvailable()) {
+          upgradeTriggered = true
+          performUpgrade().catch(() => {})
+        }
+        return { success: true, licenseStatus: status.licenseStatus, upgrading: upgradeTriggered }
       } else {
-        require('fs').unlinkSync(LICENSE_FILE)
-        return reply.code(403).send({ error: status.error || 'Licencia inválida o ya activada en otro servidor' })
+        require("fs").unlinkSync(LICENSE_FILE)
+        return reply.code(403).send({ error: status.error || "Licencia invalida o ya activada en otro servidor" })
       }
     } catch(e) {
-      return reply.code(500).send({ error: 'Error validando licencia: ' + e.message })
+      return reply.code(500).send({ error: "Error validando licencia: " + e.message })
+    }
+  })
+
+  fastify.get("/api/settings/upgrade/log", { onRequest: [fastify.authenticate] }, async (req, reply) => {
+    try {
+      const log = require("fs").readFileSync("/usr/local/etc/coltan/upgrade-log.txt", "utf8")
+      return { log }
+    } catch(e) {
+      return { log: "Sin actualizaciones registradas todavia" }
     }
   })
 

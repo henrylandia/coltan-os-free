@@ -98,7 +98,14 @@
       </div>
 
       <!-- DNS BLOCKER MODULE -->
-      <div id="module-dns" class="module-section active">
+      <div id="module-dns" class="module-section active" style="position:relative">
+        <div style="position:absolute;inset:0;background:rgba(15,17,23,0.6);backdrop-filter:blur(2px);z-index:50;border-radius:12px"></div>
+        <div style="position:absolute;top:140px;left:50%;transform:translateX(-50%);z-index:51;text-align:center;width:90%;max-width:420px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:28px">
+          <i class="bi bi-star-fill" style="font-size:2.2rem;color:#f59e0b;margin-bottom:10px;display:block"></i>
+          <div style="font-size:1.1rem;font-weight:700;color:var(--text-primary);margin-bottom:8px">DNS Blocker — Función Premium</div>
+          <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:18px">Bloqueá ads, tracking, malware, phishing y categorías completas de contenido para toda tu red.</div>
+          <a href="/pages/settings.html" style="background:#4f8ef7;color:white;padding:9px 24px;border-radius:8px;text-decoration:none;font-size:0.85rem;font-weight:600">Activar Coltan OS Premium</a>
+        </div>
         <ul class="nav nav-tabs mb-4" id="dns-tabs">
           <li class="nav-item"><a class="nav-link active" href="#" onclick="showDnsTab('config',this)"><i class="bi bi-shield-check me-2"></i>DNS Blocker</a></li>
           <li class="nav-item"><a class="nav-link" href="#" onclick="showDnsTab('whitelist',this)"><i class="bi bi-check-circle me-2"></i>Whitelist</a></li>
@@ -209,7 +216,7 @@
                 <button class="btn btn-success-soft" onclick="showStartModal()"><i class="bi bi-play-fill me-1"></i>Start</button>
                 <button class="btn btn-danger-soft" onclick="stopSuricata()"><i class="bi bi-stop-fill me-1"></i>Stop</button>
                 <button class="btn btn-primary-soft" onclick="loadSuricataAlerts()"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
-                <button class="btn btn-danger-soft" onclick="clearAlerts()"><i class="bi bi-trash me-1"></i>Limpiar</button>
+                <button class="btn" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.25);color:#f59e0b;cursor:default" title="Función Premium"><i class="bi bi-star-fill me-1"></i>Limpiar</button>
               </div>
             </div>
           </div>
@@ -229,7 +236,14 @@
         </div>
 
         <!-- Config Tab -->
-        <div id="ids-tab-config" style="display:none">
+        <div id="ids-tab-config" style="display:none;position:relative">
+          <div style="position:absolute;inset:0;background:rgba(15,17,23,0.6);backdrop-filter:blur(2px);z-index:50;border-radius:12px"></div>
+          <div style="position:absolute;top:100px;left:50%;transform:translateX(-50%);z-index:51;text-align:center;width:90%;max-width:400px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px">
+            <i class="bi bi-star-fill" style="font-size:1.8rem;color:#f59e0b;margin-bottom:8px;display:block"></i>
+            <div style="font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:6px">Reglas Personalizadas — Premium</div>
+            <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px">Elegí exactamente qué categorías de ataque detecta Suricata.</div>
+            <a href="/pages/settings.html" style="background:#4f8ef7;color:white;padding:7px 18px;border-radius:8px;text-decoration:none;font-size:0.8rem;font-weight:600">Activar Premium</a>
+          </div>
           <div class="settings-card">
             <div class="section-title"><i class="bi bi-gear me-2"></i>Reglas de Detección</div>
             <div class="rule-toggle">
@@ -271,7 +285,14 @@
         </div>
 
         <!-- Auto-Block Tab -->
-        <div id="ids-tab-autoblock" style="display:none">
+        <div id="ids-tab-autoblock" style="display:none;position:relative">
+          <div style="position:absolute;inset:0;background:rgba(15,17,23,0.6);backdrop-filter:blur(2px);z-index:50;border-radius:12px"></div>
+          <div style="position:absolute;top:100px;left:50%;transform:translateX(-50%);z-index:51;text-align:center;width:90%;max-width:400px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px">
+            <i class="bi bi-star-fill" style="font-size:1.8rem;color:#f59e0b;margin-bottom:8px;display:block"></i>
+            <div style="font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:6px">Auto-Block (IPS) — Premium</div>
+            <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px">Bloqueá automáticamente las IPs que ataquen tu red, sin intervención manual.</div>
+            <a href="/pages/settings.html" style="background:#4f8ef7;color:white;padding:7px 18px;border-radius:8px;text-decoration:none;font-size:0.8rem;font-weight:600">Activar Premium</a>
+          </div>
           <div class="settings-card">
             <div class="section-title"><i class="bi bi-robot me-2"></i>Bloqueo Automático</div>
             <div style="background:rgba(79,142,247,0.08);border:1px solid rgba(79,142,247,0.2);border-radius:8px;padding:12px 16px;font-size:0.82rem;color:var(--text-muted);margin-bottom:20px">
@@ -346,12 +367,11 @@
           <div class="mb-3">
             <label class="form-label">Modo</label>
             <select class="form-select" id="start-mode">
-              <option value="ids">IDS — Solo detectar y alertar (recomendado)</option>
-              <option value="ips">IPS — Detectar y bloquear automáticamente</option>
+              <option value="ids">IDS — Solo detectar y alertar</option>
             </select>
           </div>
           <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:10px 14px;font-size:0.82rem;color:#f59e0b">
-            <i class="bi bi-exclamation-triangle me-2"></i>El modo IPS puede interrumpir tráfico legítimo. Se recomienda usar IDS primero.
+            <i class="bi bi-star-fill me-2"></i>El modo <strong>IPS</strong> (bloqueo automático) es una función <strong>Premium</strong>. La versión Free solo detecta y registra alertas.
           </div>
         </div>
         <div class="modal-footer">
@@ -600,9 +620,7 @@
         const httpInfo = a.http ? `<div style="color:var(--text-muted);font-size:0.75rem;margin-top:4px;font-family:monospace">${a.http.method} ${a.http.url} · UA: ${a.http.userAgent || '—'}</div>` : ''
         const payloadInfo = a.payload ? `<div style="color:#64748b;font-size:0.72rem;margin-top:4px;font-family:monospace;white-space:pre-wrap;background:rgba(0,0,0,0.2);padding:4px 8px;border-radius:4px;display:none" id="payload-${i}">${a.payload}</div>` : ''
         const payloadBtn = a.payload ? `<span onclick="togglePayload(${i})" style="cursor:pointer;color:var(--accent);font-size:0.72rem;margin-left:8px">ver payload</span>` : ''
-        const blockBtn = blockedIPs.has(a.srcIP)
-          ? `<button onclick="unblockAlertIP('${a.srcIP}')" style="margin-left:12px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);color:#22c55e;padding:3px 10px;border-radius:6px;font-size:0.75rem;white-space:nowrap;cursor:pointer"><i class="bi bi-shield-check"></i> Unblock</button>`
-          : `<button onclick="blockAlertIP('${a.srcIP}')" style="margin-left:12px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;padding:3px 10px;border-radius:6px;font-size:0.75rem;white-space:nowrap;cursor:pointer"><i class="bi bi-shield-x"></i> Block IP</button>`
+        const blockBtn = `<span style="margin-left:12px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.25);color:#f59e0b;padding:3px 10px;border-radius:6px;font-size:0.72rem;white-space:nowrap"><i class="bi bi-star-fill"></i> Bloqueo manual: Firewall</span>`
         return `<div class="alert-row" style="border-left:3px solid ${sevColor}">
           <div style="display:flex;justify-content:space-between;align-items:flex-start">
             <div style="flex:1">
@@ -753,37 +771,9 @@
       else showAlert(data.error || 'Error', true)
     }
 
-    async function blockAlertIP(ip) {
-      if (!confirm('Bloquear IP ' + ip + ' en el firewall?')) return
-      const res = await fetch('/api/firewall/blocked-ips', {
-        method: 'POST', ...h, body: JSON.stringify({ ip, description: 'Bloqueado desde alerta Suricata' })
-      })
-      const data = await res.json()
-      if (data.success) { showAlert('IP ' + ip + ' bloqueada ✅'); loadSuricataAlerts() }
-      else showAlert(data.error || 'Error al bloquear', true)
-    }
-
-    async function unblockAlertIP(ip) {
-      if (!confirm('Desbloquear IP ' + ip + '?')) return
-      const res = await fetch('/api/firewall/blocked-ips/' + encodeURIComponent(ip), {
-        method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token }
-      })
-      const data = await res.json()
-      if (data.success) { showAlert('IP ' + ip + ' desbloqueada ✅'); loadSuricataAlerts() }
-      else showAlert(data.error || 'Error al desbloquear', true)
-    }
-
     function togglePayload(i) {
       const el = document.getElementById('payload-' + i)
       if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none'
-    }
-
-    async function clearAlerts() {
-      if (!confirm('Limpiar todas las alertas?')) return
-      const res = await fetch('/api/suricata/alerts/clear', { method: 'POST', ...h, body: '{}' })
-      const data = await res.json()
-      if (data.success) { showAlert('Alertas limpiadas'); loadSuricataAlerts() }
-      else showAlert(data.error || 'Error', true)
     }
 
     // ── INIT ──────────────────────────────────────────────────────────────────

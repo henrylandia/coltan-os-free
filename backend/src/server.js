@@ -24,22 +24,6 @@ fastify.decorate('authenticate', async function(request, reply) {
     reply.code(401).send({ error: 'Unauthorized' })
   }
 })
-// License middleware - bloquea endpoints premium sin licencia
-const { licenseMiddleware } = require('./middleware/license')
-fastify.addHook('onRequest', licenseMiddleware)
-
-// Panel access log hook
-fastify.addHook('onResponse', async (request, reply) => {
-  try {
-    const { logPanelAccess } = require('./services/collectors.service')
-    const user = request.user?.username || null
-    const ip = request.headers['x-forwarded-for'] || request.ip
-    if (request.url.startsWith('/api/')) {
-      logPanelAccess(user, ip, request.method, request.url, reply.statusCode, reply.elapsedTime)
-    }
-  } catch(e) {}
-})
-
 // Serve frontend
 fastify.register(require('@fastify/static'), {
   root: path.join(__dirname, '../../frontend/public'),
@@ -58,15 +42,11 @@ fastify.register(require('./routes/dhcp.routes'))
 fastify.register(require('./routes/interfaces.routes'))
 fastify.register(require('./routes/wireguard.routes'))
 fastify.register(require('./routes/openvpn.routes'))
-fastify.register(require('./routes/sites.routes'))
-fastify.register(require('./routes/security.routes'))
 fastify.register(require('./routes/suricata.routes'))
 fastify.register(require('./routes/vlans.routes'))
-fastify.register(require('./routes/qos.routes'))
 // WebSockets
 fastify.register(require('@fastify/websocket'))
 fastify.register(require('./routes/ws.routes'))
-fastify.register(require('./routes/reports.routes'))
 // Public health
 fastify.get('/api/health', async (request, reply) => {
   return {
@@ -97,34 +77,15 @@ const start = async () => {
     const { restoreVLANs } = require('./services/vlans.service')
     try { const r = await restoreVLANs(); console.log('[VLANs] Restored:', r.restored) } catch(e) {}
 
-    // Site blocking DNS refresh every hour
-    const { refreshDNS } = require('./services/sites.service')
-    setInterval(async () => {
-      try {
-        const result = await refreshDNS()
-        console.log('[Sites] DNS refresh:', result.updated, 'domains updated')
-      } catch(e) {}
-    }, 60 * 60 * 1000) // Every hour
-
-    // Restore QoS rules after reboot
-    const { restoreQoS } = require('./services/qos.service')
-    try { await restoreQoS(); console.log('[QoS] Rules restored') } catch(e) {}
-
 // Captive portal session cleanup every minute
     const { cleanExpiredSessions } = require('./services/captive.service')
     setInterval(async () => {
       try { await cleanExpiredSessions() } catch(e) {}
     }, 60 * 1000) // Every minute
 
-    // Start Suricata auto-block watcher
-    const { startWatcher } = require('./services/suricata-autoblock')
-    startWatcher()
     // Heartbeat hacia sistema.coltanos.com
     const { startHeartbeat } = require('./services/heartbeat.service')
     startHeartbeat()
-    // Analytics collectors
-    const { startCollectors } = require('./services/collectors.service')
-    startCollectors()
   } catch (err) {
     fastify.log.error(err)
     process.exit(1)

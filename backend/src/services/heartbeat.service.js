@@ -87,10 +87,12 @@ async function doHeartbeat() {
     }
 
     const result = await sendHeartbeat(payload)
+    let licenseActive = false
 
     if (result.status === 200 && result.data.success) {
+      licenseActive = result.data.licenseStatus === 'active'
       await saveLicenseStatus({
-        active: result.data.licenseStatus === 'active',
+        active: licenseActive,
         licenseStatus: result.data.licenseStatus,
         fingerprint: result.data.fingerprint,
         lastHeartbeat: new Date().toISOString()
@@ -104,6 +106,17 @@ async function doHeartbeat() {
         error: result.data?.error,
         lastHeartbeat: new Date().toISOString()
       })
+    }
+
+    // Si la licencia no esta activa y el sistema tiene modulos premium instalados, downgradear a Free
+    if (!licenseActive) {
+      try {
+        const { needsDowngrade, performDowngrade } = require('./downgrade.service')
+        if (await needsDowngrade()) {
+          console.log('[Heartbeat] Licencia inactiva y modulos premium presentes -> iniciando downgrade')
+          performDowngrade().catch(e => console.log('[Downgrade] Error:', e.message))
+        }
+      } catch(e) {}
     }
   } catch(e) {
     console.log('[Heartbeat] Fallo de conexión:', e.message)

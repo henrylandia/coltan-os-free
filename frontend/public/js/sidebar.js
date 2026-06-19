@@ -57,13 +57,17 @@ function loadSidebar(activePage) {
           <i class="bi bi-shield-check"></i> Firewall
         </a>
         <a href="/pages/sites.html" class="nav-item ${activePage === 'sites' ? 'active' : ''}">
-          <i class="bi bi-shield-x"></i> Site Blocking
+          <i class="bi bi-shield-x"></i> Site Blocking <i class="bi bi-star-fill" style="font-size:0.6rem;color:#f59e0b;margin-left:auto"></i>
         </a>
         <a href="/pages/security.html" class="nav-item ${activePage === 'security' ? 'active' : ''}">
           <i class="bi bi-shield-fill"></i> Security
         </a>
         <a href="/pages/qos.html" class="nav-item ${activePage === 'qos' ? 'active' : ''}">
-          <i class="bi bi-speedometer"></i> QoS
+          <i class="bi bi-speedometer"></i> QoS <i class="bi bi-star-fill" style="font-size:0.6rem;color:#f59e0b;margin-left:auto"></i>
+        </a>
+        <a href="/pages/reports.html" class="nav-item ${activePage === 'reports' ? 'active' : ''}">
+          <i class="bi bi-file-bar-graph"></i> Reportes <i class="bi bi-star-fill" style="font-size:0.6rem;color:#f59e0b;margin-left:auto"></i>
+        </a>
         </a>
         <div class="nav-group">
           <div class="nav-group-title"><i class="bi bi-lock"></i> VPN</div>
@@ -76,9 +80,6 @@ function loadSidebar(activePage) {
         </div>
         <a href="/pages/backup.html" class="nav-item ${activePage === 'backup' ? 'active' : ''}">
           <i class="bi bi-cloud-arrow-up"></i> Backup
-        </a>
-        <a href="/pages/reports.html" class="nav-item ${activePage === 'reports' ? 'active' : ''}">
-          <i class="bi bi-file-bar-graph"></i> Reportes
         </a>
         <a href="/pages/settings.html" class="nav-item ${activePage === 'settings' ? 'active' : ''}">
           <i class="bi bi-gear"></i> Settings
