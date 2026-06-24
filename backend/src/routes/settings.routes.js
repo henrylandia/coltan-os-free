@@ -97,7 +97,7 @@ async function settingsRoutes(fastify, options) {
     const { promisify } = require('util')
     const execAsync = promisify(exec)
     try {
-      const { stdout: pull } = await execAsync('cd /opt/coltanos && git pull origin main 2>&1')
+      const { stdout: pull } = await execAsync('cd /opt/coltanos && git fetch origin main 2>&1 && git reset --hard origin/main 2>&1')
       const { stdout: hash } = await execAsync('cd /opt/coltanos && git rev-parse --short HEAD 2>/dev/null')
       setTimeout(() => execAsync('pm2 restart coltanos-backend 2>/dev/null'), 2000)
       return { success: true, output: pull.trim(), hash: hash.trim() }
