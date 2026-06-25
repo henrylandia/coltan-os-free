@@ -100,6 +100,7 @@ async function performDowngrade() {
     await execAsync(`rm -rf ${TMP_CLONE}`)
 
     log.push('[Downgrade] Completado. Reiniciando backend...')
+    try { await execAsync('git -C ' + COLTANOS_ROOT + ' remote set-url origin https://github.com/henrylandia/coltan-os-free.git'); log.push('[Downgrade] Remote → free') } catch(e) {}
     fs.writeFileSync('/usr/local/etc/coltan/downgrade-log.txt', log.join('\n'))
 
     setTimeout(() => {

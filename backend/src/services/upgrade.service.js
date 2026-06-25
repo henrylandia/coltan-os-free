@@ -84,6 +84,8 @@ async function performUpgrade() {
     // 6. Limpiar
     await execAsync(`rm -rf ${TMP_CLONE}`)
 
+    // Cambiar remote al repo premium para Coltan OS Updates
+    try { await execAsync('git -C ' + COLTANOS_ROOT + ' remote set-url origin git@github.com-coltanos-upgrade:henrylandia/coltan-os.git'); log.push('[Upgrade] Remote → premium') } catch(e) {}
     log.push('[Upgrade] Completado. Reiniciando backend...')
     fs.writeFileSync('/usr/local/etc/coltan/upgrade-log.txt', log.join('\n'))
 
