@@ -34,7 +34,23 @@ const PREMIUM_FILES = [
 ]
 
 async function isUpgradeAvailable() {
-  return fs.existsSync(UPGRADE_KEY)
+  // Si no hay upgrade key, no se puede hacer upgrade
+  if (!fs.existsSync(UPGRADE_KEY)) return false
+  // Si el remote ya apunta al repo premium, ya estamos en premium
+  try {
+    const { execSync } = require('child_process')
+    const remote = execSync('git -C /opt/coltanos remote get-url origin 2>/dev/null').toString().trim()
+    if (remote.includes('github.com-coltanos-upgrade') || remote.includes('coltan-os.git') && !remote.includes('coltan-os-free')) {
+      return false // Ya es premium
+    }
+  } catch(e) {}
+  // Si el middleware de licencia existe y es premium, ya estamos en premium
+  const middlewarePath = '/opt/coltanos/backend/src/middleware/license.js'
+  if (fs.existsSync(middlewarePath)) {
+    const content = fs.readFileSync(middlewarePath, 'utf8')
+    if (content.includes('isPremium') || content.includes('premium')) return false
+  }
+  return true
 }
 
 async function performUpgrade() {

@@ -108,7 +108,17 @@ async function doHeartbeat() {
       })
     }
 
-    // Si la licencia no esta activa y el sistema tiene modulos premium instalados, downgradear a Free
+    // Si la licencia esta activa y el sistema esta en free -> upgrade a Premium
+    if (licenseActive) {
+      try {
+        const { isUpgradeAvailable, performUpgrade } = require('./upgrade.service')
+        if (await isUpgradeAvailable()) {
+          console.log('[Heartbeat] Licencia activa y sistema en Free -> iniciando upgrade a Premium')
+          performUpgrade().catch(e => console.log('[Upgrade] Error:', e.message))
+        }
+      } catch(e) { console.log('[Heartbeat] Error verificando upgrade:', e.message) }
+    }
+    // Si la licencia no esta activa y el sistema tiene modulos premium instalados -> downgrade a Free
     if (!licenseActive) {
       try {
         const { needsDowngrade, performDowngrade } = require('./downgrade.service')
