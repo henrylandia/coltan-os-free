@@ -10,7 +10,7 @@ const WG_CONF = `${WG_DIR}/wg0.conf`
 const PEERS_FILE = '/usr/local/etc/coltan/wg-peers.json'
 
 async function ensureDir() {
-  await execAsync('mkdir -p /usr/local/etc/coltan')
+  await execAsync('mkdir -p /usr/local/etc/coltan /usr/local/etc/wireguard')
 }
 
 async function getServerKeys() {
@@ -19,6 +19,20 @@ async function getServerKeys() {
     const publicKey = (await fs.readFile(`${WG_DIR}/server_public.key`, 'utf8')).trim()
     return { privateKey, publicKey }
   } catch(e) { return { privateKey: '', publicKey: '' } }
+}
+
+async function ensureServerKeys() {
+  try {
+    await fs.access(`${WG_DIR}/server_private.key`)
+  } catch(e) {
+    await execAsync(`mkdir -p ${WG_DIR}`)
+    const { stdout: priv } = await execAsync('wg genkey')
+    const privKey = priv.trim()
+    const { stdout: pub } = await execAsync(`echo "${privKey}" | wg pubkey`)
+    await fs.writeFile(`${WG_DIR}/server_private.key`, privKey + '\n')
+    await fs.writeFile(`${WG_DIR}/server_public.key`, pub.trim() + '\n')
+    await execAsync(`chmod 600 ${WG_DIR}/server_private.key`)
+  }
 }
 
 async function getConfig() {
@@ -32,8 +46,6 @@ async function getConfig() {
       dns: '8.8.8.8',
       interface: 'wg0',
       allowedNetworks: '0.0.0.0/0',
-      postUp: '',
-      postDown: ''
     }
   }
 }
@@ -72,7 +84,6 @@ async function addPeer(peer) {
   const keys = await generatePeerKeys()
   const config = await getConfig()
 
-  // Calculate next available IP
   const usedIPs = peers.map(p => parseInt(p.allowedIP.split('.')[3]))
   let nextIP = 2
   while (usedIPs.includes(nextIP)) nextIP++
@@ -117,42 +128,29 @@ async function togglePeer(id) {
 }
 
 async function generateWGConf() {
+  await ensureServerKeys()
   const { privateKey } = await getServerKeys()
   const config = await getConfig()
   const peers = await getPeers()
 
-  // Get WAN and LAN interfaces
   let wanIface = 're0'
-  let lanIface = 're1'
   try {
     const ifaceContent = await fs.readFile('/usr/local/etc/coltan/interfaces.json', 'utf8')
     const ifaces = JSON.parse(ifaceContent)
     for (const [name, val] of Object.entries(ifaces)) {
       if (val.role === 'WAN') wanIface = name
-      if (val.role === 'LAN') lanIface = name
     }
   } catch(e) {}
 
-  // Get VPN network
   const serverAddr = config.serverIP ? config.serverIP.split('/')[0] : '10.0.0.1'
   const vpnNet = serverAddr.replace(/\.\d+$/, '.0/24')
-
-  const postUp = config.postUp || [
-    `sysctl net.inet.ip.forwarding=1`,
-    `pfctl -f /etc/pf.conf 2>/dev/null`,
-    `route delete -net ${vpnNet} 2>/dev/null; route add -net ${vpnNet} -interface wg0 2>/dev/null`
-  ].join('; ')
-
-  const postDown = config.postDown || [
-    `route delete -net ${vpnNet} -interface wg0 2>/dev/null || true`
-  ].join('; ')
 
   let conf = `[Interface]
 Address = ${config.serverIP}
 ListenPort = ${config.listenPort}
 PrivateKey = ${privateKey}
-PostUp = ${postUp}
-PostDown = ${postDown}
+PostUp = sysctl net.inet.ip.forwarding=1; pfctl -f /etc/pf.conf 2>/dev/null; route delete -net ${vpnNet} 2>/dev/null; route add -net ${vpnNet} -interface wg0 2>/dev/null
+PostDown = route delete -net ${vpnNet} -interface wg0 2>/dev/null || true
 
 `
 
@@ -166,6 +164,7 @@ AllowedIPs = ${peer.allowedIP}
 `
   })
 
+  await execAsync(`mkdir -p ${WG_DIR}`)
   await fs.writeFile(WG_CONF, conf)
   await execAsync(`chmod 600 ${WG_CONF}`)
   return conf
@@ -178,7 +177,6 @@ async function getPeerConfig(id, serverPublicIP) {
 
   const config = await getConfig()
   const { publicKey: serverPubKey } = await getServerKeys()
-
   const allowedIPs = peer.allowedNetworks || config.allowedNetworks || '0.0.0.0/0'
 
   return `[Interface]
@@ -197,36 +195,38 @@ PersistentKeepalive = 25
 
 async function startWG() {
   try {
-    const config = await getConfig()
-
-    // Generate conf first
+    await ensureServerKeys()
     await generateWGConf()
-
-    // Down first to clean state
-    try { await execAsync('wg-quick down wg0 2>/dev/null') } catch(e) {}
-    await new Promise(r => setTimeout(r, 1000))
-
-    // Up with full config
-    await execAsync('wg-quick up wg0')
-
-    // Get VPN network from config
+    const config = await getConfig()
     const serverIP = config.serverIP || '10.0.0.1/24'
     const vpnNet = serverIP.replace(/\.\d+\/\d+$/, '.0/24')
     const serverAddr = serverIP.split('/')[0]
+    const listenPort = config.listenPort || 51820
+    const { privateKey } = await getServerKeys()
 
-    // Ensure ip forwarding
+    // Bajar interfaz si existe
+    try { await execAsync('ifconfig wg0 destroy 2>/dev/null') } catch(e) {}
+    await new Promise(r => setTimeout(r, 500))
+
+    // Crear interfaz WireGuard nativa FreeBSD
+    await execAsync('ifconfig wg create name wg0')
+    await execAsync(`wg set wg0 listen-port ${listenPort} private-key ${WG_DIR}/server_private.key`)
+
+    // Agregar peers activos
+    const peers = await getPeers()
+    for (const peer of peers.filter(p => p.enabled)) {
+      await execAsync(`wg set wg0 peer ${peer.publicKey} preshared-key /dev/stdin allowed-ips ${peer.allowedIP} <<< "${peer.presharedKey}" 2>/dev/null || wg set wg0 peer ${peer.publicKey} allowed-ips ${peer.allowedIP}`)
+    }
+
+    // Asignar IP y levantar
+    await execAsync(`ifconfig wg0 inet ${serverAddr} ${serverAddr} netmask 255.255.255.0`)
+    await execAsync('ifconfig wg0 up')
+
+    // Forwarding y rutas
     await execAsync('sysctl net.inet.ip.forwarding=1')
-
-    // Add pass rule for wg0 server IP specifically
-    await execAsync(`pfctl -f /etc/pf.conf 2>/dev/null`)
-
-    // Add explicit route for VPN network through wg0
-    try {
-      await execAsync(`route delete -net ${vpnNet} 2>/dev/null`)
-    } catch(e) {}
-    try {
-      await execAsync(`route add -net ${vpnNet} -interface wg0`)
-    } catch(e) {}
+    try { await execAsync(`route delete -net ${vpnNet} 2>/dev/null`) } catch(e) {}
+    try { await execAsync(`route add -net ${vpnNet} -interface wg0`) } catch(e) {}
+    await execAsync('pfctl -f /etc/pf.conf 2>/dev/null || true')
 
     return { success: true }
   } catch(e) {
@@ -236,7 +236,7 @@ async function startWG() {
 
 async function stopWG() {
   try {
-    await execAsync('wg-quick down wg0 2>/dev/null || wg-quick down wg0')
+    await execAsync('ifconfig wg0 destroy 2>/dev/null || true')
     return { success: true }
   } catch(e) {
     return { success: false, error: e.message }
@@ -245,9 +245,10 @@ async function stopWG() {
 
 async function reloadWG() {
   try {
-    const { stdout } = await execAsync('wg show wg0 2>/dev/null')
+    const { stdout } = await execAsync('ifconfig wg0 2>/dev/null')
     if (stdout) {
-      await execAsync(`wg syncconf wg0 <(wg-quick strip wg0) 2>/dev/null || true`)
+      // Recargar peers via wg syncconf si está corriendo
+      await execAsync(`wg syncconf wg0 ${WG_CONF} 2>/dev/null || true`)
     }
   } catch(e) {}
 }
@@ -255,7 +256,7 @@ async function reloadWG() {
 async function getStatus() {
   try {
     const { stdout } = await execAsync('wg show wg0 2>/dev/null')
-    if (!stdout.trim()) return { running: false, peers: [] }
+    if (!stdout || !stdout.trim()) return { running: false, peers: [] }
 
     const lines = stdout.split('\n')
     const peers = []
