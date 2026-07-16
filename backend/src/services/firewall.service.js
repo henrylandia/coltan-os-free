@@ -30,10 +30,18 @@ async function getWanIface() {
   return Object.entries(roles).find(([, v]) => v.role === 'WAN')?.[0] || 're0'
 }
 
+function getMultiwanConfig() {
+  try {
+    return JSON.parse(fsSync.readFileSync('/usr/local/etc/coltan/multiwan.json', 'utf8'))
+  } catch(e) { return { enabled: false, mode: 'failover', wans: [] } }
+}
+
 async function getLanIfaces() {
   const roles = await getIfaceRoles()
+  const mwan = getMultiwanConfig()
+  const multiwanIfaces = (mwan.wans || []).map(w => w.iface)
   return Object.entries(roles)
-    .filter(([, v]) => v.role === 'LAN' || v.role?.startsWith('OPT'))
+    .filter(([name, v]) => (v.role === 'LAN' || v.role?.startsWith('OPT')) && !multiwanIfaces.includes(name))
     .map(([name]) => name)
 }
 
@@ -287,9 +295,19 @@ rdr-anchor "coltan/rdr"
 `
 
   // ── 1. NAT ────────────────────────────────────────────────────────────────
+  const mwan = getMultiwanConfig()
+  const extraWans = (mwan.enabled ? mwan.wans : [])
+    .filter(w => w.enabled && w.iface !== wan)
+
   for (const lan of lans) {
     conf += `nat on $ext_if from ${lan}:network to any -> ($ext_if)\n`
   }
+  // NAT adicional para cada WAN extra configurada en Multi-WAN
+  extraWans.forEach((w) => {
+    lans.forEach(lan => {
+      conf += `nat on ${w.iface} from ${lan}:network to any -> (${w.iface})\n`
+    })
+  })
 
   // NAT for WireGuard
   try {
@@ -325,6 +343,32 @@ rdr-anchor "coltan/rdr"
   } catch(e) {}
 
   conf += `\n# Sites blocking anchor\nanchor "coltan/sites"\n`
+
+  // ── Multi-WAN Load Balance ──────────────────────────────────────────────
+  if (mwan.enabled && mwan.mode === 'loadbalance') {
+    const upWans = [
+      { iface: wan, gateway: mwan.wans.find(w => w.iface === wan)?.gateway || null, weight: (mwan.wans.find(w => w.iface === wan)?.weight) || 1, status: (mwan.wans.find(w => w.iface === wan)?.status) || 'up' },
+      ...mwan.wans.filter(w => w.iface !== wan)
+    ].filter(w => w.status === 'up' && w.gateway) // requiere gateway configurado para route-to
+
+    if (upWans.length >= 2) {
+      // Armar pool ponderado repitiendo cada gateway segun su peso
+      const poolEntries = []
+      upWans.forEach(w => {
+        const weight = Math.max(1, parseInt(w.weight) || 1)
+        for (let i = 0; i < weight; i++) {
+          poolEntries.push(`(${w.iface} ${w.gateway})`)
+        }
+      })
+      const pool = poolEntries.join(', ')
+      lans.forEach((lan, i) => {
+        const lanVar = `$lan_if${i === 0 ? '' : i}`
+        conf += `pass out route-to { ${pool} } round-robin from ${lanVar}:network to !(${lan}:network) keep state\n`
+      })
+      conf += `# Multi-WAN load balance activo: ${upWans.map(w => w.iface).join(', ')}\n`
+    }
+  }
+
   conf += `\n# Default: pass out\npass out all keep state\n`
   conf += `\n# WireGuard interface\npass quick on wg0 all keep state\n`
 
