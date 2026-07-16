@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coltan OS — Multi-WAN</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/css/main.css" rel="stylesheet">
+  <style>
+    .wan-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 14px;
+      transition: border-color 0.2s;
+    }
+    .wan-card.up { border-left: 4px solid #22c55e; }
+    .wan-card.down { border-left: 4px solid #f87171; }
+    .wan-card.unknown { border-left: 4px solid #64748b; }
+    .wan-badge { font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 6px; }
+    .wan-badge.up { background: rgba(34,197,94,0.12); color: #22c55e; }
+    .wan-badge.down { background: rgba(248,113,113,0.1); color: #f87171; }
+    .wan-badge.unknown { background: rgba(100,116,139,0.1); color: #64748b; }
+    .mode-btn { background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-muted); padding: 10px 24px; border-radius: 9px; cursor: pointer; font-size: 0.875rem; font-weight: 600; transition: all 0.2s; }
+    .mode-btn.active { background: rgba(37,99,235,0.12); border-color: rgba(37,99,235,0.4); color: var(--accent); }
+    .config-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .form-label { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 4px; }
+    .form-control-dark { background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-primary); border-radius: 8px; padding: 8px 12px; font-size: 0.875rem; width: 100%; outline: none; }
+    .form-control-dark:focus { border-color: rgba(37,99,235,0.4); }
+    .alert-banner { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 0.85rem; color: #f59e0b; display: none; }
+  </style>
+</head>
+<body>
+<div class="main-content">
+  <div class="alert alert-success" id="alert-success"><i class="bi bi-check-circle"></i><span></span></div>
+  <div class="alert alert-error" id="alert-error"><i class="bi bi-exclamation-triangle"></i><span></span></div>
+
+  <!-- Alerta de failover -->
+  <div class="alert-banner" id="failover-alert">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    <span id="failover-msg"></span>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat-card">
+      <div class="stat-label"><i class="bi bi-wifi me-1"></i>WANs activas</div>
+      <div class="stat-value" id="st-up" style="color:#22c55e">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label"><i class="bi bi-wifi-off me-1"></i>WANs caídas</div>
+      <div class="stat-value" id="st-down" style="color:#f87171">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label"><i class="bi bi-diagram-2 me-1"></i>Modo</div>
+      <div class="stat-value" id="st-mode" style="font-size:1.2rem">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label"><i class="bi bi-circle me-1"></i>Estado</div>
+      <div class="stat-value" id="st-status" style="font-size:1.2rem">—</div>
+    </div>
+  </div>
+
+  <!-- Configuración general -->
+  <div class="config-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <div style="font-size:0.9rem;font-weight:700;color:var(--text-primary)"><i class="bi bi-gear me-2"></i>Configuración Multi-WAN</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:0.82rem;color:var(--text-muted)">Habilitado</span>
+        <div class="form-check form-switch mb-0">
+          <input class="form-check-input" type="checkbox" id="mwan-enabled" onchange="toggleEnabled()">
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px">
+      <div class="form-label">Modo de operación</div>
+      <div style="display:flex;gap:10px">
+        <button class="mode-btn active" id="btn-failover" onclick="setMode('failover')">
+          <i class="bi bi-arrow-down-up me-2"></i>Failover
+        </button>
+        <button class="mode-btn" id="btn-loadbalance" onclick="setMode('loadbalance')">
+          <i class="bi bi-balance-scale me-2"></i>Load Balance
+        </button>
+      </div>
+      <div style="font-size:0.75rem;color:var(--text-muted);margin-top:8px" id="mode-desc">
+        Failover: usa la WAN de mayor prioridad, cambia automáticamente si cae.
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:16px">
+      <div>
+        <div class="form-label">IP de verificación (ping)</div>
+        <input class="form-control-dark" id="check-target" value="8.8.8.8" placeholder="8.8.8.8">
+      </div>
+      <div>
+        <div class="form-label">Intervalo de chequeo (seg)</div>
+        <input class="form-control-dark" id="check-interval" type="number" value="60" min="10" max="300">
+      </div>
+      <div>
+        <div class="form-label">Fallos para marcar DOWN</div>
+        <input class="form-control-dark" id="fail-threshold" type="number" value="3" min="1" max="10">
+      </div>
+      <div>
+        <div class="form-label">Pings OK para recuperar</div>
+        <input class="form-control-dark" id="recover-threshold" type="number" value="2" min="1" max="10">
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-sm" onclick="saveConfig()">
+      <i class="bi bi-save me-1"></i>Guardar configuración
+    </button>
+  </div>
+
+  <!-- WANs configuradas -->
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span><i class="bi bi-diagram-2"></i>Interfaces WAN</span>
+      <button class="btn btn-primary btn-sm" onclick="openAddWan()">
+        <i class="bi bi-plus me-1"></i>Agregar WAN
+      </button>
+    </div>
+
+    <div id="wan-list">
+      <div style="color:var(--text-muted);font-size:0.85rem;padding:20px;text-align:center">Cargando...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal agregar WAN -->
+<div class="modal fade" id="modal-add-wan" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px">
+      <div class="modal-header" style="border-bottom:1px solid var(--border)">
+        <h5 class="modal-title" style="color:var(--text-primary);font-size:0.95rem">Agregar interfaz WAN</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <div class="form-label">Interfaz</div>
+          <select class="form-control-dark" id="new-wan-iface" style="cursor:pointer">
+            <option value="">Seleccionar interfaz...</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <div class="form-label">Gateway (dejar vacío para autodetectar)</div>
+          <input class="form-control-dark" id="new-wan-gw" placeholder="ej: 192.168.0.1">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <div class="form-label">Prioridad (1 = mayor)</div>
+            <input class="form-control-dark" id="new-wan-priority" type="number" value="2" min="1" max="10">
+          </div>
+          <div>
+            <div class="form-label">Peso (para load balance)</div>
+            <input class="form-control-dark" id="new-wan-weight" type="number" value="1" min="1" max="10">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="border-top:1px solid var(--border)">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="addWan()">Agregar WAN</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/app.js"></script>
+<script>
+loadSidebar('multiwan')
+loadTopbar('<i class="bi bi-diagram-2 me-2"></i>Multi-WAN')
+
+let currentMode = 'failover'
+let currentConfig = {}
+let addModal = null
+
+function timeAgo(d) {
+  if (!d) return '—'
+  const diff = Date.now() - new Date(d).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'ahora'
+  if (mins < 60) return `hace ${mins}m`
+  return `hace ${Math.floor(mins/60)}h`
+}
+
+function setMode(mode) {
+  currentMode = mode
+  document.getElementById('btn-failover').classList.toggle('active', mode === 'failover')
+  document.getElementById('btn-loadbalance').classList.toggle('active', mode === 'loadbalance')
+  document.getElementById('mode-desc').textContent = mode === 'failover'
+    ? 'Failover: usa la WAN de mayor prioridad, cambia automáticamente si cae.'
+    : 'Load Balance: distribuye el tráfico entre todas las WANs activas según su peso.'
+}
+
+function toggleEnabled() {
+  saveConfig()
+}
+
+async function saveConfig() {
+  const body = {
+    enabled: document.getElementById('mwan-enabled').checked,
+    mode: currentMode,
+    checkTarget: document.getElementById('check-target').value,
+    checkInterval: parseInt(document.getElementById('check-interval').value),
+    failThreshold: parseInt(document.getElementById('fail-threshold').value),
+    recoverThreshold: parseInt(document.getElementById('recover-threshold').value),
+  }
+  const res = await fetch('/api/multiwan/config', {
+    method: 'POST', headers: { ...h.headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  })
+  const data = await res.json()
+  if (data.success) showAlert('Configuración guardada')
+  else showAlert('Error guardando configuración', true)
+}
+
+async function loadStatus() {
+  try {
+    const res = await fetch('/api/multiwan/status', h)
+    const data = await res.json()
+    const config = data.config || {}
+    currentConfig = config
+
+    // Stats
+    const wans = config.wans || []
+    const upCount = wans.filter(w => w.status === 'up').length
+    const downCount = wans.filter(w => w.status === 'down').length
+    document.getElementById('st-up').textContent = upCount
+    document.getElementById('st-down').textContent = downCount
+    document.getElementById('st-mode').textContent = config.mode === 'loadbalance' ? 'Balance' : 'Failover'
+    document.getElementById('st-status').textContent = config.enabled ? '✓ Activo' : '— Inactivo'
+
+    // Controles
+    document.getElementById('mwan-enabled').checked = !!config.enabled
+    document.getElementById('check-target').value = config.checkTarget || '8.8.8.8'
+    document.getElementById('check-interval').value = config.checkInterval || 60
+    document.getElementById('fail-threshold').value = config.failThreshold || 3
+    document.getElementById('recover-threshold').value = config.recoverThreshold || 2
+    setMode(config.mode || 'failover')
+
+    // Lista de WANs
+    renderWanList(wans, data.availableIfaces || [])
+
+    // Populate modal select
+    const sel = document.getElementById('new-wan-iface')
+    const configured = wans.map(w => w.iface)
+    sel.innerHTML = '<option value="">Seleccionar interfaz...</option>' +
+      (data.availableIfaces || [])
+        .filter(i => !configured.includes(i))
+        .map(i => `<option value="${i}">${i}</option>`).join('')
+
+  } catch(e) { console.error(e) }
+}
+
+function renderWanList(wans, allIfaces) {
+  if (wans.length === 0) {
+    document.getElementById('wan-list').innerHTML = `
+      <div style="text-align:center;padding:32px;color:var(--text-muted)">
+        <i class="bi bi-diagram-2" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.3"></i>
+        No hay WANs configuradas. Agregá una con el botón de arriba.
+      </div>`
+    return
+  }
+
+  document.getElementById('wan-list').innerHTML = wans.map(w => `
+    <div class="wan-card ${w.status || 'unknown'}">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div>
+            <div style="font-size:0.95rem;font-weight:700;color:var(--text-primary)">${w.iface}</div>
+            <div style="font-size:0.78rem;color:var(--text-muted)">
+              GW: ${w.gateway || '—'} ${w.ip ? '| IP: ' + w.ip : ''}
+            </div>
+          </div>
+          <span class="wan-badge ${w.status || 'unknown'}">${w.status === 'up' ? '● Online' : w.status === 'down' ? '● Offline' : '● Desconocido'}</span>
+          <span style="font-size:0.75rem;color:var(--text-muted)">Prioridad: ${w.priority}</span>
+          ${currentMode === 'loadbalance' ? `<span style="font-size:0.75rem;color:var(--text-muted)">Peso: ${w.weight}</span>` : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="font-size:0.75rem;color:var(--text-muted)">
+            ${w.lastCheck ? 'Último chequeo: ' + timeAgo(w.lastCheck) : ''}
+            ${w.failures > 0 ? ' | Fallos: ' + w.failures : ''}
+          </div>
+          <button class="btn btn-sm ${w.enabled ? 'btn-warning' : 'btn-success'}" onclick="toggleWan('${w.iface}', ${w.enabled})">
+            <i class="bi bi-${w.enabled ? 'pause' : 'play'}"></i>
+          </button>
+          <button class="btn btn-sm btn-danger" onclick="removeWan('${w.iface}')">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>`).join('')
+}
+
+function openAddWan() {
+  if (!addModal) addModal = new bootstrap.Modal(document.getElementById('modal-add-wan'))
+  addModal.show()
+}
+
+async function addWan() {
+  const iface = document.getElementById('new-wan-iface').value
+  const gateway = document.getElementById('new-wan-gw').value
+  const priority = parseInt(document.getElementById('new-wan-priority').value)
+  const weight = parseInt(document.getElementById('new-wan-weight').value)
+  if (!iface) { showAlert('Seleccioná una interfaz', true); return }
+  const res = await fetch('/api/multiwan/wan', {
+    method: 'POST', headers: { ...h.headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ iface, gateway, priority, weight })
+  })
+  const data = await res.json()
+  if (data.success) {
+    showAlert('WAN agregada correctamente')
+    addModal?.hide()
+    loadStatus()
+  } else showAlert(data.error || 'Error agregando WAN', true)
+}
+
+async function removeWan(iface) {
+  if (!confirm(`¿Eliminar WAN ${iface}?`)) return
+  const res = await fetch(`/api/multiwan/wan/${iface}`, { method: 'DELETE', headers: h.headers })
+  const data = await res.json()
+  if (data.success) { showAlert('WAN eliminada'); loadStatus() }
+  else showAlert('Error eliminando WAN', true)
+}
+
+async function toggleWan(iface, enabled) {
+  const res = await fetch(`/api/multiwan/wan/${iface}/toggle`, {
+    method: 'POST', headers: { ...h.headers, 'Content-Type': 'application/json' }, body: '{}'
+  })
+  const data = await res.json()
+  if (data.success) { showAlert(data.enabled ? 'WAN habilitada' : 'WAN deshabilitada'); loadStatus() }
+}
+
+loadStatus()
+setInterval(loadStatus, 15000)
+</script>
+</body>
+</html>
