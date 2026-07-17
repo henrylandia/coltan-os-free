@@ -61,12 +61,14 @@ async function getUptime() {
 
 async function getNetworkTraffic() {
   try {
-    const { stdout } = await execAsync('netstat -inb | grep -v lo0 | grep -v Link | grep -v Name')
+    const { stdout } = await execAsync("netstat -inb | grep -v lo0 | grep -v '^Name' | awk '\$3 !~ /^<Link/'")
     const ifaces = {}
     stdout.trim().split('\n').forEach(line => {
       const parts = line.trim().split(/\s+/)
       if (parts.length < 10) return
       const name = parts[0].replace(/\*$/, '')
+      // Excluir interfaces internas que no aportan valor al dashboard
+      if (name.match(/^(lo|pflog|pfsync)/)) return
       if (!ifaces[name]) {
         ifaces[name] = {
           name,
@@ -77,7 +79,41 @@ async function getNetworkTraffic() {
         }
       }
     })
-    return Object.values(ifaces).filter(i => i.name.match(/^(re|em|wg|tun)/))
+
+    // Incluir tambien interfaces registradas en Coltan OS (interfaces.json) aunque no tengan IP/trafico aun
+    try {
+      const roles = JSON.parse(require('fs').readFileSync('/usr/local/etc/coltan/interfaces.json', 'utf8'))
+      for (const name of Object.keys(roles)) {
+        if (roles[name].vlan) continue // las VLAN no son fisicas, ya vienen por netstat si tienen IP
+        if (!ifaces[name]) {
+          ifaces[name] = { name, rxBytes: 0, txBytes: 0, rxPackets: 0, txPackets: 0 }
+        }
+      }
+    } catch(e) {}
+
+    // Obtener roles configurados (WAN/LAN/OPT/VLAN)
+    let roles = {}
+    try { roles = JSON.parse(require('fs').readFileSync('/usr/local/etc/coltan/interfaces.json', 'utf8')) } catch(e) {}
+
+    // Obtener estado real (UP/DOWN) y IP de cada interfaz desde ifconfig
+    const results = []
+    for (const iface of Object.values(ifaces)) {
+      let status = 'inactive'
+      let ip = ''
+      try {
+        const { stdout: ifcfg } = await execAsync(`ifconfig ${iface.name}`)
+        status = ifcfg.includes('status: active') ? 'active'
+               : ifcfg.includes('status: no carrier') ? 'inactive'
+               : (ifcfg.includes('UP,') || ifcfg.includes('<UP')) ? 'active' : 'inactive'
+        const ipMatch = ifcfg.match(/inet (\d+\.\d+\.\d+\.\d+)/)
+        if (ipMatch) ip = ipMatch[1]
+      } catch(e) {}
+      const role = roles[iface.name]?.role || ''
+      const isVlan = !!roles[iface.name]?.vlan
+      results.push({ ...iface, status, ip, role, isVlan })
+    }
+
+    return results
   } catch(e) { return [] }
 }
 
