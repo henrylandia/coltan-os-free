@@ -138,7 +138,39 @@ async function getLeases() {
   } catch(e) { return [] }
 }
 
+// Verifica que las interfaces referenciadas en la config de Kea existan fisicamente
+// y las limpia automaticamente si fueron removidas del hardware (evita que Kea falle al arrancar)
+async function pruneMissingInterfaces() {
+  try {
+    const { stdout } = await execAsync('ifconfig -l')
+    const realIfaces = stdout.trim().split(/\s+/)
+    const config = await getConfig()
+    const before = JSON.stringify(config)
+
+    // Limpiar interfaces-config
+    config.Dhcp4['interfaces-config'].interfaces =
+      (config.Dhcp4['interfaces-config'].interfaces || []).filter(i => realIfaces.includes(i.replace('*','')))
+
+    // Limpiar subnets cuya interfaz ya no existe (si el subnet especifica 'interface')
+    config.Dhcp4.subnet4 = (config.Dhcp4.subnet4 || []).filter(s => {
+      if (!s.interface) return true // subnets sin interface explicita se resuelven por routing, se dejan
+      return realIfaces.includes(s.interface)
+    })
+
+    if (JSON.stringify(config) !== before) {
+      await saveConfig(config)
+      console.log('[DHCP] Interfaces inexistentes removidas de la configuracion de Kea')
+      return true
+    }
+    return false
+  } catch(e) {
+    console.error('[DHCP] Error verificando interfaces:', e.message)
+    return false
+  }
+}
+
 async function startKea() {
+  await pruneMissingInterfaces()
   try { await execAsync('service kea start 2>/dev/null'); return { success: true } }
   catch(e) { return { success: false, error: e.message } }
 }
@@ -149,7 +181,8 @@ async function stopKea() {
 }
 
 async function restartKea() {
+  await pruneMissingInterfaces()
   try { await execAsync('service kea restart 2>/dev/null') } catch(e) {}
 }
 
-module.exports = { getStatus, getConfig, saveConfig, getSubnets, addSubnet, deleteSubnet, addReservation, deleteReservation, getLeases, startKea, stopKea, restartKea }
+module.exports = { getStatus, getConfig, saveConfig, getSubnets, addSubnet, deleteSubnet, addReservation, deleteReservation, getLeases, startKea, stopKea, restartKea, pruneMissingInterfaces }
