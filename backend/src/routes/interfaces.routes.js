@@ -1,7 +1,7 @@
 'use strict'
 
 const {
-  getInterfacesWithRoles, setInterfaceRole, setInterfaceIP
+  getInterfacesWithRoles, setInterfaceRole, setInterfaceIP, setInterfaceDHCP
 } = require('../services/interfaces.service')
 
 async function interfacesRoutes(fastify, options) {
@@ -26,6 +26,12 @@ async function interfacesRoutes(fastify, options) {
     const { ip, netmask, gateway } = request.body
     if (!ip || !netmask) return reply.code(400).send({ error: 'ip and netmask required' })
     return await setInterfaceIP(request.params.name, ip, netmask, gateway)
+  })
+
+  fastify.post('/api/interfaces/:name/dhcp', {
+    onRequest: [fastify.authenticate]
+  }, async (request, reply) => {
+    return await setInterfaceDHCP(request.params.name)
   })
 
 }

@@ -93,7 +93,40 @@ async function setInterfaceIP(name, ip, netmask, gateway) {
   } catch(e) { return { success: false, error: e.message } }
 }
 
+async function setInterfaceDHCP(name) {
+  try {
+    // Cambiar rc.conf para que esta interfaz use DHCP en vez de IP estatica
+    await execAsync(`sysrc ifconfig_${name}="DHCP"`)
+
+    // Si esta interfaz era la que definia el defaultrouter estatico, lo quitamos
+    // (dhclient va a configurar su propio gateway automaticamente)
+    try {
+      const { stdout } = await execAsync('sysrc -n defaultrouter 2>/dev/null')
+      if (stdout.trim()) {
+        await execAsync('sysrc -x defaultrouter 2>/dev/null || true')
+      }
+    } catch(e) {}
+
+    // Bajar la interfaz y levantarla para que tome DHCP inmediatamente sin reboot
+    try { await execAsync(`ifconfig ${name} down`) } catch(e) {}
+    await new Promise(r => setTimeout(r, 500))
+    try { await execAsync(`ifconfig ${name} up`) } catch(e) {}
+    // Disparar dhclient para obtener IP ahora mismo (no esperar al proximo boot)
+    try { await execAsync(`dhclient ${name} 2>&1 &`) } catch(e) {}
+
+    // Regenerar firewall (la IP puede tardar unos segundos en asignarse via DHCP)
+    setTimeout(async () => {
+      try {
+        const { generateAndReload } = require('./firewall.service')
+        await generateAndReload()
+      } catch(e) {}
+    }, 5000)
+
+    return { success: true, message: 'Interfaz configurada por DHCP. Puede tardar unos segundos en obtener IP.' }
+  } catch(e) { return { success: false, error: e.message } }
+}
+
 module.exports = {
   getInterfacesWithRoles, setInterfaceRole,
-  setInterfaceIP, getPhysicalInterfaces, getAssignments
+  setInterfaceIP, setInterfaceDHCP, getPhysicalInterfaces, getAssignments
 }
