@@ -54,7 +54,7 @@ async function performUpgrade() {
     const sshConfigDir = '/root/.ssh'
     if (!fs.existsSync(sshConfigDir)) fs.mkdirSync(sshConfigDir, { recursive: true })
 
-    const sshConfig = `\nHost github.com-coltanos-upgrade\n    HostName github.com\n    User git\n    IdentityFile ${UPGRADE_KEY}\n    IdentitiesOnly yes\n`
+    const sshConfig = `\nHost github.com-coltanos-upgrade\n    HostName github.com\n    User git\n    IdentityFile ${UPGRADE_KEY}\n    IdentitiesOnly yes\n    StrictHostKeyChecking no\n    UserKnownHostsFile=/dev/null\n`
     const configPath = path.join(sshConfigDir, 'config')
     let existing = fs.existsSync(configPath) ? fs.readFileSync(configPath, 'utf8') : ''
     if (!existing.includes('github.com-coltanos-upgrade')) {
