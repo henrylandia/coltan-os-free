@@ -57,9 +57,21 @@ async function performUpgrade() {
     const sshConfig = `\nHost github.com-coltanos-upgrade\n    HostName github.com\n    User git\n    IdentityFile ${UPGRADE_KEY}\n    IdentitiesOnly yes\n    StrictHostKeyChecking no\n    UserKnownHostsFile=/dev/null\n`
     const configPath = path.join(sshConfigDir, 'config')
     let existing = fs.existsSync(configPath) ? fs.readFileSync(configPath, 'utf8') : ''
-    if (!existing.includes('github.com-coltanos-upgrade')) {
-      fs.appendFileSync(configPath, sshConfig)
+    // Eliminar cualquier bloque previo del mismo Host (puede estar desactualizado sin StrictHostKeyChecking)
+    if (existing.includes('github.com-coltanos-upgrade')) {
+      const lines = existing.split('\n')
+      const filtered = []
+      let skipping = false
+      for (const line of lines) {
+        if (line.trim().startsWith('Host github.com-coltanos-upgrade')) { skipping = true; continue }
+        if (skipping && line.trim().startsWith('Host ') && !line.trim().startsWith('Host github.com-coltanos-upgrade')) { skipping = false }
+        if (skipping && line.trim() === '') { skipping = false; continue }
+        if (!skipping) filtered.push(line)
+      }
+      existing = filtered.join('\n')
+      fs.writeFileSync(configPath, existing)
     }
+    fs.appendFileSync(configPath, sshConfig)
     await execAsync(`chmod 600 ${UPGRADE_KEY}`)
 
     // 2. Clonar el repo premium en un tmp
