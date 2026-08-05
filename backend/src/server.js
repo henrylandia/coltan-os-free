@@ -64,6 +64,7 @@ fastify.register(require('./routes/suricata.routes'))
 fastify.register(require('./routes/vlans.routes'))
 fastify.register(require('./routes/qos.routes'))
 fastify.register(require('./routes/multiwan.routes'))
+fastify.register(require('./routes/error-reporting.routes'))
 // WebSockets
 fastify.register(require('@fastify/websocket'))
 fastify.register(require('./routes/ws.routes'))
@@ -89,6 +90,9 @@ fastify.register(async function(fastify) {
   })
 })
 // Start
+// Inicializar captura global de errores no manejados
+require('./services/error-reporting.service').initGlobalHandlers()
+
 const start = async () => {
   try {
     await initDefaultAdmin()

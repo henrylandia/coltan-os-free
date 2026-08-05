@@ -32,6 +32,19 @@
     .log-container { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.8rem; max-height: 200px; overflow-y: auto; margin-top: 12px; color: var(--text-primary); display: none; }
     .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .error-row { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; }
+    .error-row:hover { border-color: rgba(239,68,68,0.3); }
+    .error-source-badge { font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 5px; background: rgba(239,68,68,0.12); color: #f87171; letter-spacing: 0.03em; }
+    .error-time { font-size: 0.72rem; color: var(--text-muted); font-family: monospace; }
+    .error-message { font-size: 0.85rem; color: var(--text-primary); margin-top: 6px; }
+    .error-stack { font-size: 0.72rem; color: var(--text-muted); font-family: monospace; margin-top: 8px; white-space: pre-wrap; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px; max-height: 150px; overflow-y: auto; display: none; }
+    .error-toggle-stack { font-size: 0.72rem; color: var(--accent); cursor: pointer; margin-top: 6px; display: inline-block; }
+    .diag-filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .diag-filter-btn { background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-muted); padding: 5px 14px; border-radius: 7px; font-size: 0.78rem; cursor: pointer; }
+    .diag-filter-btn.active { background: rgba(79,142,247,0.12); border-color: rgba(79,142,247,0.3); color: var(--accent); }
+    .diag-stat { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; text-align: center; flex: 1; }
+    .diag-stat .num { font-size: 1.4rem; font-weight: 800; color: var(--text-primary); }
+    .diag-stat .lbl { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
   </style>
 </head>
 <body>
@@ -48,6 +61,7 @@
         <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('notifications', this)"><i class="bi bi-bell me-2"></i>Notifications</a></li>
         <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('about', this)"><i class="bi bi-info-circle me-2"></i>About</a></li>
         <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('license', this)"><i class="bi bi-key me-2"></i>Licencia</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('diagnostics', this)"><i class="bi bi-bug me-2"></i>Diagnóstico</a></li>
       </ul>
 
       <!-- System Tab -->
@@ -231,6 +245,57 @@
         </div>
       </div>
 
+      <!-- Diagnostics Tab -->
+      <div id="tab-diagnostics" style="display:none">
+        <div class="settings-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h6 style="margin-bottom:0"><i class="bi bi-bug me-2"></i>Reporte de Errores</h6>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" id="diag-enabled-toggle" onchange="toggleDiagReporting()">
+              <label class="form-check-label" style="font-size:0.82rem;color:var(--text-muted)" for="diag-enabled-toggle">Enviar reportes a Coltan OS</label>
+            </div>
+          </div>
+          <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:0">
+            Cuando está activado, los errores del sistema se envían automáticamente a Coltan OS para ayudarnos
+            a detectar y corregir bugs. No se envían contraseñas, claves privadas ni datos de tu red local —
+            toda esa información se filtra antes de enviarse.
+          </p>
+        </div>
+
+        <div class="settings-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+            <h6 style="margin-bottom:0"><i class="bi bi-list-ul me-2"></i>Errores Registrados</h6>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-primary-soft" onclick="loadDiagErrors()" style="font-size:0.78rem;padding:5px 14px">
+                <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
+              </button>
+              <button class="btn btn-danger-soft" onclick="clearDiagErrors()" style="font-size:0.78rem;padding:5px 14px">
+                <i class="bi bi-trash me-1"></i>Limpiar historial
+              </button>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-bottom:16px">
+            <div class="diag-stat"><div class="num" id="diag-stat-total">—</div><div class="lbl">Total</div></div>
+            <div class="diag-stat"><div class="num" id="diag-stat-backend">—</div><div class="lbl">Backend</div></div>
+            <div class="diag-stat"><div class="num" id="diag-stat-install">—</div><div class="lbl">Instalación</div></div>
+            <div class="diag-stat"><div class="num" id="diag-stat-service">—</div><div class="lbl">Servicios</div></div>
+          </div>
+
+          <div class="diag-filter-bar">
+            <button class="diag-filter-btn active" onclick="setDiagFilter('all', this)">Todos</button>
+            <button class="diag-filter-btn" onclick="setDiagFilter('backend', this)">Backend</button>
+            <button class="diag-filter-btn" onclick="setDiagFilter('install', this)">Instalación</button>
+            <button class="diag-filter-btn" onclick="setDiagFilter('service', this)">Servicios</button>
+            <button class="diag-filter-btn" onclick="setDiagFilter('manual', this)">Manuales</button>
+          </div>
+
+          <div id="diag-errors-list">
+            <div class="text-muted" style="font-size:0.85rem;text-align:center;padding:20px">Cargando...</div>
+          </div>
+        </div>
+      </div>
+
       <!-- About Tab -->
       <div id="tab-about" style="display:none">
         <div class="settings-card">
@@ -254,7 +319,7 @@
     const h = { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
 
     function showTab(tab, el) {
-      ['system','security','notifications','about','license'].forEach(t => {
+      ['system','security','notifications','about','license','diagnostics'].forEach(t => {
         document.getElementById(`tab-${t}`).style.display = t === tab ? 'block' : 'none'
       })
       document.querySelectorAll('.nav-tabs .nav-link').forEach(e => e.classList.remove('active'))
@@ -262,6 +327,7 @@
       if (tab === 'about') loadSysInfo()
       if (tab === 'license') loadLicenseStatus()
       if (tab === 'notifications') loadNotifications()
+      if (tab === 'diagnostics') loadDiagSettings().then(loadDiagErrors)
     }
 
     function showAlert(msg, isError = false) {
@@ -608,6 +674,102 @@
         log.textContent = 'Error de conexión'
         btn.disabled = false
         btn.innerHTML = '<i class="bi bi-cloud-download me-1"></i>Actualizar Coltan OS'
+      }
+    }
+
+    // ── Diagnostico / Reporte de errores ──────────────────────────────────────
+    let diagCurrentFilter = 'all'
+    let diagAllErrors = []
+
+    async function loadDiagSettings() {
+      try {
+        const res = await fetch('/api/diagnostics/settings', { headers: h.headers })
+        const data = await res.json()
+        document.getElementById('diag-enabled-toggle').checked = !!data.enabled
+      } catch(e) {}
+    }
+
+    async function toggleDiagReporting() {
+      const enabled = document.getElementById('diag-enabled-toggle').checked
+      try {
+        await fetch('/api/diagnostics/settings', {
+          method: 'POST', headers: h.headers,
+          body: JSON.stringify({ enabled })
+        })
+        showAlert(enabled ? 'Reporte de errores activado' : 'Reporte de errores desactivado')
+      } catch(e) {
+        showAlert('Error guardando configuración', true)
+      }
+    }
+
+    function diagSourceLabel(source) {
+      if (source.startsWith('backend')) return 'Backend'
+      if (source.startsWith('install')) return 'Instalación'
+      if (source.startsWith('service')) return source.split(':')[1] || 'Servicio'
+      if (source.startsWith('manual')) return 'Manual'
+      return source
+    }
+
+    function setDiagFilter(filter, el) {
+      diagCurrentFilter = filter
+      document.querySelectorAll('.diag-filter-btn').forEach(b => b.classList.remove('active'))
+      el.classList.add('active')
+      renderDiagErrors()
+    }
+
+    async function loadDiagErrors() {
+      try {
+        const res = await fetch('/api/diagnostics/errors', { headers: h.headers })
+        const data = await res.json()
+        diagAllErrors = data.errors || []
+
+        document.getElementById('diag-stat-total').textContent = diagAllErrors.length
+        document.getElementById('diag-stat-backend').textContent = diagAllErrors.filter(e => e.source.startsWith('backend')).length
+        document.getElementById('diag-stat-install').textContent = diagAllErrors.filter(e => e.source.startsWith('install')).length
+        document.getElementById('diag-stat-service').textContent = diagAllErrors.filter(e => e.source.startsWith('service')).length
+
+        renderDiagErrors()
+      } catch(e) {
+        document.getElementById('diag-errors-list').innerHTML = '<div class="text-muted" style="font-size:0.85rem;text-align:center;padding:20px">Error cargando reportes</div>'
+      }
+    }
+
+    function renderDiagErrors() {
+      let filtered = diagAllErrors
+      if (diagCurrentFilter !== 'all') {
+        filtered = diagAllErrors.filter(e => e.source.startsWith(diagCurrentFilter))
+      }
+
+      if (filtered.length === 0) {
+        document.getElementById('diag-errors-list').innerHTML = '<div class="text-muted" style="font-size:0.85rem;text-align:center;padding:20px">Sin errores registrados 🎉</div>'
+        return
+      }
+
+      document.getElementById('diag-errors-list').innerHTML = filtered.slice(0, 100).map(err => `
+        <div class="error-row">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+            <span class="error-source-badge">${diagSourceLabel(err.source)}</span>
+            <span class="error-time">${new Date(err.timestamp).toLocaleString('es-AR')}</span>
+          </div>
+          <div class="error-message">${err.message || '(sin mensaje)'}</div>
+          ${err.stack ? `
+            <span class="error-toggle-stack" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'">
+              Ver detalles técnicos ▾
+            </span>
+            <div class="error-stack">${err.stack}${err.context && err.context !== '{}' ? '\n\nContexto: ' + err.context : ''}</div>
+          ` : ''}
+        </div>
+      `).join('')
+    }
+
+    async function clearDiagErrors() {
+      if (!confirm('¿Borrar todo el historial de errores registrados en este equipo?')) return
+      try {
+        await fetch('/api/diagnostics/errors', { method: 'DELETE', headers: h.headers })
+        showAlert('Historial de errores borrado')
+        loadDiagErrors()
+      } catch(e) {
+        showAlert('Error borrando historial', true)
       }
     }
   </script>
