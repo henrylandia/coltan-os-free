@@ -163,6 +163,37 @@
             <i class="bi bi-info-circle me-1"></i>
             Esta interfaz obtendrá su IP automáticamente por DHCP al guardar. Puede tardar unos segundos.
           </div>
+
+          <div id="wan-dns-section" style="display:none;margin-top:20px">
+            <hr style="border-color:var(--border)">
+            <div style="font-size:0.9rem;font-weight:600;color:var(--text-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.05em">DNS de Salida (WAN)</div>
+            <small class="text-muted d-block mb-2">Este es el DNS que usa el propio Coltan OS para resolver nombres hacia internet. Es independiente del DNS que se entrega a los clientes de la LAN.</small>
+
+            <div class="btn-group mb-3" role="group">
+              <button type="button" class="btn btn-outline-primary active" id="btn-dns-auto" onclick="setWanDnsMode('auto')">
+                <i class="bi bi-magic me-1"></i>Automático
+              </button>
+              <button type="button" class="btn btn-outline-primary" id="btn-dns-manual" onclick="setWanDnsMode('manual')">
+                <i class="bi bi-pencil me-1"></i>Manual
+              </button>
+            </div>
+
+            <div id="wan-dns-auto-notice" style="color:var(--text-muted);font-size:0.82rem;padding:10px;background:var(--bg-dark);border-radius:8px">
+              <i class="bi bi-info-circle me-1"></i>
+              Se usará el DNS entregado por el ISP (si la WAN es DHCP) o 8.8.8.8 / 1.1.1.1 (si es estática).
+            </div>
+
+            <div id="wan-dns-manual-fields" style="display:none" class="row g-2">
+              <div class="col-md-6">
+                <label class="form-label">DNS Primario</label>
+                <input type="text" class="form-control" id="wan-dns-1" placeholder="8.8.8.8">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">DNS Secundario (opcional)</label>
+                <input type="text" class="form-control" id="wan-dns-2" placeholder="1.1.1.1">
+              </div>
+            </div>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -418,17 +449,56 @@
       document.getElementById('edit-netmask').value = iface.netmask || '255.255.255.0'
       document.getElementById('edit-gateway').value = ''
 
-      // El toggle Estatica/DHCP solo aplica a interfaces con rol WAN
+      // El toggle Estatica/DHCP y la seccion DNS solo aplican a interfaces con rol WAN
       const toggleEl = document.getElementById('ip-mode-toggle')
+      const dnsSection = document.getElementById('wan-dns-section')
       if (iface.role === 'WAN') {
         toggleEl.style.display = 'inline-flex'
+        dnsSection.style.display = 'block'
         setIpMode('static') // por defecto mostramos los campos estaticos actuales
+        loadWanDnsIntoModal()
       } else {
         toggleEl.style.display = 'none'
+        dnsSection.style.display = 'none'
         setIpMode('static')
       }
 
       new bootstrap.Modal(document.getElementById('editIfaceModal')).show()
+    }
+
+    async function loadWanDnsIntoModal() {
+      try {
+        const res = await fetch('/api/interfaces/wan-dns', { headers: h.headers })
+        const data = await res.json()
+        if (data.mode === 'manual' && data.servers && data.servers.length > 0) {
+          setWanDnsMode('manual')
+          document.getElementById('wan-dns-1').value = data.servers[0] || ''
+          document.getElementById('wan-dns-2').value = data.servers[1] || ''
+        } else {
+          setWanDnsMode('auto')
+          document.getElementById('wan-dns-1').value = ''
+          document.getElementById('wan-dns-2').value = ''
+        }
+      } catch(e) {}
+    }
+
+    function setWanDnsMode(mode) {
+      const autoNotice = document.getElementById('wan-dns-auto-notice')
+      const manualFields = document.getElementById('wan-dns-manual-fields')
+      const btnAuto = document.getElementById('btn-dns-auto')
+      const btnManual = document.getElementById('btn-dns-manual')
+      if (mode === 'manual') {
+        autoNotice.style.display = 'none'
+        manualFields.style.display = 'flex'
+        btnManual.classList.add('active')
+        btnAuto.classList.remove('active')
+      } else {
+        autoNotice.style.display = 'block'
+        manualFields.style.display = 'none'
+        btnAuto.classList.add('active')
+        btnManual.classList.remove('active')
+      }
+      document.getElementById('wan-dns-section').dataset.dnsMode = mode
     }
 
     function setIpMode(mode) {
@@ -462,6 +532,17 @@
       await fetch(`/api/interfaces/${name}/role`, {
         method: 'POST', ...h, body: JSON.stringify({ role, description })
       })
+
+      // Guardar DNS de WAN si corresponde
+      if (role === 'WAN') {
+        const dnsMode = document.getElementById('wan-dns-section').dataset.dnsMode || 'auto'
+        const dns1 = document.getElementById('wan-dns-1').value.trim()
+        const dns2 = document.getElementById('wan-dns-2').value.trim()
+        await fetch('/api/interfaces/wan-dns', {
+          method: 'POST', ...h,
+          body: JSON.stringify({ mode: dnsMode, servers: [dns1, dns2] })
+        })
+      }
 
       if (role === 'WAN' && ipMode === 'dhcp') {
         const res = await fetch(`/api/interfaces/${name}/dhcp`, {
