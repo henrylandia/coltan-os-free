@@ -82,9 +82,17 @@ async function setInterfaceRole(name, role, description) {
 async function setInterfaceIP(name, ip, netmask, gateway) {
   try {
     await execAsync(`sysrc ifconfig_${name}="inet ${ip} netmask ${netmask}"`)
-    if (gateway) await execAsync(`sysrc defaultrouter="${gateway}"`)
     // Apply IP change on the fly WITHOUT restarting the whole network
     try { await execAsync(`ifconfig ${name} inet ${ip} netmask ${netmask}`) } catch(e) {}
+
+    if (gateway) {
+      await execAsync(`sysrc defaultrouter="${gateway}"`)
+      // IMPORTANTE: aplicar la ruta default tambien en runtime (kernel routing table),
+      // sysrc solo persiste en rc.conf para el proximo boot pero no cambia la ruta activa ahora.
+      try { await execAsync('route delete default 2>/dev/null || true') } catch(e) {}
+      try { await execAsync(`route add default ${gateway}`) } catch(e) {}
+    }
+
     // Regenerate firewall with new IPs
     try {
       const { generateAndReload } = require('./firewall.service')
