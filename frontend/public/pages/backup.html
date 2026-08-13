@@ -57,173 +57,168 @@
       <div id="alert-success" class="alert-success-custom"><i class="bi bi-check-circle me-2"></i><span id="alert-text">Done.</span></div>
       <div id="alert-error" class="alert-error-custom"><i class="bi bi-exclamation-triangle me-2"></i><span id="alert-error-text">Error.</span></div>
 
-      <ul class="nav nav-tabs mb-4">
-        <li class="nav-item"><a class="nav-link active" href="#" onclick="showTab('policies', this)"><i class="bi bi-shield-check me-2"></i>Policies</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('snapshots', this)"><i class="bi bi-camera me-2"></i>ZFS Snapshots</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('sanoid', this)"><i class="bi bi-gear me-2"></i>Sanoid Config</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showTab('log', this)"><i class="bi bi-journal-text me-2"></i>Log</a></li>
-      </ul>
 
-      <!-- Policies Tab -->
-      <div id="tab-policies">
+
+      <!-- Config Backup Tab -->
+      <div id="tab-configbackup">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <div class="section-title mb-0"><i class="bi bi-shield-check me-2"></i>Backup Policies</div>
-          <button class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#createPolicyModal">
-            <i class="bi bi-plus-lg me-1"></i>New Policy
-          </button>
+          <div class="section-title mb-0"><i class="bi bi-file-earmark-zip me-2"></i>Backup de Configuración</div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary-soft" onclick="openRestoreUpload()">
+              <i class="bi bi-upload me-1"></i>Restaurar desde archivo
+            </button>
+            <button class="btn btn-accent" onclick="openCreateConfigBackup()">
+              <i class="bi bi-plus-lg me-1"></i>Crear Backup
+            </button>
+          </div>
         </div>
+        <div style="background:rgba(79,142,247,0.08);border:1px solid rgba(79,142,247,0.2);border-radius:8px;padding:12px 16px;font-size:0.82rem;color:var(--text-muted);margin-bottom:20px">
+          <i class="bi bi-info-circle me-2" style="color:var(--accent)"></i>
+          Guarda toda la configuración de Coltan OS (interfaces, firewall, VPN, Multi-WAN, Site Blocking, QoS, etc.) en un archivo único. Ideal para restaurar rápidamente tras una reinstalación.
+        </div>
+
+        <!-- Programación automática -->
+        <div class="data-table mb-4" style="padding:20px">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div style="font-weight:600;font-size:0.9rem"><i class="bi bi-clock-history me-2"></i>Backup Automático Programado</div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" id="cb-policy-enabled" onchange="saveConfigBackupPolicy()">
+            </div>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label">Frecuencia</label>
+              <select class="form-select" id="cb-policy-frequency" onchange="saveConfigBackupPolicy()">
+                <option value="hourly">Cada hora</option>
+                <option value="daily" selected>Diario</option>
+                <option value="weekly">Semanal (Domingo)</option>
+                <option value="monthly">Mensual (día 1)</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Hora (0-23)</label>
+              <input type="number" class="form-control" id="cb-policy-hour" value="2" min="0" max="23" onchange="saveConfigBackupPolicy()">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Retener últimos</label>
+              <input type="number" class="form-control" id="cb-policy-retention" value="10" min="1" max="100" onchange="saveConfigBackupPolicy()">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Enviar por email</label>
+              <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" id="cb-policy-email" onchange="saveConfigBackupPolicy()">
+                <label class="form-check-label" style="font-size:0.82rem;color:var(--text-muted)">Usa la config SMTP de Settings → Notifications</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lista de backups guardados -->
         <div class="data-table">
           <table class="table table-dark table-hover mb-0">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Source</th>
-                <th>Destination</th>
-                <th>Frequency</th>
-                <th>Retention</th>
-                <th>Last Run</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th>Archivo</th>
+                <th>Fecha</th>
+                <th>Tamaño</th>
+                <th>Encriptado</th>
+                <th>Acciones</th>
               </tr>
             </thead>
-            <tbody id="policies-body">
-              <tr><td colspan="8" class="text-muted">No backup policies yet</td></tr>
+            <tbody id="configbackups-body">
+              <tr><td colspan="5" class="text-muted">Cargando...</td></tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- Snapshots Tab -->
-      <div id="tab-snapshots" style="display:none">
-        <div class="section-title"><i class="bi bi-camera me-2"></i>ZFS Snapshots</div>
-        <div class="data-table">
-          <table class="table table-dark table-hover mb-0">
-            <thead><tr><th>Name</th><th>Used</th><th>Refer</th><th>Creation</th></tr></thead>
-            <tbody id="snapshots-body"><tr><td colspan="4" class="text-muted">Loading...</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Sanoid Config Tab -->
-      <div id="tab-sanoid" style="display:none">
-        <div class="section-title"><i class="bi bi-gear me-2"></i>Sanoid Configuration</div>
-        <textarea class="config-editor" id="sanoid-config" spellcheck="false"></textarea>
-        <div class="mt-3 d-flex gap-2 align-items-center">
-          <button class="btn btn-accent" onclick="saveSanoidConfig()">
-            <i class="bi bi-floppy me-2"></i>Save Config
-          </button>
-          <button class="btn btn-primary-soft" onclick="runSanoid()">
-            <i class="bi bi-play-fill me-1"></i>Run Now
-          </button>
-          <div class="running-indicator" id="sanoid-running">
-            <div class="spinner"></div> Running Sanoid...
-          </div>
-        </div>
-      </div>
-
-      <!-- Log Tab -->
-      <div id="tab-log" style="display:none">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div class="section-title mb-0"><i class="bi bi-journal-text me-2"></i>Backup Log</div>
-          <button class="btn btn-primary-soft" onclick="loadLog()">
-            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
-          </button>
-        </div>
-        <div class="log-container" id="log-container">
-          <div class="text-muted">Loading...</div>
-        </div>
-      </div>
-
-    </div>
   </div>
 
-  <!-- Create Policy Modal -->
-  <div class="modal fade" id="createPolicyModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+  </div>
+
+  <!-- Create Config Backup Modal -->
+  <div class="modal fade" id="createConfigBackupModal" tabindex="-1">
+    <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title"><i class="bi bi-shield-plus me-2"></i>New Backup Policy</h5>
+          <h5 class="modal-title"><i class="bi bi-file-earmark-zip me-2"></i>Crear Backup de Configuración</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Policy Name</label>
-              <input type="text" class="form-control" id="pol-name" placeholder="Daily shares backup">
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Source Path</label>
-              <input type="text" class="form-control" id="pol-source" placeholder="/shares/documentos">
-            </div>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="cb-create-encrypt" onchange="toggleCreateEncryptField()">
+            <label class="form-check-label">Encriptar con clave</label>
           </div>
-
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Frequency</label>
-              <select class="form-select" id="pol-frequency">
-                <option value="hourly">Hourly</option>
-                <option value="daily" selected>Daily (2:00 AM)</option>
-                <option value="weekly">Weekly (Sunday 2:00 AM)</option>
-                <option value="monthly">Monthly (1st 2:00 AM)</option>
-              </select>
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Keep last N backups</label>
-              <input type="number" class="form-control" id="pol-retention" value="7" min="1" max="365">
-            </div>
+          <div id="cb-create-password-field" style="display:none">
+            <label class="form-label">Clave de encriptación</label>
+            <input type="password" class="form-control" id="cb-create-password" placeholder="Clave segura">
+            <small class="text-muted">Guardá esta clave — la vas a necesitar para restaurar este backup.</small>
           </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-accent" onclick="createConfigBackup()">
+            <i class="bi bi-file-earmark-zip me-1"></i>Crear Backup
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-          <div class="mb-3">
-            <label class="form-label">Destination Type</label>
-            <select class="form-select" id="pol-dest-type" onchange="updateDestFields()">
-              <option value="local">Local directory</option>
-              <option value="sftp">Remote SFTP/SSH</option>
-            </select>
-          </div>
+  <!-- Upload/Restore Config Backup Modal -->
+  <div class="modal fade" id="restoreConfigBackupModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-arrow-counterclockwise me-2"></i>Restaurar Configuración</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
 
-          <!-- Local fields -->
-          <div id="dest-local">
+          <!-- Paso 1: origen del backup -->
+          <div id="restore-step-source">
             <div class="mb-3">
-              <label class="form-label">Destination Path</label>
-              <input type="text" class="form-control" id="pol-dest-local" placeholder="/backup/documentos">
+              <label class="form-label">Subir archivo de backup (.json)</label>
+              <input type="file" class="form-control" id="restore-file-input" accept=".json" onchange="handleRestoreFileUpload(event)">
             </div>
+            <div id="restore-password-prompt" style="display:none" class="mb-3">
+              <label class="form-label"><i class="bi bi-lock me-1"></i>Este backup está encriptado — ingresá la clave</label>
+              <input type="password" class="form-control" id="restore-password" placeholder="Clave de encriptación">
+              <button class="btn btn-primary-soft mt-2" onclick="retryRestorePreviewWithPassword()">
+                <i class="bi bi-unlock me-1"></i>Desbloquear
+              </button>
+            </div>
+            <div id="restore-error" class="alert-error-custom" style="display:none"></div>
           </div>
 
-          <!-- SFTP fields -->
-          <div id="dest-sftp" style="display:none">
-            <div class="mb-3">
-              <label class="form-label">Remote Path (user@host:/path)</label>
-              <input type="text" class="form-control" id="pol-dest-sftp" placeholder="backup@192.168.1.100:/backups/documentos">
+          <!-- Paso 2: preview + mapeo de interfaces -->
+          <div id="restore-step-preview" style="display:none">
+            <div style="background:var(--bg-dark);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.85rem">
+              <div><span class="text-muted">Backup de:</span> <strong id="restore-preview-hostname"></strong></div>
+              <div><span class="text-muted">Fecha:</span> <span id="restore-preview-date"></span></div>
+              <div><span class="text-muted">Módulos incluidos:</span> <span id="restore-preview-modules" style="font-size:0.78rem"></span></div>
             </div>
-          </div>
 
-          <div class="mb-3">
-            <label class="form-label">Encryption Password</label>
-            <input type="password" class="form-control" id="pol-password" placeholder="Strong password for encrypted backup">
-            <small class="text-muted">This password is required to restore the backup. Keep it safe.</small>
+            <div id="restore-mapping-section" style="display:none">
+              <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:10px 14px;font-size:0.82rem;color:#f59e0b;margin-bottom:16px">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Las interfaces físicas de este equipo son diferentes a las del backup. Asigná cada interfaz vieja a su reemplazo actual.
+              </div>
+              <div id="restore-mapping-rows"></div>
+            </div>
+
+            <div id="restore-no-mapping-notice" style="display:none;color:var(--text-muted);font-size:0.85rem;padding:10px 0">
+              <i class="bi bi-check-circle me-1" style="color:#22c55e"></i>
+              Las interfaces coinciden — no se necesita mapeo.
+            </div>
           </div>
 
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-accent" onclick="createPolicy()">
-            <i class="bi bi-shield-check me-1"></i>Create Policy
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-accent" id="restore-apply-btn" onclick="applyRestore()" style="display:none">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Restaurar Configuración
           </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Run output modal -->
-  <div class="modal fade" id="runOutputModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title"><i class="bi bi-play-fill me-2"></i>Backup Output</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <div class="log-container" id="run-output" style="min-height:200px"></div>
         </div>
       </div>
     </div>
@@ -241,15 +236,12 @@
     const h = { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
 
     function showTab(tab, el) {
-      ['policies','snapshots','sanoid','log'].forEach(t => {
+      ['configbackup'].forEach(t => {
         document.getElementById(`tab-${t}`).style.display = t === tab ? 'block' : 'none'
       })
       document.querySelectorAll('.nav-tabs .nav-link').forEach(e => e.classList.remove('active'))
       if (el) el.classList.add('active')
-      if (tab === 'snapshots') loadSnapshots()
-      if (tab === 'sanoid') loadSanoidConfig()
-      if (tab === 'log') loadLog()
-      if (tab === 'policies') loadPolicies()
+      if (tab === 'configbackup') loadConfigBackups()
     }
 
     function showAlert(msg, isError = false) {
@@ -264,183 +256,299 @@
       }
     }
 
-    function updateDestFields() {
-      const type = document.getElementById('pol-dest-type').value
-      document.getElementById('dest-local').style.display = type === 'local' ? 'block' : 'none'
-      document.getElementById('dest-sftp').style.display = type === 'sftp' ? 'block' : 'none'
+    // ═══════════════════ CONFIG BACKUP ═══════════════════════════════════════
+    let createBackupModal, restoreBackupModal
+    let restoreCurrentSnapshotRaw = null   // el string/objeto tal cual vino del archivo (puede estar encriptado)
+    let restoreCurrentPreview = null       // resultado de getRestorePreview ya desencriptado
+    let restoreSourceIsLocal = false
+    let restoreLocalFilename = null
+
+    function fmtBytes(bytes) {
+      if (!bytes) return '0 B'
+      const units = ['B','KB','MB','GB']
+      let i = 0
+      let n = bytes
+      while (n >= 1024 && i < units.length-1) { n /= 1024; i++ }
+      return n.toFixed(1) + ' ' + units[i]
     }
 
-    async function loadPolicies() {
-      const res = await fetch('/api/backup/policies', { headers: h.headers })
-      const data = await res.json()
-      const tbody = document.getElementById('policies-body')
-      if (data.policies.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-muted">No backup policies yet — create one to get started</td></tr>'
-        return
-      }
-      tbody.innerHTML = data.policies.map(p => {
-        const statusBadge = p.lastStatus === 'success'
-          ? `<span class="badge-success"><i class="bi bi-check-circle me-1"></i>Success</span>`
-          : p.lastStatus === 'error'
-          ? `<span class="badge-error"><i class="bi bi-x-circle me-1"></i>Failed</span>`
-          : `<span class="badge-pending">Never run</span>`
-
-        const enabledBadge = p.enabled
-          ? `<span class="badge-enabled">Active</span>`
-          : `<span class="badge-disabled">Disabled</span>`
-
-        const lastRun = p.lastRun
-          ? new Date(p.lastRun).toLocaleString()
-          : '—'
-
-        const destDisplay = p.destType === 'sftp'
-          ? `<i class="bi bi-cloud me-1"></i>${p.destPath}`
-          : `<i class="bi bi-hdd me-1"></i>${p.destPath}`
-
-        return `
-          <tr>
-            <td><strong>${p.name}</strong></td>
-            <td class="mono">${p.source}</td>
-            <td class="mono" style="font-size:0.78rem">${destDisplay}</td>
-            <td>${p.frequency}</td>
-            <td>${p.retention} copies</td>
-            <td style="font-size:0.78rem;color:var(--text-muted)">${lastRun}</td>
-            <td>${statusBadge}</td>
-            <td>
-              <div class="d-flex gap-1">
-                <button class="btn btn-success-soft" onclick="runPolicy('${p.id}', '${p.name}')" title="Run now">
-                  <i class="bi bi-play-fill"></i>
-                </button>
-                <button class="btn btn-warning-soft" onclick="togglePolicy('${p.id}')" title="${p.enabled ? 'Disable' : 'Enable'}">
-                  <i class="bi bi-${p.enabled ? 'pause' : 'play'}-fill"></i>
-                </button>
-                <button class="btn btn-danger-soft" onclick="deletePolicy('${p.id}', '${p.name}')" title="Delete">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </div>
-            </td>
-          </tr>`
-      }).join('')
-    }
-
-    async function createPolicy() {
-      const destType = document.getElementById('pol-dest-type').value
-      const destPath = destType === 'local'
-        ? document.getElementById('pol-dest-local').value.trim()
-        : document.getElementById('pol-dest-sftp').value.trim()
-
-      const policy = {
-        name: document.getElementById('pol-name').value.trim(),
-        source: document.getElementById('pol-source').value.trim(),
-        destType,
-        destPath,
-        destPassword: document.getElementById('pol-password').value,
-        frequency: document.getElementById('pol-frequency').value,
-        retention: document.getElementById('pol-retention').value
-      }
-
-      if (!policy.name || !policy.source || !policy.destPath || !policy.destPassword) {
-        return showAlert('All fields are required', true)
-      }
-
-      const res = await fetch('/api/backup/policies', {
-        method: 'POST', ...h, body: JSON.stringify(policy)
-      })
-      const data = await res.json()
-      bootstrap.Modal.getInstance(document.getElementById('createPolicyModal')).hide()
-      if (data.success) { showAlert(`Policy "${policy.name}" created`); loadPolicies() }
-      else showAlert(data.error, true)
-    }
-
-    async function deletePolicy(id, name) {
-      if (!confirm(`Delete policy "${name}"?`)) return
-      await fetch(`/api/backup/policies/${id}`, { method: 'DELETE', ...h })
-      showAlert(`Policy "${name}" deleted`)
-      loadPolicies()
-    }
-
-    async function togglePolicy(id) {
-      const res = await fetch(`/api/backup/policies/${id}/toggle`, { method: 'POST', ...h })
-      const data = await res.json()
-      showAlert(`Policy ${data.enabled ? 'enabled' : 'disabled'}`)
-      loadPolicies()
-    }
-
-    async function runPolicy(id, name) {
-      const modal = new bootstrap.Modal(document.getElementById('runOutputModal'))
-      document.getElementById('run-output').innerHTML = '<div class="text-muted"><div class="spinner d-inline-block me-2"></div>Running backup...</div>'
-      modal.show()
-      const res = await fetch(`/api/backup/policies/${id}/run`, { method: 'POST', ...h })
-      const data = await res.json()
-      const lines = (data.output || data.error || '').split('\n').filter(l => l.trim())
-      document.getElementById('run-output').innerHTML = lines.map(line => {
-        const cls = line.includes('SUCCESS') ? 'log-success' : line.includes('ERROR') ? 'log-error' : 'log-info'
-        return `<div class="log-line ${cls}">${line}</div>`
-      }).join('')
-      loadPolicies()
-    }
-
-    async function loadSnapshots() {
-      const res = await fetch('/api/backup/snapshots', { headers: h.headers })
-      const data = await res.json()
-      document.getElementById('snapshots-body').innerHTML = data.snapshots.length === 0
-        ? '<tr><td colspan="4" class="text-muted">No snapshots</td></tr>'
-        : data.snapshots.map(s => `
-            <tr>
-              <td class="mono">${s.name}</td>
-              <td>${s.used}</td>
-              <td>${s.refer}</td>
-              <td>${s.creation}</td>
-            </tr>`).join('')
-    }
-
-    async function loadSanoidConfig() {
-      const res = await fetch('/api/backup/sanoid/config', { headers: h.headers })
-      const data = await res.json()
-      document.getElementById('sanoid-config').value = data.config
-    }
-
-    async function saveSanoidConfig() {
-      const config = document.getElementById('sanoid-config').value
-      const res = await fetch('/api/backup/sanoid/config', {
-        method: 'POST', ...h, body: JSON.stringify({ config })
-      })
-      if (res.ok) showAlert('Sanoid config saved')
-      else showAlert('Error saving config', true)
-    }
-
-    async function runSanoid() {
-      document.getElementById('sanoid-running').style.display = 'flex'
-      const res = await fetch('/api/backup/sanoid/run', { method: 'POST', ...h })
-      document.getElementById('sanoid-running').style.display = 'none'
-      const data = await res.json()
-      if (data.success) showAlert('Sanoid ran successfully')
-      else showAlert('Sanoid failed: ' + data.error, true)
-    }
-
-    async function loadLog() {
-      const res = await fetch('/api/backup/log', { headers: h.headers })
-      const data = await res.json()
-      const container = document.getElementById('log-container')
-      if (data.log.length === 0) {
-        container.innerHTML = '<div class="text-muted">No log entries yet</div>'
-        return
-      }
-      container.innerHTML = data.log.map(line => {
-        const cls = line.includes('SUCCESS') ? 'log-success' : line.includes('ERROR') ? 'log-error' : 'log-info'
-        return `<div class="log-line ${cls}">${line}</div>`
-      }).join('')
-    }
-
-    // Add sanoid run to backup service
-    async function runSanoidFromService() {
+    async function loadConfigBackups() {
       try {
-        const { execAsync } = require('child_process')
-        await execAsync('sanoid --cron --verbose 2>&1')
-      } catch(e) {}
+        const [listRes, policyRes] = await Promise.all([
+          fetch('/api/config-backup/list', { headers: h.headers }),
+          fetch('/api/config-backup/policy', { headers: h.headers })
+        ])
+        const listData = await listRes.json()
+        const policy = await policyRes.json()
+
+        document.getElementById('cb-policy-enabled').checked = !!policy.enabled
+        document.getElementById('cb-policy-frequency').value = policy.frequency || 'daily'
+        document.getElementById('cb-policy-hour').value = policy.hour ?? 2
+        document.getElementById('cb-policy-retention').value = policy.retention || 10
+        document.getElementById('cb-policy-email').checked = !!policy.emailEnabled
+
+        const backups = listData.backups || []
+        document.getElementById('configbackups-body').innerHTML = backups.length === 0
+          ? '<tr><td colspan="5" class="text-muted">Sin backups todavía — creá uno con el botón de arriba</td></tr>'
+          : backups.map(b => {
+              const isEnc = b.filename.includes('.enc.')
+              return `
+                <tr>
+                  <td class="mono" style="font-size:0.78rem">${b.filename}</td>
+                  <td style="font-size:0.82rem">${new Date(b.createdAt).toLocaleString('es-AR')}</td>
+                  <td style="font-size:0.82rem">${fmtBytes(b.size)}</td>
+                  <td>${isEnc ? '<span class="badge-enabled"><i class="bi bi-lock-fill"></i> Sí</span>' : '<span class="badge-disabled">No</span>'}</td>
+                  <td>
+                    <div class="d-flex gap-1">
+                      <a class="btn btn-primary-soft" href="/api/config-backup/download/${b.filename}?token=${token}" title="Descargar" download>
+                        <i class="bi bi-download"></i>
+                      </a>
+                      <button class="btn btn-success-soft" onclick="openRestoreFromLocal('${b.filename}', ${isEnc})" title="Restaurar">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                      </button>
+                      <button class="btn btn-danger-soft" onclick="deleteConfigBackup('${b.filename}')" title="Eliminar">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>`
+            }).join('')
+      } catch(e) { console.error(e) }
     }
 
-    loadPolicies()
+    async function saveConfigBackupPolicy() {
+      const policy = {
+        enabled: document.getElementById('cb-policy-enabled').checked,
+        frequency: document.getElementById('cb-policy-frequency').value,
+        hour: parseInt(document.getElementById('cb-policy-hour').value) || 2,
+        retention: parseInt(document.getElementById('cb-policy-retention').value) || 10,
+        emailEnabled: document.getElementById('cb-policy-email').checked
+      }
+      try {
+        await fetch('/api/config-backup/policy', { method: 'POST', ...h, body: JSON.stringify(policy) })
+        showAlert('Programación de backup guardada')
+      } catch(e) { showAlert('Error guardando programación', true) }
+    }
+
+    function openCreateConfigBackup() {
+      document.getElementById('cb-create-encrypt').checked = false
+      document.getElementById('cb-create-password').value = ''
+      document.getElementById('cb-create-password-field').style.display = 'none'
+      if (!createBackupModal) createBackupModal = new bootstrap.Modal(document.getElementById('createConfigBackupModal'))
+      createBackupModal.show()
+    }
+
+    function toggleCreateEncryptField() {
+      const enc = document.getElementById('cb-create-encrypt').checked
+      document.getElementById('cb-create-password-field').style.display = enc ? 'block' : 'none'
+    }
+
+    async function createConfigBackup() {
+      const encrypt = document.getElementById('cb-create-encrypt').checked
+      const password = document.getElementById('cb-create-password').value
+      if (encrypt && !password) return showAlert('Ingresá una clave de encriptación', true)
+
+      try {
+        const res = await fetch('/api/config-backup/create', {
+          method: 'POST', ...h,
+          body: JSON.stringify({ encryptPassword: encrypt ? password : null })
+        })
+        const data = await res.json()
+        createBackupModal?.hide()
+        if (data.success) { showAlert('Backup creado: ' + data.filename); loadConfigBackups() }
+        else showAlert(data.error || 'Error creando backup', true)
+      } catch(e) { showAlert('Error de conexión', true) }
+    }
+
+    async function deleteConfigBackup(filename) {
+      if (!confirm('¿Eliminar el backup ' + filename + '?')) return
+      try {
+        await fetch('/api/config-backup/' + encodeURIComponent(filename), { method: 'DELETE', headers: h.headers })
+        showAlert('Backup eliminado')
+        loadConfigBackups()
+      } catch(e) { showAlert('Error eliminando backup', true) }
+    }
+
+    // ── RESTORE ──────────────────────────────────────────────────────────────
+
+    function resetRestoreModal() {
+      restoreCurrentSnapshotRaw = null
+      restoreCurrentPreview = null
+      restoreSourceIsLocal = false
+      restoreLocalFilename = null
+      document.getElementById('restore-step-source').style.display = 'block'
+      document.getElementById('restore-step-preview').style.display = 'none'
+      document.getElementById('restore-password-prompt').style.display = 'none'
+      document.getElementById('restore-error').style.display = 'none'
+      document.getElementById('restore-apply-btn').style.display = 'none'
+      document.getElementById('restore-file-input').value = ''
+      document.getElementById('restore-password').value = ''
+    }
+
+    function openRestoreUpload() {
+      resetRestoreModal()
+      if (!restoreBackupModal) restoreBackupModal = new bootstrap.Modal(document.getElementById('restoreConfigBackupModal'))
+      restoreBackupModal.show()
+    }
+
+    function openRestoreFromLocal(filename, isEncrypted) {
+      resetRestoreModal()
+      restoreSourceIsLocal = true
+      restoreLocalFilename = filename
+      document.getElementById('restore-step-source').innerHTML = `
+        <div style="text-align:center;padding:20px;color:var(--text-muted)">
+          <i class="bi bi-file-earmark-zip" style="font-size:2rem;display:block;margin-bottom:10px"></i>
+          Restaurando desde: <strong style="color:var(--text-primary)">${filename}</strong>
+        </div>
+        ${isEncrypted ? `
+          <div class="mb-3">
+            <label class="form-label"><i class="bi bi-lock me-1"></i>Este backup está encriptado — ingresá la clave</label>
+            <input type="password" class="form-control" id="restore-local-password" placeholder="Clave de encriptación">
+          </div>
+          <button class="btn btn-primary-soft" onclick="loadLocalRestorePreview('${filename}')">
+            <i class="bi bi-unlock me-1"></i>Desbloquear y continuar
+          </button>
+        ` : ''}
+        <div id="restore-error" class="alert-error-custom" style="display:none"></div>
+      `
+      if (!restoreBackupModal) restoreBackupModal = new bootstrap.Modal(document.getElementById('restoreConfigBackupModal'))
+      restoreBackupModal.show()
+      if (!isEncrypted) loadLocalRestorePreview(filename)
+    }
+
+    async function loadLocalRestorePreview(filename) {
+      const passwordEl = document.getElementById('restore-local-password')
+      const password = passwordEl ? passwordEl.value : null
+      try {
+        const res = await fetch('/api/config-backup/restore-local-preview/' + encodeURIComponent(filename), {
+          method: 'POST', ...h, body: JSON.stringify({ password })
+        })
+        const data = await res.json()
+        if (data.error === 'ENCRYPTED') {
+          showRestoreError('Ingresá la clave de encriptación')
+          return
+        }
+        if (data.error) { showRestoreError(data.error); return }
+        restoreCurrentPreview = data
+        renderRestorePreview(data)
+      } catch(e) { showRestoreError('Error de conexión') }
+    }
+
+    function showRestoreError(msg) {
+      const el = document.getElementById('restore-error')
+      el.textContent = msg
+      el.style.display = 'block'
+    }
+
+    function handleRestoreFileUpload(event) {
+      const file = event.target.files[0]
+      if (!file) return
+      const reader = new FileReader()
+      reader.onload = async (e) => {
+        restoreCurrentSnapshotRaw = e.target.result
+        await tryRestorePreview()
+      }
+      reader.readAsText(file)
+    }
+
+    async function tryRestorePreview(password) {
+      try {
+        const res = await fetch('/api/config-backup/restore-preview', {
+          method: 'POST', ...h,
+          body: JSON.stringify({ snapshot: restoreCurrentSnapshotRaw, password: password || undefined })
+        })
+        const data = await res.json()
+        if (data.error === 'ENCRYPTED') {
+          document.getElementById('restore-password-prompt').style.display = 'block'
+          return
+        }
+        if (data.error) { showRestoreError(data.error); return }
+        restoreCurrentPreview = data
+        renderRestorePreview(data)
+      } catch(e) { showRestoreError('Error de conexión') }
+    }
+
+    function retryRestorePreviewWithPassword() {
+      const password = document.getElementById('restore-password').value
+      if (!password) return showRestoreError('Ingresá la clave')
+      tryRestorePreview(password)
+    }
+
+    function renderRestorePreview(data) {
+      document.getElementById('restore-step-source').style.display = 'none'
+      document.getElementById('restore-step-preview').style.display = 'block'
+      document.getElementById('restore-apply-btn').style.display = 'inline-block'
+
+      document.getElementById('restore-preview-hostname').textContent = data.hostname || '—'
+      document.getElementById('restore-preview-date').textContent = data.createdAt ? new Date(data.createdAt).toLocaleString('es-AR') : '—'
+      document.getElementById('restore-preview-modules').textContent = (data.modulesIncluded || []).join(', ')
+
+      if (data.needsMapping) {
+        document.getElementById('restore-mapping-section').style.display = 'block'
+        document.getElementById('restore-no-mapping-notice').style.display = 'none'
+        const nonVlan = (data.oldInterfaces || []).filter(i => !i.vlan)
+        document.getElementById('restore-mapping-rows').innerHTML = nonVlan.map(iface => `
+          <div class="row g-2 align-items-center mb-2">
+            <div class="col-5">
+              <div style="font-size:0.85rem"><strong>${iface.name}</strong></div>
+              <div style="font-size:0.75rem;color:var(--text-muted)">${iface.role}${iface.description ? ' — ' + iface.description : ''}</div>
+            </div>
+            <div class="col-2 text-center"><i class="bi bi-arrow-right"></i></div>
+            <div class="col-5">
+              <select class="form-select form-select-sm" data-old-iface="${iface.name}">
+                <option value="">Seleccionar interfaz actual...</option>
+                ${(data.currentInterfaces || []).map(ci => `<option value="${ci}">${ci}</option>`).join('')}
+              </select>
+            </div>
+          </div>`).join('')
+      } else {
+        document.getElementById('restore-mapping-section').style.display = 'none'
+        document.getElementById('restore-no-mapping-notice').style.display = 'block'
+      }
+    }
+
+    async function applyRestore() {
+      // Recolectar el mapeo de interfaces elegido
+      const interfaceMapping = {}
+      document.querySelectorAll('#restore-mapping-rows select[data-old-iface]').forEach(sel => {
+        if (sel.value) interfaceMapping[sel.dataset.oldIface] = sel.value
+      })
+
+      if (restoreCurrentPreview?.needsMapping) {
+        const totalRows = document.querySelectorAll('#restore-mapping-rows select[data-old-iface]').length
+        if (Object.keys(interfaceMapping).length < totalRows) {
+          return showRestoreError('Asigná todas las interfaces antes de continuar')
+        }
+      }
+
+      if (!confirm('¿Confirmás restaurar esta configuración? Se sobreescribirá la configuración actual del sistema.')) return
+
+      try {
+        let res
+        if (restoreSourceIsLocal) {
+          const passwordEl = document.getElementById('restore-local-password')
+          const password = passwordEl ? passwordEl.value : undefined
+          res = await fetch('/api/config-backup/restore-local/' + encodeURIComponent(restoreLocalFilename), {
+            method: 'POST', ...h, body: JSON.stringify({ interfaceMapping, password })
+          })
+        } else {
+          res = await fetch('/api/config-backup/restore', {
+            method: 'POST', ...h,
+            body: JSON.stringify({ snapshot: restoreCurrentSnapshotRaw, interfaceMapping, password: document.getElementById('restore-password').value || undefined })
+          })
+        }
+        const data = await res.json()
+        if (data.success) {
+          restoreBackupModal?.hide()
+          showAlert(data.message || 'Configuración restaurada correctamente')
+          setTimeout(() => location.reload(), 2000)
+        } else {
+          showRestoreError(data.error || 'Error restaurando configuración')
+        }
+      } catch(e) { showRestoreError('Error de conexión') }
+    }
+
+    loadConfigBackups()
   </script>
 </body>
 </html>

@@ -115,7 +115,10 @@ async function settingsRoutes(fastify, options) {
       const transporter = nodemailer.createTransport({
         host, port: parseInt(port),
         secure: parseInt(port) === 465,
-        auth: { user, pass }
+        auth: { user, pass },
+        connectionTimeout: 8000,
+        greetingTimeout: 8000,
+        socketTimeout: 8000
       })
       await transporter.verify()
       await transporter.sendMail({
@@ -124,7 +127,10 @@ async function settingsRoutes(fastify, options) {
         text: 'This is a test email from Coltan OS.'
       })
       return { success: true }
-    } catch(e) { return { success: false, error: e.message } }
+    } catch(e) {
+      fastify.log.error('[SMTP Test] Error: ' + e.message)
+      return reply.code(500).send({ success: false, error: e.message })
+    }
   })
 
   fastify.post('/api/settings/test-webhook', { onRequest: [fastify.authenticate] }, async (request, reply) => {
