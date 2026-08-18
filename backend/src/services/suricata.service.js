@@ -5,11 +5,11 @@ const { promisify } = require('util')
 const execAsync = promisify(exec)
 const fs = require('fs').promises
 
+const SETTINGS_FILE = '/usr/local/etc/coltan/suricata.json'
 const SURICATA_CONF = '/usr/local/etc/suricata/suricata.yaml'
-const SURICATA_RULES = '/usr/local/etc/suricata/rules'
+const THRESHOLD_FILE = '/usr/local/etc/suricata/threshold.config'
 const EVE_LOG = '/var/log/suricata/eve.json'
 const FAST_LOG = '/var/log/suricata/fast.log'
-const SETTINGS_FILE = '/usr/local/etc/coltan/suricata.json'
 
 async function ensureDir() {
   await execAsync('mkdir -p /usr/local/etc/coltan')
@@ -17,87 +17,61 @@ async function ensureDir() {
 
 async function getSettings() {
   try {
+    await ensureDir()
     const content = await fs.readFile(SETTINGS_FILE, 'utf8')
     return JSON.parse(content)
   } catch(e) {
-    return {
-      interface: '',
-      mode: 'ids',
-      enabled: false,
-      rules: {
-        malware: true,
-        botcc: true,
-        exploit: true,
-        trojan: true,
-        scan: true,
-        policy: false,
-        dos: false,
-        web: false
-      },
-      autoBlock: {
-        enabled: false,
-        categories: {
-          scan: true,
-          dos: true,
-          malware: true,
-          botcc: true,
-          exploit: true,
-          trojan: true,
-          policy: false,
-          web: false
-        }
-      }
-    }
+    return { interface: 're0', mode: 'ids', enabled: false }
   }
 }
 
 async function saveSettings(settings) {
   await ensureDir()
   await fs.writeFile(SETTINGS_FILE, JSON.stringify(settings, null, 2))
+  await generateConfig(settings)
   return { success: true }
 }
 
 async function getInterfaces() {
   try {
-    const data = JSON.parse(await fs.readFile('/usr/local/etc/coltan/interfaces.json', 'utf8'))
-    return Object.entries(data).map(([name, val]) => ({ name, role: val.role }))
+    const { stdout } = await execAsync('ifconfig -l')
+    return stdout.trim().split(/\s+/).filter(i => i !== 'lo0')
   } catch(e) { return [] }
 }
 
-const COLTAN_LOCAL_RULES = '/usr/local/etc/suricata/rules/coltan-local.rules'
-
-// Reglas propias de Coltan OS -- no dependen del ruleset externo (ET) ni de SIDs
-// que puedan cambiar entre actualizaciones. Filtran por DOMINIO, no por IP,
-// para que funcionen igual sin importar el servidor o la IP publica de cada instalacion.
-async function ensureColtanLocalRules() {
-  const content = `# Coltan OS - Reglas propias del sistema (no del ruleset externo)
-# Ignoran trafico legitimo generado por el propio Coltan OS (heartbeat, geolocalizacion, etc)
-# para que no aparezca como alerta de seguridad. Se basan en el DOMINIO, no en IP.
-pass http any any -> any any (msg:"ColtanOS - Trafico interno del sistema (geolocalizacion heartbeat)"; http.host; content:"ip-api.com"; sid:9000001; rev:1;)
-pass tls any any -> any any (msg:"ColtanOS - Trafico interno del sistema (geolocalizacion heartbeat TLS)"; tls.sni; content:"ip-api.com"; sid:9000002; rev:1;)
+// Genera el threshold.config con el suppress de trafico legitimo del propio sistema
+// (heartbeat/geolocalizacion hacia ip-api.com). Usa gen_id/sig_id con guion bajo,
+// que es la sintaxis correcta para este archivo (distinta a la del yaml principal).
+// No depende de ninguna IP -- el SID 2022082 identifica la firma "ET POLICY External IP
+// Lookup ip-api.com" sin importar la IP publica de cada instalacion de Coltan OS.
+async function ensureThresholdConfig() {
+  const content = `# Coltan OS - Umbrales y supresiones de alertas
+# Generado automaticamente. No editar a mano, se sobreescribe en cada guardado de configuracion.
+#
+# Suprime la alerta de "External IP Lookup ip-api.com" que dispara el propio heartbeat
+# de Coltan OS al consultar la geolocalizacion. No es un ataque real.
+suppress gen_id 1, sig_id 2022082
 `
   try {
-    await execAsync('mkdir -p /usr/local/etc/suricata/rules')
-    await fs.writeFile(COLTAN_LOCAL_RULES, content)
+    await execAsync('mkdir -p /usr/local/etc/suricata')
+    await fs.writeFile(THRESHOLD_FILE, content)
   } catch(e) {}
 }
 
 async function generateConfig(settings) {
-  await ensureColtanLocalRules()
-  const iface = settings.interface || 're0'
-  const ifaces = settings.interfaces || [iface]
+  await ensureThresholdConfig()
 
-  const ruleFiles = []
-  if (settings.rules.malware) ruleFiles.push(`  - ${SURICATA_RULES}/emerging-malware.rules`)
-  if (settings.rules.botcc) ruleFiles.push(`  - ${SURICATA_RULES}/botcc.rules`)
-  if (settings.rules.exploit) ruleFiles.push(`  - ${SURICATA_RULES}/emerging-exploit.rules`)
-  if (settings.rules.trojan) ruleFiles.push(`  - ${SURICATA_RULES}/emerging-trojan.rules`)
-  if (settings.rules.scan) ruleFiles.push(`  - ${SURICATA_RULES}/emerging-scan.rules`)
-  if (settings.rules.policy) ruleFiles.push(`  - ${SURICATA_RULES}/emerging-policy.rules`)
-  if (settings.rules.dos) ruleFiles.push(`  - ${SURICATA_RULES}/emerging-dos.rules`)
-  if (settings.rules.web) ruleFiles.push(`  - ${SURICATA_RULES}/emerging-web_server.rules`)
-  if (settings.rules.web) ruleFiles.push(`  - ${SURICATA_RULES}/emerging-sql.rules`)
-  ruleFiles.push(`  - ${SURICATA_RULES}/emerging-user_agents.rules`)
+  const iface = settings.interface || 're0'
+  const mode = settings.mode || 'ids'
+
+  let ruleFiles = [
+    '  - /usr/local/etc/suricata/rules/emerging-malware.rules',
+    '  - /usr/local/etc/suricata/rules/botcc.rules',
+    '  - /usr/local/etc/suricata/rules/emerging-exploit.rules',
+    '  - /usr/local/etc/suricata/rules/emerging-trojan.rules',
+    '  - /usr/local/etc/suricata/rules/emerging-scan.rules',
+    '  - /usr/local/etc/suricata/rules/emerging-user_agents.rules',
+  ]
 
   const yaml = `%YAML 1.1
 ---
@@ -115,13 +89,10 @@ vars:
     SHELLCODE_PORTS: "!80"
     SSH_PORTS: 22
     DNP3_PORTS: 20000
-
 default-log-dir: /var/log/suricata/
-
 stats:
   enabled: yes
   interval: 30
-
 outputs:
   - fast:
       enabled: yes
@@ -137,10 +108,11 @@ outputs:
         - dns
         - http:
             extended: yes
-
 af-packet:
-${ifaces.map((i, idx) => `  - interface: ${i}\n    cluster-id: ${99 + idx}\n    cluster-type: cluster_flow\n    defrag: yes`).join('\n')}
-
+  - interface: ${iface}
+    cluster-id: 99
+    cluster-type: cluster_flow
+    defrag: yes
 logging:
   default-log-level: notice
   outputs:
@@ -148,14 +120,11 @@ logging:
         enabled: yes
         level: info
         filename: /var/log/suricata/suricata.log
-
 rule-files:
-  - /usr/local/etc/suricata/rules/coltan-local.rules
 ${ruleFiles.join('\n')}
-
 classification-file: /usr/local/etc/suricata/classification.config
 reference-config-file: /usr/local/etc/suricata/reference.config
-
+threshold-file: /usr/local/etc/suricata/threshold.config
 app-layer:
   protocols:
     tls:
@@ -167,7 +136,6 @@ app-layer:
         enabled: yes
         detection-ports:
           dp: 53
-
 suppress:
   - gen_id: 1
     track: by_src
@@ -178,80 +146,62 @@ suppress:
 }
 
 async function getStatus() {
+  const settings = await getSettings()
+  let running = false
+  let pid = null
   try {
-    const { stdout } = await execAsync('pgrep -x suricata 2>/dev/null || echo ""')
-    const running = stdout.trim().length > 0
+    const { stdout } = await execAsync('pgrep suricata')
+    running = stdout.trim().length > 0
+    pid = stdout.trim().split('\n')[0]
+  } catch(e) { running = false }
 
-    let alerts = 0
-    try {
-      const { stdout: wc } = await execAsync(`grep -c '"event_type":"alert"' ${EVE_LOG} 2>/dev/null || echo 0`)
-      alerts = parseInt(wc.trim()) || 0
-    } catch(e) {}
+  let alertCount = 0
+  try {
+    const { stdout } = await execAsync(`grep -c '"event_type":"alert"' ${EVE_LOG} 2>/dev/null || echo 0`)
+    alertCount = parseInt(stdout.trim()) || 0
+  } catch(e) {}
 
-    const settings = await getSettings()
-    return { running, alerts, mode: settings.mode, interface: settings.interface }
-  } catch(e) { return { running: false, alerts: 0 } }
+  return {
+    running,
+    pid,
+    mode: settings.mode || 'ids',
+    interface: settings.interface || 're0',
+    alerts: alertCount
+  }
 }
 
-async function start(settings) {
+async function start() {
   try {
-    await saveSettings({ ...settings, enabled: true })
-    await generateConfig(settings)
-
-    // Update rc.conf
-    await execAsync(`sysrc suricata_interface="${settings.interface}"`)
-    await execAsync('sysrc suricata_enable="YES"')
-
-    // Stop if running
-    try { await execAsync('service suricata stop 2>/dev/null') } catch(e) {}
-    await new Promise(r => setTimeout(r, 1000))
-
-    // Start
-    await execAsync('service suricata start 2>/dev/null')
+    const settings = await getSettings()
+    settings.enabled = true
+    await saveSettings(settings)
+    await execAsync('service suricata restart 2>&1')
     return { success: true }
   } catch(e) { return { success: false, error: e.message } }
 }
 
 async function stop() {
   try {
-    await execAsync('service suricata stop 2>/dev/null || pkill suricata 2>/dev/null || true')
     const settings = await getSettings()
     settings.enabled = false
     await saveSettings(settings)
+    await execAsync('service suricata stop 2>/dev/null')
     return { success: true }
   } catch(e) { return { success: false, error: e.message } }
 }
 
 async function getAlerts(limit = 100) {
   try {
-    const { stdout } = await execAsync(`grep '"event_type":"alert"' ${EVE_LOG} 2>/dev/null | tail -${limit} || echo ""`)
-    if (!stdout.trim()) return []
+    const content = await fs.readFile(EVE_LOG, 'utf8')
+    const lines = content.trim().split('\n').filter(Boolean)
     const alerts = []
-    for (const line of stdout.trim().split('\n')) {
+    for (let i = lines.length - 1; i >= 0 && alerts.length < limit; i--) {
       try {
-        const evt = JSON.parse(line)
-        alerts.push({
-          timestamp: evt.timestamp,
-          srcIP: evt.src_ip,
-          srcPort: evt.src_port,
-          dstIP: evt.dest_ip,
-          dstPort: evt.dest_port,
-          proto: evt.proto,
-          category: evt.alert?.category,
-          signature: evt.alert?.signature,
-          severity: evt.alert?.severity,
-          action: evt.alert?.action,
-          http: evt.http ? {
-            method: evt.http.http_method,
-            url: evt.http.url,
-            userAgent: evt.http.http_user_agent,
-            status: evt.http.status
-          } : null,
-          payload: evt.payload_printable ? evt.payload_printable.substring(0, 200) : null
-        })
+        const evt = JSON.parse(lines[i])
+        if (evt.event_type === 'alert') alerts.push(evt)
       } catch(e) {}
     }
-    return alerts.reverse()
+    return alerts
   } catch(e) { return [] }
 }
 
