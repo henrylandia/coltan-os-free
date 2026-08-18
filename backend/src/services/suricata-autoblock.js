@@ -147,7 +147,15 @@ async function processNewLines() {
 async function processRecentAlerts() {
   try {
     if (!fs.existsSync(EVE_LOG)) return
-    const content = fs.readFileSync(EVE_LOG, 'utf8')
+    // IMPORTANTE: nunca leer el archivo completo con readFileSync -- en equipos con
+    // mucho trafico eve.json puede pesar cientos de MB y hacer explotar el heap de Node
+    // (visto en produccion: "Reached heap limit"). Usamos tail del sistema operativo,
+    // que no carga nada en memoria de Node, para traer solo las ultimas alertas recientes.
+    let content = ''
+    try {
+      const { stdout } = await execAsync(`tail -n 5000 ${EVE_LOG}`)
+      content = stdout
+    } catch(e) { return }
     const lines = content.split('\n').filter(l => l.trim())
     const cutoff = Date.now() - 2 * 60 * 60 * 1000
     const blockedIPs = getBlockedIPs().map(i => i.ip)

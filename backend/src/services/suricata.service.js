@@ -266,7 +266,16 @@ function classifyAlert(category) {
 
 async function getAlerts(limit = 100, categoryFilter = null) {
   try {
-    const content = await fs.readFile(EVE_LOG, 'utf8')
+    // Nunca leer el archivo completo: en equipos con mucho trafico eve.json puede
+    // pesar cientos de MB y hacer explotar el heap de Node. Usamos tail (sin carga
+    // en memoria de Node) trayendo bastantes mas lineas que el limit pedido, para
+    // tener margen suficiente despues de aplicar los filtros de categoria.
+    const tailLines = Math.max(limit * 20, 5000)
+    let content = ''
+    try {
+      const { stdout } = await execAsync(`tail -n ${tailLines} ${EVE_LOG}`)
+      content = stdout
+    } catch(e) { return [] }
     const lines = content.trim().split('\n').filter(Boolean)
     const alerts = []
     for (let i = lines.length - 1; i >= 0 && alerts.length < limit; i--) {
@@ -303,7 +312,12 @@ async function getAlerts(limit = 100, categoryFilter = null) {
 // los filtros con su cantidad en el panel.
 async function getAlertStats() {
   try {
-    const content = await fs.readFile(EVE_LOG, 'utf8')
+    // Mismo motivo que getAlerts: nunca leer el archivo completo con readFile.
+    let content = ''
+    try {
+      const { stdout } = await execAsync(`tail -n 20000 ${EVE_LOG}`)
+      content = stdout
+    } catch(e) { return { total: 0, byType: [] } }
     const lines = content.trim().split('\n').filter(Boolean)
     const counts = {}
     let total = 0
