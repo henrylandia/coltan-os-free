@@ -275,8 +275,24 @@ async function getAlerts(limit = 100, categoryFilter = null) {
         if (evt.event_type !== 'alert') continue
         const classification = classifyAlert(evt.alert?.category)
         if (categoryFilter && categoryFilter !== 'all' && classification.key !== categoryFilter) continue
-        evt._threatType = classification
-        alerts.push(evt)
+        // Normalizamos el formato crudo de Suricata (snake_case, campos anidados en "alert")
+        // al formato que espera el frontend (camelCase, campos planos).
+        const normalized = {
+          timestamp: evt.timestamp,
+          srcIP: evt.src_ip,
+          srcPort: evt.src_port,
+          dstIP: evt.dest_ip,
+          dstPort: evt.dest_port,
+          proto: evt.proto,
+          action: evt.alert?.action,
+          severity: evt.alert?.severity,
+          signature: evt.alert?.signature,
+          category: evt.alert?.category,
+          http: evt.http ? { method: evt.http.http_method, url: evt.http.url, userAgent: evt.http.http_user_agent } : null,
+          payload: evt.payload_printable || null,
+          _threatType: classification
+        }
+        alerts.push(normalized)
       } catch(e) {}
     }
     return alerts
