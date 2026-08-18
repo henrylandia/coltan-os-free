@@ -218,7 +218,11 @@ async function start() {
     const settings = await getSettings()
     settings.enabled = true
     await saveSettings(settings)
-    await execAsync('service suricata restart 2>&1')
+    // service suricata restart puede dejar residuos de config vieja en memoria en FreeBSD.
+    // stop + start por separado garantiza una recarga 100% limpia del yaml y las reglas.
+    await execAsync('service suricata stop 2>/dev/null || true')
+    await new Promise(r => setTimeout(r, 1500))
+    await execAsync('service suricata start 2>&1')
     return { success: true }
   } catch(e) { return { success: false, error: e.message } }
 }
