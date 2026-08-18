@@ -242,6 +242,7 @@
               Ocultar Policy Violations
             </label>
           </div>
+          <div id="threat-filters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"></div>
           <div class="alerts-box" id="alerts-container">
             <div style="padding:20px;color:var(--text-muted);text-align:center">Iniciá Suricata para comenzar el monitoreo</div>
           </div>
@@ -400,7 +401,7 @@
       document.getElementById('module-ids').className = 'module-section' + (mod === 'ids' ? ' active' : '')
       document.getElementById('card-dns').className = 'module-card' + (mod === 'dns' ? ' active' : '')
       document.getElementById('card-ids').className = 'module-card' + (mod === 'ids' ? ' active' : '')
-      if (mod === 'ids') { loadSuricataAlerts(); loadSuricataConfig(); loadAutoBlock() }
+      if (mod === 'ids') { loadThreatFilters(); loadSuricataAlerts(); loadSuricataConfig(); loadAutoBlock() }
     }
 
     // ── DNS TABS ──────────────────────────────────────────────────────────────
@@ -660,9 +661,36 @@
       if (ifaceLabel) ifaceLabel.textContent = data.interface ? 'en ' + data.interface : '—'
     }
 
+    let currentThreatFilter = 'all'
+
+    async function loadThreatFilters() {
+      const res = await fetch('/api/suricata/alerts/stats', { headers: h.headers })
+      const data = await res.json()
+      const container = document.getElementById('threat-filters')
+      if (!container) return
+
+      const chips = [
+        `<button class="btn btn-sm" style="padding:4px 12px;font-size:0.78rem;background:${currentThreatFilter==='all'?'rgba(79,142,247,0.15)':'rgba(255,255,255,0.05)'};border:1px solid ${currentThreatFilter==='all'?'var(--accent)':'var(--border)'};color:${currentThreatFilter==='all'?'var(--accent)':'var(--text-muted)'}" onclick="setThreatFilter('all')">Todas (${data.total})</button>`
+      ]
+      data.byType.forEach(t => {
+        const active = currentThreatFilter === t.key
+        chips.push(`<button class="btn btn-sm" style="padding:4px 12px;font-size:0.78rem;background:${active?'rgba(79,142,247,0.15)':'rgba(255,255,255,0.05)'};border:1px solid ${active?'var(--accent)':'var(--border)'};color:${active?'var(--accent)':'var(--text-muted)'}" onclick="setThreatFilter('${t.key}')">${t.icon} ${t.label} (${t.count})</button>`)
+      })
+      container.innerHTML = data.total === 0
+        ? '<span style="font-size:0.8rem;color:var(--text-muted)">Sin alertas registradas</span>'
+        : chips.join('')
+    }
+
+    function setThreatFilter(key) {
+      currentThreatFilter = key
+      loadThreatFilters()
+      loadSuricataAlerts()
+    }
+
     async function loadSuricataAlerts() {
+      const catParam = currentThreatFilter && currentThreatFilter !== 'all' ? '&category=' + currentThreatFilter : ''
       const [alertsRes, blockedRes] = await Promise.all([
-        fetch('/api/suricata/alerts?limit=100', { headers: h.headers }),
+        fetch('/api/suricata/alerts?limit=100' + catParam, { headers: h.headers }),
         fetch('/api/firewall/blocked-ips', { headers: h.headers })
       ])
       const data = await alertsRes.json()
@@ -868,7 +896,7 @@
       if (!confirm('Limpiar todas las alertas?')) return
       const res = await fetch('/api/suricata/alerts/clear', { method: 'POST', ...h, body: '{}' })
       const data = await res.json()
-      if (data.success) { showAlert('Alertas limpiadas'); loadSuricataAlerts() }
+      if (data.success) { showAlert('Alertas limpiadas'); currentThreatFilter = 'all'; loadThreatFilters(); loadSuricataAlerts() }
       else showAlert(data.error || 'Error', true)
     }
 

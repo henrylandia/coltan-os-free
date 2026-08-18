@@ -65,12 +65,50 @@ async function generateConfig(settings) {
   const mode = settings.mode || 'ids'
 
   let ruleFiles = [
+    // Malware, troyanos, spyware
     '  - /usr/local/etc/suricata/rules/emerging-malware.rules',
+    '  - /usr/local/etc/suricata/rules/emerging-mobile_malware.rules',
+    '  - /usr/local/etc/suricata/rules/emerging-coinminer.rules',
+    // Botnets y comando-y-control (C2) -- ransomware y malware moderno usan esto
     '  - /usr/local/etc/suricata/rules/botcc.rules',
+    '  - /usr/local/etc/suricata/rules/threatview_CS_c2.rules',
+    // Exploits, shellcode, kits de explotacion
     '  - /usr/local/etc/suricata/rules/emerging-exploit.rules',
-    '  - /usr/local/etc/suricata/rules/emerging-trojan.rules',
+    '  - /usr/local/etc/suricata/rules/emerging-exploit_kit.rules',
+    '  - /usr/local/etc/suricata/rules/emerging-shellcode.rules',
+    // Amenazas activas recientes (incluye variantes de ransomware conocidas)
+    '  - /usr/local/etc/suricata/rules/emerging-current_events.rules',
+    // Worms
+    '  - /usr/local/etc/suricata/rules/emerging-worm.rules',
+    // Ataques web: SQL injection, webshells, XSS, apps especificas vulnerables
+    '  - /usr/local/etc/suricata/rules/emerging-web_server.rules',
+    '  - /usr/local/etc/suricata/rules/emerging-web_client.rules',
+    '  - /usr/local/etc/suricata/rules/emerging-web_specific_apps.rules',
+    '  - /usr/local/etc/suricata/rules/emerging-sql.rules',
+    // Escaneos de puertos y reconocimiento
     '  - /usr/local/etc/suricata/rules/emerging-scan.rules',
     '  - /usr/local/etc/suricata/rules/emerging-user_agents.rules',
+    // Denegacion de servicio
+    '  - /usr/local/etc/suricata/rules/emerging-dos.rules',
+    // Senales de sistema ya comprometido (indicador de ataque exitoso)
+    '  - /usr/local/etc/suricata/rules/emerging-attack_response.rules',
+    // Phishing
+    '  - /usr/local/etc/suricata/rules/emerging-phishing.rules',
+    // Fuerza bruta y explotacion de servicios comunes (FTP, Telnet, RPC, NetBIOS)
+    '  - /usr/local/etc/suricata/rules/emerging-ftp.rules',
+    '  - /usr/local/etc/suricata/rules/emerging-telnet.rules',
+    '  - /usr/local/etc/suricata/rules/emerging-rpc.rules',
+    '  - /usr/local/etc/suricata/rules/emerging-netbios.rules',
+    // Uso de Tor (posible evasion/exfiltracion)
+    '  - /usr/local/etc/suricata/rules/tor.rules',
+    // Listas de IPs maliciosas conocidas (C2, bots, escaneadores, comprometidas)
+    '  - /usr/local/etc/suricata/rules/compromised.rules',
+    '  - /usr/local/etc/suricata/rules/dshield.rules',
+    '  - /usr/local/etc/suricata/rules/ciarmy.rules',
+    '  - /usr/local/etc/suricata/rules/drop.rules',
+    // NOTA: emerging-policy.rules y emerging-p2p.rules quedan EXCLUIDAS a proposito --
+    // esas categorias detectan uso de aplicaciones (Spotify, juegos, P2P, chat, etc),
+    // no ataques. Generaban ruido sin valor de seguridad real.
   ]
 
   const yaml = `%YAML 1.1
@@ -89,6 +127,11 @@ vars:
     SHELLCODE_PORTS: "!80"
     SSH_PORTS: 22
     DNP3_PORTS: 20000
+    ORACLE_PORTS: 1521
+    MODBUS_PORTS: 502
+    FTP_PORTS: 21
+    FILE_DATA_PORTS: "[80,110,143]"
+    SIP_PORTS: "[5060,5061]"
 default-log-dir: /var/log/suricata/
 stats:
   enabled: yes
@@ -190,7 +233,34 @@ async function stop() {
   } catch(e) { return { success: false, error: e.message } }
 }
 
-async function getAlerts(limit = 100) {
+// Taxonomia de amenazas: mapea las categorias crudas de Suricata/ET a un tipo
+// de ataque claro y profesional para mostrar en el panel y poder filtrar.
+const THREAT_TAXONOMY = [
+  { key: 'malware',   label: 'Malware / Troyanos',        icon: '🦠', match: ['trojan', 'malware', 'spyware', 'adware'] },
+  { key: 'ransomware',label: 'Ransomware',                 icon: '🔒', match: ['ransomware'] },
+  { key: 'botnet',    label: 'Botnet / Comando y Control', icon: '🕸️', match: ['command and control', 'botnet', 'cnc', 'c2'] },
+  { key: 'exploit',   label: 'Exploits',                   icon: '💥', match: ['exploit', 'privilege gain', 'shellcode', 'buffer overflow'] },
+  { key: 'webattack', label: 'Ataques Web (SQLi/XSS/Webshell)', icon: '🌐', match: ['web application attack', 'sql injection', 'webshell', 'cross site'] },
+  { key: 'scan',      label: 'Escaneos / Reconocimiento',  icon: '🔍', match: ['network scan', 'potentially bad traffic'] },
+  { key: 'dos',       label: 'Denegación de Servicio (DoS)', icon: '⚡', match: ['denial of service'] },
+  { key: 'bruteforce',label: 'Fuerza Bruta',                icon: '🔨', match: ['brute force', 'attempted user'] },
+  { key: 'phishing',  label: 'Phishing',                    icon: '🎣', match: ['phishing'] },
+  { key: 'worm',      label: 'Worms',                       icon: '🪱', match: ['worm'] },
+  { key: 'evasion',   label: 'Evasión / Tor / Anonimización', icon: '🥷', match: ['tor', 'anonymiz'] },
+  { key: 'malicious_ip', label: 'IP Maliciosa Conocida',     icon: '🚫', match: ['misc attack', 'known compromised', 'blacklist'] },
+  { key: 'info_leak', label: 'Fuga de Información',          icon: '📤', match: ['information leak'] },
+]
+
+function classifyAlert(category) {
+  if (!category) return { key: 'other', label: 'Otro / Sin clasificar', icon: '❓' }
+  const lower = category.toLowerCase()
+  for (const t of THREAT_TAXONOMY) {
+    if (t.match.some(m => lower.includes(m))) return { key: t.key, label: t.label, icon: t.icon }
+  }
+  return { key: 'other', label: 'Otro / Sin clasificar', icon: '❓' }
+}
+
+async function getAlerts(limit = 100, categoryFilter = null) {
   try {
     const content = await fs.readFile(EVE_LOG, 'utf8')
     const lines = content.trim().split('\n').filter(Boolean)
@@ -198,11 +268,40 @@ async function getAlerts(limit = 100) {
     for (let i = lines.length - 1; i >= 0 && alerts.length < limit; i--) {
       try {
         const evt = JSON.parse(lines[i])
-        if (evt.event_type === 'alert') alerts.push(evt)
+        if (evt.event_type !== 'alert') continue
+        const classification = classifyAlert(evt.alert?.category)
+        if (categoryFilter && categoryFilter !== 'all' && classification.key !== categoryFilter) continue
+        evt._threatType = classification
+        alerts.push(evt)
       } catch(e) {}
     }
     return alerts
   } catch(e) { return [] }
+}
+
+// Devuelve el conteo de alertas agrupadas por tipo de amenaza, para mostrar
+// los filtros con su cantidad en el panel.
+async function getAlertStats() {
+  try {
+    const content = await fs.readFile(EVE_LOG, 'utf8')
+    const lines = content.trim().split('\n').filter(Boolean)
+    const counts = {}
+    let total = 0
+    for (const line of lines) {
+      try {
+        const evt = JSON.parse(line)
+        if (evt.event_type !== 'alert') continue
+        total++
+        const classification = classifyAlert(evt.alert?.category)
+        counts[classification.key] = (counts[classification.key] || 0) + 1
+      } catch(e) {}
+    }
+    const byType = THREAT_TAXONOMY.map(t => ({ key: t.key, label: t.label, icon: t.icon, count: counts[t.key] || 0 }))
+      .filter(t => t.count > 0)
+    if (counts['other']) byType.push({ key: 'other', label: 'Otro / Sin clasificar', icon: '❓', count: counts['other'] })
+    byType.sort((a,b) => b.count - a.count)
+    return { total, byType }
+  } catch(e) { return { total: 0, byType: [] } }
 }
 
 async function clearAlerts() {
@@ -216,5 +315,6 @@ async function clearAlerts() {
 module.exports = {
   getSettings, saveSettings, getInterfaces,
   getStatus, start, stop,
-  getAlerts, clearAlerts
+  getAlerts, clearAlerts, getAlertStats,
+  classifyAlert, THREAT_TAXONOMY
 }
