@@ -99,6 +99,22 @@ async function settingsRoutes(fastify, options) {
     try {
       const { stdout: pull } = await execAsync('cd /opt/coltanos && git fetch origin main 2>&1 && git reset --hard origin/main 2>&1')
       const { stdout: hash } = await execAsync('cd /opt/coltanos && git rev-parse --short HEAD 2>/dev/null')
+
+      // Regenerar configs criticas con el codigo nuevo ANTES de reiniciar el backend,
+      // asi cualquier cambio en generadores de config (Suricata, etc) se aplica solo
+      // sin depender de que el usuario entre manualmente a guardar cada modulo de nuevo.
+      try {
+        const suricataSvc = require('../services/suricata.service')
+        const currentSettings = await suricataSvc.getSettings()
+        await suricataSvc.saveSettings(currentSettings)
+        // stop+start explicito: en FreeBSD "service restart" puede dejar config vieja en memoria
+        await execAsync('service suricata stop 2>/dev/null || true')
+        await new Promise(r => setTimeout(r, 1500))
+        await execAsync('service suricata start 2>&1 || true')
+      } catch(e) {
+        console.log('[Update] Advertencia regenerando Suricata:', e.message)
+      }
+
       setTimeout(() => execAsync('pm2 restart coltanos-backend 2>/dev/null'), 2000)
       return { success: true, output: pull.trim(), hash: hash.trim() }
     } catch(e) { return { success: false, error: e.message } }
