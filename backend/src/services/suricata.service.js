@@ -64,7 +64,26 @@ async function getInterfaces() {
   } catch(e) { return [] }
 }
 
+const COLTAN_LOCAL_RULES = '/usr/local/etc/suricata/rules/coltan-local.rules'
+
+// Reglas propias de Coltan OS -- no dependen del ruleset externo (ET) ni de SIDs
+// que puedan cambiar entre actualizaciones. Filtran por DOMINIO, no por IP,
+// para que funcionen igual sin importar el servidor o la IP publica de cada instalacion.
+async function ensureColtanLocalRules() {
+  const content = `# Coltan OS - Reglas propias del sistema (no del ruleset externo)
+# Ignoran trafico legitimo generado por el propio Coltan OS (heartbeat, geolocalizacion, etc)
+# para que no aparezca como alerta de seguridad. Se basan en el DOMINIO, no en IP.
+pass http any any -> any any (msg:"ColtanOS - Trafico interno del sistema (geolocalizacion heartbeat)"; http.host; content:"ip-api.com"; sid:9000001; rev:1;)
+pass tls any any -> any any (msg:"ColtanOS - Trafico interno del sistema (geolocalizacion heartbeat TLS)"; tls.sni; content:"ip-api.com"; sid:9000002; rev:1;)
+`
+  try {
+    await execAsync('mkdir -p /usr/local/etc/suricata/rules')
+    await fs.writeFile(COLTAN_LOCAL_RULES, content)
+  } catch(e) {}
+}
+
 async function generateConfig(settings) {
+  await ensureColtanLocalRules()
   const iface = settings.interface || 're0'
   const ifaces = settings.interfaces || [iface]
 
@@ -131,6 +150,7 @@ logging:
         filename: /var/log/suricata/suricata.log
 
 rule-files:
+  - /usr/local/etc/suricata/rules/coltan-local.rules
 ${ruleFiles.join('\n')}
 
 classification-file: /usr/local/etc/suricata/classification.config
