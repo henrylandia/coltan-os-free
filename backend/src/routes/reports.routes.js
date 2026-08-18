@@ -98,6 +98,19 @@ async function reportsRoutes(fastify, options) {
     return { ips: rows }
   })
 
+  // Borra el historial completo de ataques registrado para Reportes (independiente
+  // del log operativo de Suricata en /var/log/suricata/eve.json, que se limpia aparte).
+  fastify.post('/api/reports/attacks/clear', { onRequest: [fastify.authenticate] }, async (req, reply) => {
+    try {
+      const db = getDB()
+      const before = db.prepare('SELECT COUNT(*) as n FROM attack_log').get().n
+      db.prepare('DELETE FROM attack_log').run()
+      return { success: true, deleted: before }
+    } catch(e) {
+      return reply.code(500).send({ success: false, error: e.message })
+    }
+  })
+
   fastify.get('/api/reports/attacks/by-type', { onRequest: [fastify.authenticate] }, async (req, reply) => {
     const db = getDB()
     const { from, to } = req.query
