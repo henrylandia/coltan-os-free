@@ -153,7 +153,7 @@ async function processRecentAlerts() {
     // que no carga nada en memoria de Node, para traer solo las ultimas alertas recientes.
     let content = ''
     try {
-      const { stdout } = await execAsync(`tail -n 5000 ${EVE_LOG}`)
+      const { stdout } = await execAsync(`tail -n 5000 ${EVE_LOG}`, { maxBuffer: 50 * 1024 * 1024 })
       content = stdout
     } catch(e) { return }
     const lines = content.split('\n').filter(l => l.trim())

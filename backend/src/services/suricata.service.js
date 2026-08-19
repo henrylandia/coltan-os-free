@@ -35,7 +35,12 @@ async function saveSettings(settings) {
 async function getInterfaces() {
   try {
     const { stdout } = await execAsync('ifconfig -l')
-    return stdout.trim().split(/\s+/).filter(i => i !== 'lo0')
+    const names = stdout.trim().split(/\s+/).filter(i => i !== 'lo0')
+    let roles = {}
+    try {
+      roles = JSON.parse(await fs.readFile('/usr/local/etc/coltan/interfaces.json', 'utf8'))
+    } catch(e) {}
+    return names.map(name => ({ name, role: roles[name]?.role || 'unassigned' }))
   } catch(e) { return [] }
 }
 
@@ -273,7 +278,7 @@ async function getAlerts(limit = 100, categoryFilter = null) {
     const tailLines = Math.max(limit * 20, 5000)
     let content = ''
     try {
-      const { stdout } = await execAsync(`tail -n ${tailLines} ${EVE_LOG}`)
+      const { stdout } = await execAsync(`tail -n ${tailLines} ${EVE_LOG}`, { maxBuffer: 50 * 1024 * 1024 })
       content = stdout
     } catch(e) { return [] }
     const lines = content.trim().split('\n').filter(Boolean)
@@ -315,7 +320,7 @@ async function getAlertStats() {
     // Mismo motivo que getAlerts: nunca leer el archivo completo con readFile.
     let content = ''
     try {
-      const { stdout } = await execAsync(`tail -n 20000 ${EVE_LOG}`)
+      const { stdout } = await execAsync(`tail -n 20000 ${EVE_LOG}`, { maxBuffer: 50 * 1024 * 1024 })
       content = stdout
     } catch(e) { return { total: 0, byType: [] } }
     const lines = content.trim().split('\n').filter(Boolean)
