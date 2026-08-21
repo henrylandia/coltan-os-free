@@ -232,19 +232,23 @@
               </div>
             </div>
           </div>
-          <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;font-size:0.82rem;color:var(--text-muted)">
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
-              <input type="checkbox" id="filter-nosuspicious" checked onchange="loadSuricataAlerts()">
-              Ocultar "Not Suspicious Traffic"
-            </label>
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
-              <input type="checkbox" id="filter-policy" checked onchange="loadSuricataAlerts()">
-              Ocultar Policy Violations
-            </label>
-          </div>
           <div id="threat-filters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"></div>
           <div class="alerts-box" id="alerts-container">
             <div style="padding:20px;color:var(--text-muted);text-align:center">Iniciá Suricata para comenzar el monitoreo</div>
+          </div>
+          <div id="alerts-pagination" style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:0.82rem;color:var(--text-muted)"></div>
+        </div>
+
+        <!-- Modal de detalle de IP atacante -->
+        <div class="modal fade" id="ipDetailModal" tabindex="-1">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="ip-detail-title" style="font-size:0.95rem"><i class="bi bi-geo-alt me-2"></i>Detalle de IP</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body" id="ip-detail-body"></div>
+            </div>
           </div>
         </div>
 
@@ -649,7 +653,14 @@
       document.getElementById('ids-badge').className = running ? 'badge-running' : 'badge-stopped'
       document.getElementById('ids-mode-badge').textContent = mode === 'ips' ? 'IPS' : 'IDS'
       document.getElementById('ids-mode-badge').className = mode === 'ips' ? 'badge-ips' : 'badge-ids'
-      document.getElementById('ids-alerts').textContent = data.alerts || 0
+      // Usamos el total de la DB (attack_log) para que el badge sea consistente
+      // con los conteos que se muestran en los filtros de la pestaña Alertas.
+      fetch('/api/reports/attacks/by-type?from=2000-01-01&to=2099-01-01', { headers: h.headers })
+        .then(r => r.json())
+        .then(d => {
+          const total = (d.types || []).reduce((sum, t) => sum + t.total, 0)
+          document.getElementById('ids-alerts').textContent = total
+        }).catch(() => { document.getElementById('ids-alerts').textContent = data.alerts || 0 })
       document.getElementById('ids-detail').textContent = running
         ? (mode === 'ips' ? 'IPS — Bloqueando' : 'IDS — Monitoreando') + ' en ' + (data.interface || '—')
         : 'Suricata — Detenido'
@@ -662,79 +673,153 @@
     }
 
     let currentThreatFilter = 'all'
+    let currentPage = 0
+    const PAGE_SIZE = 25
 
     async function loadThreatFilters() {
-      const res = await fetch('/api/suricata/alerts/stats', { headers: h.headers })
+      const res = await fetch('/api/reports/attacks/by-type?from=2000-01-01&to=2099-01-01', { headers: h.headers })
       const data = await res.json()
       const container = document.getElementById('threat-filters')
       if (!container) return
 
+      const totalAll = (data.types || []).reduce((sum, t) => sum + t.total, 0)
       const chips = [
-        `<button class="btn btn-sm" style="padding:4px 12px;font-size:0.78rem;background:${currentThreatFilter==='all'?'rgba(79,142,247,0.15)':'rgba(255,255,255,0.05)'};border:1px solid ${currentThreatFilter==='all'?'var(--accent)':'var(--border)'};color:${currentThreatFilter==='all'?'var(--accent)':'var(--text-muted)'}" onclick="setThreatFilter('all')">Todas (${data.total})</button>`
+        `<button class="btn btn-sm" style="padding:4px 12px;font-size:0.78rem;background:${currentThreatFilter==='all'?'rgba(79,142,247,0.15)':'rgba(255,255,255,0.05)'};border:1px solid ${currentThreatFilter==='all'?'var(--accent)':'var(--border)'};color:${currentThreatFilter==='all'?'var(--accent)':'var(--text-muted)'}" onclick="setThreatFilter('all')">Todas (${totalAll})</button>`
       ]
-      data.byType.forEach(t => {
-        const active = currentThreatFilter === t.key
-        chips.push(`<button class="btn btn-sm" style="padding:4px 12px;font-size:0.78rem;background:${active?'rgba(79,142,247,0.15)':'rgba(255,255,255,0.05)'};border:1px solid ${active?'var(--accent)':'var(--border)'};color:${active?'var(--accent)':'var(--text-muted)'}" onclick="setThreatFilter('${t.key}')">${t.icon} ${t.label} (${t.count})</button>`)
+      ;(data.types || []).forEach(t => {
+        const active = currentThreatFilter === t.threat_key
+        chips.push(`<button class="btn btn-sm" style="padding:4px 12px;font-size:0.78rem;background:${active?'rgba(79,142,247,0.15)':'rgba(255,255,255,0.05)'};border:1px solid ${active?'var(--accent)':'var(--border)'};color:${active?'var(--accent)':'var(--text-muted)'}" onclick="setThreatFilter('${t.threat_key}')">${t.threat_icon} ${t.threat_label} (${t.total})</button>`)
       })
-      container.innerHTML = data.total === 0
+      container.innerHTML = totalAll === 0
         ? '<span style="font-size:0.8rem;color:var(--text-muted)">Sin alertas registradas</span>'
         : chips.join('')
     }
 
     function setThreatFilter(key) {
       currentThreatFilter = key
+      currentPage = 0
       loadThreatFilters()
       loadSuricataAlerts()
     }
 
     async function loadSuricataAlerts() {
-      const catParam = currentThreatFilter && currentThreatFilter !== 'all' ? '&category=' + currentThreatFilter : ''
-      const [alertsRes, blockedRes] = await Promise.all([
-        fetch('/api/suricata/alerts?limit=100' + catParam, { headers: h.headers }),
+      const container = document.getElementById('alerts-container')
+      const groupByIp = currentThreatFilter === 'all'
+      const params = new URLSearchParams({
+        threatKey: currentThreatFilter,
+        groupByIp: groupByIp ? 'true' : 'false',
+        limit: PAGE_SIZE,
+        offset: currentPage * PAGE_SIZE
+      })
+      const [listRes, blockedRes] = await Promise.all([
+        fetch('/api/reports/attacks/list?' + params, { headers: h.headers }),
         fetch('/api/firewall/blocked-ips', { headers: h.headers })
       ])
-      const data = await alertsRes.json()
+      const data = await listRes.json()
       const blockedData = await blockedRes.json()
       const blockedIPs = new Set((blockedData.ips || []).map(b => b.ip || b))
-      const container = document.getElementById('alerts-container')
-      const filterNoSusp = document.getElementById('filter-nosuspicious')?.checked
-      const filterPolicy = document.getElementById('filter-policy')?.checked
-      let alerts = data.alerts || []
-      if (filterNoSusp) alerts = alerts.filter(a => a.category !== 'Not Suspicious Traffic')
-      if (filterPolicy) alerts = alerts.filter(a => !a.category?.includes('Policy'))
-      if (alerts.length === 0) {
-        container.innerHTML = '<div style="padding:20px;color:var(--text-muted);text-align:center">No hay alertas' + (data.alerts.length > 0 ? ' (filtradas ' + data.alerts.length + ')' : '') + '</div>'
+      const rows = data.rows || []
+
+      if (rows.length === 0) {
+        container.innerHTML = '<div style="padding:20px;color:var(--text-muted);text-align:center">Sin alertas en esta categoría</div>'
+        document.getElementById('alerts-pagination').innerHTML = ''
         return
       }
-      container.innerHTML = alerts.map((a, i) => {
-        const sevColor = a.severity === 1 ? '#ef4444' : a.severity === 2 ? '#f59e0b' : '#64748b'
-        const actionBadge = a.action === 'blocked'
-          ? '<span style="background:rgba(239,68,68,0.2);color:#f87171;padding:1px 6px;border-radius:4px;font-size:0.72rem;margin-left:6px">BLOCKED</span>'
-          : '<span style="background:rgba(100,116,139,0.2);color:#94a3b8;padding:1px 6px;border-radius:4px;font-size:0.72rem;margin-left:6px">ALLOWED</span>'
-        const httpInfo = a.http ? `<div style="color:var(--text-muted);font-size:0.75rem;margin-top:4px;font-family:monospace">${a.http.method} ${a.http.url} · UA: ${a.http.userAgent || '—'}</div>` : ''
-        const payloadInfo = a.payload ? `<div style="color:#64748b;font-size:0.72rem;margin-top:4px;font-family:monospace;white-space:pre-wrap;background:rgba(0,0,0,0.2);padding:4px 8px;border-radius:4px;display:none" id="payload-${i}">${a.payload}</div>` : ''
-        const payloadBtn = a.payload ? `<span onclick="togglePayload(${i})" style="cursor:pointer;color:var(--accent);font-size:0.72rem;margin-left:8px">ver payload</span>` : ''
-        const blockBtn = blockedIPs.has(a.srcIP)
-          ? `<button onclick="unblockAlertIP('${a.srcIP}')" style="margin-left:12px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);color:#22c55e;padding:3px 10px;border-radius:6px;font-size:0.75rem;white-space:nowrap;cursor:pointer"><i class="bi bi-shield-check"></i> Unblock</button>`
-          : `<button onclick="blockAlertIP('${a.srcIP}')" style="margin-left:12px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;padding:3px 10px;border-radius:6px;font-size:0.75rem;white-space:nowrap;cursor:pointer"><i class="bi bi-shield-x"></i> Block IP</button>`
-        return `<div class="alert-row" style="border-left:3px solid ${sevColor}">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start">
-            <div style="flex:1">
-              <div><span style="color:#f59e0b;font-size:0.75rem">${a.timestamp ? new Date(a.timestamp).toLocaleString() : '—'}</span>${actionBadge}</div>
-              <div style="margin-top:3px"><strong style="color:var(--text-primary)">${a.signature || 'Unknown'}</strong>${payloadBtn}</div>
-              <div style="color:var(--text-muted);font-size:0.78rem;margin-top:2px">
-                <span style="color:#f87171">${a.srcIP || '—'}:${a.srcPort || ''}</span>
-                <span style="color:#64748b"> → </span>
-                <span style="color:#22c55e">${a.dstIP || '—'}:${a.dstPort || ''}</span>
-                <span style="color:#64748b;margin-left:8px">${a.proto || ''}</span>
-                ${a.category ? `<span style="color:#94a3b8;margin-left:8px">· ${a.category}</span>` : ''}
+
+      function blockToggleBtn(ip) {
+        return blockedIPs.has(ip)
+          ? `<button onclick="event.stopPropagation(); unblockAlertIP('${ip}')" style="background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);color:#22c55e;padding:3px 10px;border-radius:6px;font-size:0.75rem;white-space:nowrap;cursor:pointer"><i class="bi bi-shield-check"></i> Unblock</button>`
+          : `<button onclick="event.stopPropagation(); blockAlertIP('${ip}')" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;padding:3px 10px;border-radius:6px;font-size:0.75rem;white-space:nowrap;cursor:pointer"><i class="bi bi-shield-x"></i> Block IP</button>`
+      }
+
+      if (data.grouped) {
+        container.innerHTML = rows.map(r => `
+          <div class="alert-row" style="cursor:pointer" onclick="showIPDetail('${r.src_ip}')">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+              <div style="flex:1">
+                <div><strong style="color:var(--accent);font-family:monospace">${r.src_ip}</strong>
+                  <span style="color:var(--text-muted);font-size:0.75rem;margin-left:8px">${r.city ? r.city + ', ' : ''}${r.country || 'Desconocido'} · ${r.isp || '—'}</span>
+                </div>
+                <div style="font-size:0.78rem;color:var(--text-muted);margin-top:3px">${r.types || ''}</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px">Última actividad: ${new Date(r.last_seen*1000).toLocaleString('es-AR')}</div>
               </div>
-              ${httpInfo}${payloadInfo}
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="background:rgba(245,158,11,0.15);color:#f59e0b;padding:2px 10px;border-radius:999px;font-size:0.78rem;font-weight:700">${r.total}</span>
+                ${blockToggleBtn(r.src_ip)}
+              </div>
             </div>
-            ${blockBtn}
-          </div>
+          </div>`).join('')
+      } else {
+        container.innerHTML = rows.map(r => `
+          <div class="alert-row">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+              <div style="flex:1">
+                <div><span style="color:#f59e0b;font-size:0.75rem">${new Date(r.detected_at*1000).toLocaleString('es-AR')}</span></div>
+                <div style="margin-top:3px"><strong style="color:var(--text-primary)">${r.signature || 'Sin firma'}</strong></div>
+                <div style="color:var(--text-muted);font-size:0.78rem;margin-top:2px">
+                  <span style="color:#f87171;cursor:pointer" onclick="showIPDetail('${r.src_ip}')">${r.src_ip}</span>
+                  <span style="color:#64748b"> → </span>
+                  <span style="color:#22c55e">192.168.x.x:${r.dest_port || ''}</span>
+                  <span style="color:#64748b;margin-left:8px">${r.proto || ''}</span>
+                  <span style="color:#94a3b8;margin-left:8px">· ${r.city ? r.city + ', ' : ''}${r.country || '—'} · ${r.isp || '—'}</span>
+                </div>
+              </div>
+              ${blockToggleBtn(r.src_ip)}
+            </div>
+          </div>`).join('')
+      }
+
+      // Paginacion
+      const totalPages = Math.ceil(data.total / PAGE_SIZE)
+      const pagDiv = document.getElementById('alerts-pagination')
+      if (totalPages <= 1) {
+        pagDiv.innerHTML = `<span>${data.total} resultado${data.total !== 1 ? 's' : ''}</span>`
+      } else {
+        pagDiv.innerHTML = `
+          <span>Página ${currentPage + 1} de ${totalPages} — ${data.total} resultados</span>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-sm btn-primary-soft" ${currentPage === 0 ? 'disabled' : ''} onclick="changePage(-1)"><i class="bi bi-chevron-left"></i> Anterior</button>
+            <button class="btn btn-sm btn-primary-soft" ${currentPage >= totalPages - 1 ? 'disabled' : ''} onclick="changePage(1)">Siguiente <i class="bi bi-chevron-right"></i></button>
+          </div>`
+      }
+    }
+
+    function changePage(delta) {
+      currentPage += delta
+      if (currentPage < 0) currentPage = 0
+      loadSuricataAlerts()
+    }
+
+    let _ipDetailModal
+    async function showIPDetail(ip) {
+      const [res, blockedRes] = await Promise.all([
+        fetch('/api/reports/attacks/by-ip/' + encodeURIComponent(ip), { headers: h.headers }),
+        fetch('/api/firewall/blocked-ips', { headers: h.headers })
+      ])
+      const data = await res.json()
+      const blockedData = await blockedRes.json()
+      const isBlocked = (blockedData.ips || []).some(b => (b.ip || b) === ip)
+      document.getElementById('ip-detail-title').innerHTML = `<i class="bi bi-geo-alt me-2"></i>${ip}`
+      document.getElementById('ip-detail-body').innerHTML = `
+        <div style="background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:14px">
+          <div style="font-size:0.85rem"><i class="bi bi-flag me-2"></i>${data.city ? data.city + ', ' : ''}${data.country || 'Desconocido'}</div>
+          <div style="font-size:0.85rem;margin-top:4px"><i class="bi bi-building me-2"></i>${data.isp || 'ISP desconocido'}</div>
+          <div style="font-size:0.85rem;margin-top:4px"><i class="bi bi-list-ol me-2"></i>${data.totalEvents} evento${data.totalEvents !== 1 ? 's' : ''} registrado${data.totalEvents !== 1 ? 's' : ''}</div>
+        </div>
+        <div style="font-size:0.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Actividad detectada</div>
+        ${(data.events || []).map(e => `
+          <div style="background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px">
+            <div style="font-size:0.75rem;color:var(--text-muted)">${new Date(e.detected_at*1000).toLocaleString('es-AR')}</div>
+            <div style="font-size:0.82rem;margin-top:2px">${e.threat_icon || ''} ${e.signature || 'Sin firma'}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">${e.proto || ''}${e.dest_port ? ':' + e.dest_port : ''} · ${e.threat_label || e.attack_type || '—'}</div>
+          </div>`).join('')}
+        <div class="mt-3 d-flex gap-2">
+          ${isBlocked
+            ? `<button class="btn btn-success-soft btn-sm" onclick="unblockAlertIP('${ip}'); _ipDetailModal.hide()"><i class="bi bi-shield-check me-1"></i>Desbloquear IP</button>`
+            : `<button class="btn btn-danger-soft btn-sm" onclick="blockAlertIP('${ip}'); _ipDetailModal.hide()"><i class="bi bi-shield-x me-1"></i>Bloquear IP</button>`}
         </div>`
-      }).join('')
+      if (!_ipDetailModal) _ipDetailModal = new bootstrap.Modal(document.getElementById('ipDetailModal'))
+      _ipDetailModal.show()
     }
 
     async function loadSuricataConfig() {

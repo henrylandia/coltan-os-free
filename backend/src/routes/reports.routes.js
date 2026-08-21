@@ -111,6 +111,62 @@ async function reportsRoutes(fastify, options) {
     }
   })
 
+  // ── Lista de alertas para el modulo Suricata > Alertas (paginada, con agrupacion por IP) ──
+  fastify.get('/api/reports/attacks/list', { onRequest: [fastify.authenticate] }, async (req, reply) => {
+    const db = getDB()
+    const { threatKey, groupByIp, limit = 25, offset = 0 } = req.query
+    const lim = Math.min(parseInt(limit) || 25, 100)
+    const off = parseInt(offset) || 0
+
+    if (groupByIp === 'true' && (!threatKey || threatKey === 'all')) {
+      // Vista "Todas": agrupamos por IP de origen, mostrando cuantos eventos y de que tipos
+      const totalRow = db.prepare('SELECT COUNT(DISTINCT src_ip) as n FROM attack_log').get()
+      const rows = db.prepare(`
+        SELECT src_ip, country, country_code, city, isp,
+               COUNT(*) as total,
+               MAX(detected_at) as last_seen,
+               GROUP_CONCAT(DISTINCT threat_icon || ' ' || threat_label) as types
+        FROM attack_log
+        GROUP BY src_ip
+        ORDER BY last_seen DESC
+        LIMIT ? OFFSET ?
+      `).all(lim, off)
+      return { grouped: true, total: totalRow.n, rows }
+    }
+
+    // Vista filtrada por tipo especifico: lista plana de eventos individuales
+    let query = 'SELECT * FROM attack_log'
+    let countQuery = 'SELECT COUNT(*) as n FROM attack_log'
+    const params = []
+    if (threatKey && threatKey !== 'all') {
+      query += ' WHERE threat_key = ?'
+      countQuery += ' WHERE threat_key = ?'
+      params.push(threatKey)
+    }
+    const totalRow = db.prepare(countQuery).get(...params)
+    query += ' ORDER BY detected_at DESC LIMIT ? OFFSET ?'
+    const rows = db.prepare(query).all(...params, lim, off)
+    return { grouped: false, total: totalRow.n, rows }
+  })
+
+  // ── Detalle de una IP especifica: geo + lista de sus eventos ────────────────
+  fastify.get('/api/reports/attacks/by-ip/:ip', { onRequest: [fastify.authenticate] }, async (req, reply) => {
+    const db = getDB()
+    const ip = req.params.ip
+    const rows = db.prepare(`
+      SELECT * FROM attack_log WHERE src_ip = ? ORDER BY detected_at DESC LIMIT 100
+    `).all(ip)
+    if (rows.length === 0) return { ip, events: [] }
+    const first = rows[0]
+    return {
+      ip,
+      country: first.country, countryCode: first.country_code,
+      city: first.city, isp: first.isp,
+      totalEvents: rows.length,
+      events: rows
+    }
+  })
+
   fastify.get('/api/reports/attacks/by-type', { onRequest: [fastify.authenticate] }, async (req, reply) => {
     const db = getDB()
     const { from, to } = req.query
