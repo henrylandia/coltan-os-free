@@ -978,11 +978,22 @@
     }
 
     async function clearAlerts() {
-      if (!confirm('Limpiar todas las alertas?')) return
-      const res = await fetch('/api/suricata/alerts/clear', { method: 'POST', ...h, body: '{}' })
-      const data = await res.json()
-      if (data.success) { showAlert('Alertas limpiadas'); currentThreatFilter = 'all'; loadThreatFilters(); loadSuricataAlerts() }
-      else showAlert(data.error || 'Error', true)
+      if (!confirm('¿Limpiar TODAS las alertas? Esto borra el log en vivo de Suricata y el historial guardado (usado en esta pestaña y en Reportes). No se puede deshacer.')) return
+      const [res1, res2] = await Promise.all([
+        fetch('/api/suricata/alerts/clear', { method: 'POST', ...h, body: '{}' }),
+        fetch('/api/reports/attacks/clear', { method: 'POST', ...h, body: '{}' })
+      ])
+      const data1 = await res1.json()
+      const data2 = await res2.json()
+      if (data1.success && data2.success) {
+        showAlert('Alertas limpiadas (' + (data2.deleted || 0) + ' registros eliminados)')
+        currentThreatFilter = 'all'
+        currentPage = 0
+        loadThreatFilters()
+        loadSuricataAlerts()
+      } else {
+        showAlert(data1.error || data2.error || 'Error limpiando alertas', true)
+      }
     }
 
     // ── INIT ──────────────────────────────────────────────────────────────────
