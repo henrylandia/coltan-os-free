@@ -772,15 +772,25 @@
 
         // Suricata
         try {
-          const sRes = await fetch('/api/suricata/status', { headers: h.headers })
+          const [sRes, countRes] = await Promise.all([
+            fetch('/api/suricata/status', { headers: h.headers }),
+            fetch('/api/reports/attacks/count', { headers: h.headers }).catch(() => null)
+          ])
           const sData = await sRes.json()
+          // Usamos el conteo real de la DB (attack_log) si esta disponible (Premium),
+          // consistente con lo que muestra Security > Suricata > Alertas.
+          let alertCount = sData.alerts || 0
+          if (countRes && countRes.ok) {
+            const countData = await countRes.json()
+            if (typeof countData.total === 'number') alertCount = countData.total
+          }
           document.getElementById('suricata-summary').innerHTML = `
             <div class="sec-item">
               <div>
                 <div style="font-size:0.82rem;color:var(--text-primary)">${sData.running?(sData.mode==='ips'?'IPS':'IDS')+' — Running':'Detenido'}</div>
                 <div class="sec-label">en ${sData.interface||'—'}</div>
               </div>
-              <div class="sec-count">${sData.alerts||0} <span style="font-size:0.72rem;color:var(--text-muted)">alertas</span></div>
+              <div class="sec-count">${alertCount} <span style="font-size:0.72rem;color:var(--text-muted)">alertas</span></div>
             </div>`
         } catch(e) {}
 
