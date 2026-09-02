@@ -128,16 +128,26 @@ async function reportsRoutes(fastify, options) {
     if (groupByIp === 'true' && (!threatKey || threatKey === 'all')) {
       // Vista "Todas": agrupamos por IP de origen, mostrando cuantos eventos y de que tipos
       const totalRow = db.prepare('SELECT COUNT(DISTINCT src_ip) as n FROM attack_log').get()
-      const rows = db.prepare(`
-        SELECT src_ip, country, country_code, city, isp,
-               COUNT(*) as total,
-               MAX(detected_at) as last_seen,
-               GROUP_CONCAT(DISTINCT threat_icon || ' ' || threat_label) as types
+      // Optimizacion: primero identificamos, usando el indice (src_ip, detected_at),
+      // las IPs con actividad mas reciente SIN agregar todavia (rapido, aprovecha indice).
+      // Recien despues agregamos (COUNT, GROUP_CONCAT) pero solo sobre ese subconjunto chico,
+      // en vez de sobre las 60k+ filas de la tabla entera.
+      const recentIps = db.prepare(`
+        SELECT src_ip, MAX(detected_at) as last_seen
         FROM attack_log
         GROUP BY src_ip
         ORDER BY last_seen DESC
         LIMIT ? OFFSET ?
       `).all(lim, off)
+      const rows = recentIps.map(r => {
+        const detail = db.prepare(`
+          SELECT country, country_code, city, isp,
+                 COUNT(*) as total,
+                 GROUP_CONCAT(DISTINCT threat_icon || ' ' || threat_label) as types
+          FROM attack_log WHERE src_ip = ?
+        `).get(r.src_ip)
+        return { src_ip: r.src_ip, last_seen: r.last_seen, ...detail }
+      })
       return { grouped: true, total: totalRow.n, rows }
     }
 

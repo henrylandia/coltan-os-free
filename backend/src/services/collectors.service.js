@@ -37,6 +37,7 @@ async function collectTraffic() {
 
 // ─── SURICATA COLLECTOR ───────────────────────────────────────────────────────
 let _suricataPos = 0
+let _suricataPosInitialized = false
 
 function getGeoIP(ip) {
   return new Promise((resolve) => {
@@ -60,6 +61,20 @@ async function collectSuricataAlerts() {
   try {
     const stat = fs.statSync(EVE_FILE)
 
+    // En el PRIMER ciclo tras un arranque/reinicio del backend, _suricataPos
+    // esta en 0 (se pierde en memoria al reiniciar). Si el archivo ya tiene
+    // contenido acumulado de antes, NO lo releemos entero (puede pesar GB y
+    // tumbar el proceso por falta de memoria) -- saltamos directo al final,
+    // asumiendo que ese historial ya fue procesado en su momento.
+    if (!_suricataPosInitialized) {
+      _suricataPosInitialized = true
+      if (_suricataPos === 0 && stat.size > 0) {
+        _suricataPos = stat.size
+        console.log('[Collector:Suricata] Arranque: posicionado al final del archivo (' + stat.size + ' bytes)')
+        return
+      }
+    }
+
     // Si el archivo rotó o encogió, empezamos desde el final
     if (stat.size < _suricataPos) {
       _suricataPos = stat.size
@@ -68,6 +83,14 @@ async function collectSuricataAlerts() {
     if (stat.size === _suricataPos) return
 
     const readSize = stat.size - _suricataPos
+
+    // Defensa extra: si quedamos muy atrasados, no leemos todo de una,
+    // saltamos al final para priorizar estabilidad del proceso.
+    if (readSize > 50 * 1024 * 1024) {
+      console.log('[Collector:Suricata] Demasiado atrasado (' + readSize + ' bytes), saltando al final')
+      _suricataPos = stat.size
+      return
+    }
     if (readSize <= 0) return
 
     const fd = fs.openSync(EVE_FILE, 'r')

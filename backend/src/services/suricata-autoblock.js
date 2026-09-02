@@ -130,7 +130,19 @@ async function processNewLines() {
       filePosition = 0
     }
     if (stat.size === filePosition) return
-    const buf = Buffer.alloc(stat.size - filePosition)
+
+    // Defensa extra: si por cualquier motivo quedamos muy atrasados (mas de 50MB
+    // pendientes de leer), no intentamos un Buffer.alloc gigante -- saltamos al
+    // final y seguimos desde ahi, priorizando estabilidad sobre no perder eventos
+    // viejos (que igual siguen en el eve.json para revisar manualmente si hace falta).
+    const pending = stat.size - filePosition
+    if (pending > 50 * 1024 * 1024) {
+      console.log(`[AutoBlock] Demasiado atrasado (${pending} bytes pendientes), saltando al final`)
+      filePosition = stat.size
+      return
+    }
+
+    const buf = Buffer.alloc(pending)
     const fd = fs.openSync(EVE_LOG, 'r')
     fs.readSync(fd, buf, 0, buf.length, filePosition)
     fs.closeSync(fd)
@@ -187,15 +199,27 @@ async function processRecentAlerts() {
 function startWatcher() {
   if (pollingInterval) return
   console.log(`[AutoBlock] Iniciando polling en ${EVE_LOG}`)
+  // IMPORTANTE: el setInterval debe arrancar RECIEN despues de fijar filePosition
+  // al final del archivo. Si arranca antes (en paralelo con processRecentAlerts),
+  // puede ejecutarse con filePosition todavia en 0 e intentar leer el archivo
+  // ENTERO de una vez -- con archivos grandes (cientos de MB o mas) esto tira
+  // "Cannot create a string longer..." y tumba el proceso.
   processRecentAlerts().then(() => {
     try {
       const stat = fs.statSync(EVE_LOG)
       filePosition = stat.size
     } catch(e) { filePosition = 0 }
     console.log(`[AutoBlock] Posicion inicial: ${filePosition} bytes`)
+    pollingInterval = setInterval(processNewLines, 5000)
+  }).catch(() => {
+    // Aun si processRecentAlerts fallo, arrancamos el polling igual pero con
+    // filePosition posicionado al final para evitar el mismo problema.
+    try {
+      const stat = fs.statSync(EVE_LOG)
+      filePosition = stat.size
+    } catch(e) { filePosition = 0 }
+    pollingInterval = setInterval(processNewLines, 5000)
   })
-  // Polling cada 5 segundos - mas confiable que fs.watch en FreeBSD
-  pollingInterval = setInterval(processNewLines, 5000)
 }
 
 function stopWatcher() {
