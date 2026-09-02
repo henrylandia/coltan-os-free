@@ -111,6 +111,13 @@ async function reportsRoutes(fastify, options) {
     }
   })
 
+  // Conteo total liviano, para el badge del dashboard (evita escanear/agrupar toda la tabla)
+  fastify.get('/api/reports/attacks/count', { onRequest: [fastify.authenticate] }, async (req, reply) => {
+    const db = getDB()
+    const total = db.prepare('SELECT COUNT(*) as n FROM attack_log').get().n
+    return { total }
+  })
+
   // ── Lista de alertas para el modulo Suricata > Alertas (paginada, con agrupacion por IP) ──
   fastify.get('/api/reports/attacks/list', { onRequest: [fastify.authenticate] }, async (req, reply) => {
     const db = getDB()

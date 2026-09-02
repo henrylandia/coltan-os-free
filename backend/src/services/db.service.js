@@ -92,6 +92,8 @@ function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_attack_ip ON attack_log(src_ip);
     CREATE INDEX IF NOT EXISTS idx_attack_time ON attack_log(detected_at);
     CREATE INDEX IF NOT EXISTS idx_attack_country ON attack_log(country_code);
+    CREATE INDEX IF NOT EXISTS idx_attack_threat_key ON attack_log(threat_key);
+    CREATE INDEX IF NOT EXISTS idx_attack_ip_time ON attack_log(src_ip, detected_at);
   `)
 
   // Migracion defensiva para instalaciones existentes: agregar columnas nuevas si faltan

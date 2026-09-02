@@ -653,14 +653,11 @@
       document.getElementById('ids-badge').className = running ? 'badge-running' : 'badge-stopped'
       document.getElementById('ids-mode-badge').textContent = mode === 'ips' ? 'IPS' : 'IDS'
       document.getElementById('ids-mode-badge').className = mode === 'ips' ? 'badge-ips' : 'badge-ids'
-      // Usamos el total de la DB (attack_log) para que el badge sea consistente
-      // con los conteos que se muestran en los filtros de la pestaña Alertas.
-      fetch('/api/reports/attacks/by-type?from=2000-01-01&to=2099-01-01', { headers: h.headers })
+      // Conteo liviano (solo COUNT, sin agrupar) para que el badge no cargue el sistema.
+      fetch('/api/reports/attacks/count', { headers: h.headers })
         .then(r => r.json())
-        .then(d => {
-          const total = (d.types || []).reduce((sum, t) => sum + t.total, 0)
-          document.getElementById('ids-alerts').textContent = total
-        }).catch(() => { document.getElementById('ids-alerts').textContent = data.alerts || 0 })
+        .then(d => { document.getElementById('ids-alerts').textContent = d.total || 0 })
+        .catch(() => { document.getElementById('ids-alerts').textContent = data.alerts || 0 })
       document.getElementById('ids-detail').textContent = running
         ? (mode === 'ips' ? 'IPS — Bloqueando' : 'IDS — Monitoreando') + ' en ' + (data.interface || '—')
         : 'Suricata — Detenido'
@@ -1000,7 +997,7 @@
     loadDnsStatus()
     loadDnsSettings()
     loadSuricataStatus()
-    setInterval(() => { loadDnsStatus(); loadSuricataStatus() }, 5000)
+    setInterval(() => { loadDnsStatus(); loadSuricataStatus() }, 15000)
   </script>
 </body>
 </html>
